@@ -25,6 +25,19 @@ class Score(BaseModel):
         return all(getattr(self, c) == 2 for c in CRITERIA)
 
 
+VERDICT_TH = {"correct": "ถูกต้อง", "partial": "ถูกบางส่วน", "incorrect": "ไม่ถูกต้อง"}
+
+
+def gold_text(row: dict) -> str:
+    """Reference for the judge/few-shot: the reviewed column H, plus the draft in G when H is
+    a verdict on it (H alone like "ถูกต้อง" or "ขาดมาตรา 27" is meaningless without G)."""
+    h = row.get("h_raw") or row.get("gold_answer", "")
+    if not row.get("g_verdict"):
+        return h
+    return (f"เฉลยฉบับร่าง (ยังมีจุดผิด): {row.get('draft_answer', '')}\n"
+            f"ผลตรวจร่าง ({VERDICT_TH[row['g_verdict']]}) และการแก้ไขที่ถูกต้อง: {h}")
+
+
 def judge(question: str, gold: str, answer_md: str) -> Score:
     version, body = prompt("judge")
     return generate_json(body.format(question=question, gold=gold, answer=answer_md), Score,

@@ -171,7 +171,7 @@ runs(id, question_id, config jsonb, trace jsonb, answer_json, cost_usd, tokens, 
 2. จับไม่ได้ → LLM ช่วยเสนอ พร้อมเก็บ `evidence` (ข้อความที่อ้าง)
 3. คนตรวจ → `docs/review/links_review.csv` (ส่งอาจารย์ดูได้)
 
-**ลำดับชั้นเมื่อขัดกัน:** กฎหมายลูกกำหนดรายละเอียดภายในกรอบที่แม่ให้ · ถ้าลูกเกินกรอบแม่ → ระบบแจ้งว่าอาจขัด และยึดกฎหมายแม่ (rule ใน `src/agent/rules/hierarchy.py` — ให้อาจารย์ยืนยันหลักนี้)
+**ลำดับชั้นเมื่อขัดกัน:** กฎหมายลูกกำหนดรายละเอียดภายในกรอบที่แม่ให้ · ถ้าลูกเกินกรอบแม่ → ระบบแจ้งว่าอาจขัด และยึดกฎหมายแม่ (rule ใน `src/agent/rules/hierarchy.py` — ทีมตัดสิน ดู `docs/decisions.md` #2)
 
 ### 5.2 Retrieval tools (`src/index/tools.py`)
 | Tool | หน้าที่ |
@@ -230,12 +230,12 @@ class DecisionModel(Protocol):
 - ค่าจ้างวันหยุดพักผ่อนประจำปีที่ไม่ได้ใช้
 - ดอกเบี้ยและเงินเพิ่ม (ม.9)
 - แปลงค่าจ้าง: รายเดือน ↔ รายวัน ↔ รายชั่วโมง (ระบุสูตรที่ใช้ใน steps)
-- unit test ทุกฟังก์ชัน โดยเทียบกับตัวอย่างใน dev100 ที่มีการคำนวณ + ให้อาจารย์ยืนยันอย่างน้อย 3 เคส
+- unit test ทุกฟังก์ชัน โดยเทียบกับตัวอย่างใน dev100 ที่มีการคำนวณ + เทียบเฉลย dev100 ที่มีการคำนวณ (ดู `docs/decisions.md` #3–5)
 
 ### 5.6 Taxonomy + Elements (`data/processed/issues.yaml`)
 - เริ่มจากประเด็นใน dev100 (ติดแท็กทุกข้อ) → รวมเป็น 20–40 ประเด็น
 - แต่ละประเด็น: `code, name, elements[], primary_provisions[], formula_key?, common_pitfalls[]`
-- **ส่งอาจารย์ตรวจในกลุ่ม LINE** ก่อนใช้จริง → บันทึก `reviewed_by`
+- อาจารย์ **ไม่** ตรวจ taxonomy (2026-10-01) → ทีมรีวิวเอง `docs/review/taxonomy_review.md` และตัดสินจากผล eval
 
 ### 5.7 Dynamic few-shot
 - คลัง = dev100 ที่ `verified=true` → ดึง 2 ข้อที่ issue overlap สูงสุด (tie-break ด้วย embedding)
@@ -304,7 +304,7 @@ make export-160   # (เฟส 2 เท่านั้น) รัน test160 →
 ## 7. การวัดผล
 
 - **Judge (`src/eval/judge.py`):** Gemini ให้คะแนนตาม rubric §3 → 6 เกณฑ์ + PASS + เหตุผล
-  - **Calibrate กับคะแนนอาจารย์ของ baseline** (ขอผลรายข้อ) → รายงาน agreement ต่อเกณฑ์ (Cohen's κ)
+  - ไม่มีคะแนนอาจารย์รายข้อ → รายงาน PASS ของ judge คู่กับ "มาตราในเฉลยที่คำตอบอ้าง" (ไม่ใช้ judge) เสมอ · ถ้าได้คะแนนอาจารย์ภายหลังค่อยคำนวณ κ
   - ถ้า κ ต่ำในเกณฑ์ใด → ปรับ prompt judge ก่อนเชื่อผล
 - **Metrics ทุกครั้ง:** PASS rate, % ได้ 2 รายเกณฑ์, retrieval Recall@10 (เทียบ gold_citations), citation hallucination rate (ต้อง = 0), ECE ของ DecisionModel, cost/คำถาม, latency p50/p95
 - **Error analysis:** ทุกข้อที่ไม่ PASS ติดป้ายสาเหตุ `retrieval | selection | elements | calc | drafting | contradiction | format` → แก้กลุ่มใหญ่สุดก่อน
@@ -324,7 +324,7 @@ make export-160   # (เฟส 2 เท่านั้น) รัน test160 →
 6. ห้ามเปิด/อ่าน `data/eval/test160.csv` นอกจากคำสั่ง `make export-160` ในเฟส 2
 7. Cache embedding และ LLM call (key = hash(prompt+model+params)) · เคารพ rate limit
 8. โค้ด/comment ภาษาอังกฤษ · ข้อความที่ผู้ใช้เห็นภาษาไทย
-9. ไม่แน่ใจเรื่องกฎหมาย → เขียนคำถามใน `docs/questions_for_professors.md` (Frank จะถามในกลุ่ม LINE) **อย่าเดา**
+9. ไม่แน่ใจเรื่องกฎหมาย → **อย่าเดา**: หาหลักฐานจากตัวบทใน DB / เฉลย dev100 แล้วบันทึกใน `docs/decisions.md` · ถ้ายังไม่แน่ชัด ให้คำตอบแสดงเงื่อนไข/สมมติฐาน (อาจารย์ไม่ตอบคำถามระหว่างพัฒนา)
 10. Git: branch `feat/<topic>`, commit เล็กและอธิบายชัด, main ต้อง test ผ่านเสมอ
 11. งบ API: ถ้ารัน eval เต็มชุดเกิน 3 ครั้ง/วัน ให้ใช้ subset 30 ข้อ (stratified ตาม difficulty) ก่อน
 
@@ -338,5 +338,5 @@ make export-160   # (เฟส 2 เท่านั้น) รัน test160 →
 - [ ] ข้อมูลฎีกาที่คนเก่าดึงไว้
 - [x] dev100 (100 ข้อ DEV) · [ ] คะแนน baseline รายข้อ
 - [x] Gemini API key · [ ] budget alert
-- [ ] กลุ่ม LINE กับอาจารย์ 3 ท่าน
+- [x] อาจารย์: **ดูเฉพาะคำตอบบนเว็บ** ไม่ตรวจ taxonomy/ไม่ตอบคำถาม (2026-10-01)
 - [ ] test160 (ก่อนเริ่มเฟส 2)

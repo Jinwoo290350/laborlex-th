@@ -100,7 +100,8 @@ def _calcs_block(state: AgentState) -> str:
 
 def _examples_block(state: AgentState) -> str:
     ex = pick_examples(state)
-    return "\n\n".join(f"คำถาม: {r['question']}\nเฉลย: {r['gold_answer']}" for r in ex) or "-"
+    from src.eval.judge import gold_text
+    return "\n\n".join(f"คำถาม: {r['question']}\nเฉลย: {gold_text(r)}" for r in ex) or "-"
 
 
 def draft_prompt(state: AgentState, feedback: str = "") -> str:

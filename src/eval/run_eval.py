@@ -17,7 +17,7 @@ from datetime import datetime
 from pathlib import Path
 
 from src.config import settings
-from src.eval.judge import CRITERIA, judge
+from src.eval.judge import CRITERIA, gold_text, judge
 from src.llm import USAGE
 
 
@@ -71,7 +71,7 @@ def run_one(row: dict, loo: bool, out_dir: Path) -> dict:
     latency = time.monotonic() - t0
     cited = {":".join(k.split(":")[:2]) for k in (answer_json and _all_keys(answer_json)) or []}
     gold = {g for g in row.get("gold_citations", "").split(";") if g}
-    score = judge(row["question"], row["gold_answer"], md) if md else None
+    score = judge(row["question"], gold_text(row), md) if md else None
     rec = {"id": row["id"], "difficulty": row.get("difficulty"), "category": row.get("category"),
            "latency_s": round(latency, 1), "error": err, "removed_citations": removed,
            "unknown_sections": unknown, "score": score.model_dump() if score else None,
