@@ -11,5 +11,6 @@ data/**
 !data/raw/MANIFEST.csv
 !data/processed/issues.yaml
 !data/processed/rates.yaml
+!data/processed/laws.yaml
 data/eval/test160.csv
 .DS_Store

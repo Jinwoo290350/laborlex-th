@@ -8,13 +8,16 @@ CREATE TABLE IF NOT EXISTS laws (
     level         SMALLINT NOT NULL CHECK (level BETWEEN 1 AND 4),
     enacted_date  DATE,
     source_file   TEXT,
-    parent_law_id INT REFERENCES laws(id)
+    parent_law_id INT REFERENCES laws(id),
+    quality       TEXT,                            -- krisdika_pdf | docx | docx_ocr
+    note          TEXT
 );
 
 CREATE TABLE IF NOT EXISTS provisions (
     id           SERIAL PRIMARY KEY,
     law_id       INT NOT NULL REFERENCES laws(id),
     chapter      TEXT,
+    chapter_title TEXT,
     section_no   TEXT NOT NULL,                    -- "118", "17/1", "ข้อ 3"
     paragraph_no INT NOT NULL DEFAULT 1,
     sub_no       TEXT,                             -- "(1)" or NULL
@@ -22,6 +25,8 @@ CREATE TABLE IF NOT EXISTS provisions (
     valid_from   DATE,
     valid_to     DATE,                             -- NULL = still in force
     amended_by   INT REFERENCES laws(id),
+    repealed     BOOLEAN NOT NULL DEFAULT FALSE,
+    amendment_notes TEXT[] NOT NULL DEFAULT '{}',  -- krisdika footnotes, e.g. "… เพิ่มโดย … (ฉบับที่ 7) พ.ศ. 2562"
     citation_key TEXT NOT NULL,
     embedding    vector(1024),
     -- same citation_key may exist in several versions; one row per version

@@ -1,0 +1,172 @@
+# Law registry: one entry per instrument loaded into the Legal Index.
+# short_name is the citation_key prefix. level: 1 act, 2 royal decree, 3 ministerial reg, 4 announcement.
+# quality: krisdika_pdf (consolidated, has amendment footnotes) | docx (clean) | docx_ocr (OCR errors seen)
+# Files are relative to data/raw/laws/.
+- short_name: LPA2541
+  name: พระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541
+  type: act
+  level: 1
+  unit: มาตรา
+  file: act/พรบ/พรบ.เเรงงาน.pdf
+  quality: krisdika_pdf
+  note: consolidated to ฉบับที่ 9 พ.ศ. 2568 (krisdika print 11/12/68). The .docx of this act has wrong section numbers — do not use.
+- short_name: LRA2518
+  name: พระราชบัญญัติแรงงานสัมพันธ์ พ.ศ. 2518
+  type: act
+  level: 1
+  unit: มาตรา
+  file: act/พรบ/พรบแรงงานสัมพันธ์.docx
+  quality: docx
+  note: amendment status unknown; PDF is the 2518 original with dropped tone marks. Replace with krisdika consolidated PDF.
+- short_name: RD-LPA-SPECIAL
+  name: พระราชกฤษฎีกากำหนดงานที่ให้มีการคุ้มครองแรงงานแตกต่างไปจากพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541
+  type: decree
+  level: 2
+  unit: มาตรา
+  parent: LPA2541
+  file: decree/พรก/1พระราชกฤษฎีกา กำหนดงานที่ให้มีการคุ้มครองแรงงานแตกต่างไปจากพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541.docx
+  quality: docx
+- short_name: MR-LPA-01
+  name: กฎกระทรวง ฉบับที่ 1 ออกตามความในพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541
+  parent: LPA2541
+  type: ministerial_reg
+  level: 3
+  unit: ข้อ
+  file: ministerial/กฎกระทรวง/กฎกระทรวง (พ.ศ. 2541) ออกตามความในพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541-1.docx
+  quality: docx_ocr
+- short_name: MR-LPA-11
+  name: กฎกระทรวง ฉบับที่ 11 ออกตามความในพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541
+  parent: LPA2541
+  type: ministerial_reg
+  level: 3
+  unit: ข้อ
+  file: ministerial/กฎกระทรวง/กฎกระทรวง (พ.ศ. 2541) ออกตามความในพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541-11.docx
+  quality: docx_ocr
+- short_name: MR-LPA-12
+  name: กฎกระทรวง ฉบับที่ 12 ออกตามความในพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541
+  parent: LPA2541
+  type: ministerial_reg
+  level: 3
+  unit: ข้อ
+  file: ministerial/กฎกระทรวง/กฎกระทรวง (พ.ศ. 2541) ออกตามความในพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541-12.docx
+  quality: docx_ocr
+- short_name: MR-LPA-13
+  name: กฎกระทรวง ฉบับที่ 13 ออกตามความในพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541
+  parent: LPA2541
+  type: ministerial_reg
+  level: 3
+  unit: ข้อ
+  file: ministerial/กฎกระทรวง/กฎกระทรวง (พ.ศ. 2541) ออกตามความในพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541-13.docx
+  quality: docx_ocr
+- short_name: MR-LPA-14
+  name: กฎกระทรวง ฉบับที่ 14 ออกตามความในพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541
+  parent: LPA2541
+  type: ministerial_reg
+  level: 3
+  unit: ข้อ
+  file: ministerial/กฎกระทรวง/กฎกระทรวง (พ.ศ. 2541) ออกตามความในพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541-14.docx
+  quality: docx_ocr
+- short_name: MR-LPA-15
+  name: กฎกระทรวง ฉบับที่ 15 ออกตามความในพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541
+  parent: LPA2541
+  type: ministerial_reg
+  level: 3
+  unit: ข้อ
+  file: ministerial/กฎกระทรวง/กฎกระทรวง (พ.ศ. 2541) ออกตามความในพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541-15.docx
+  quality: docx_ocr
+- short_name: MR-LPA-02
+  name: กฎกระทรวง ฉบับที่ 2 ออกตามความในพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541
+  parent: LPA2541
+  type: ministerial_reg
+  level: 3
+  unit: ข้อ
+  file: ministerial/กฎกระทรวง/กฎกระทรวง (พ.ศ. 2541) ออกตามความในพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541-2.docx
+  quality: docx_ocr
+- short_name: MR-LPA-03
+  name: กฎกระทรวง ฉบับที่ 3 ออกตามความในพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541
+  parent: LPA2541
+  type: ministerial_reg
+  level: 3
+  unit: ข้อ
+  file: ministerial/กฎกระทรวง/กฎกระทรวง (พ.ศ. 2541) ออกตามความในพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541-3.docx
+  quality: docx_ocr
+- short_name: MR-LPA-04
+  name: กฎกระทรวง ฉบับที่ 4 ออกตามความในพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541
+  parent: LPA2541
+  type: ministerial_reg
+  level: 3
+  unit: ข้อ
+  file: ministerial/กฎกระทรวง/กฎกระทรวง (พ.ศ. 2541) ออกตามความในพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541-4.docx
+  quality: docx_ocr
+- short_name: MR-LPA-05
+  name: กฎกระทรวง ฉบับที่ 5 ออกตามความในพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541
+  parent: LPA2541
+  type: ministerial_reg
+  level: 3
+  unit: ข้อ
+  file: ministerial/กฎกระทรวง/กฎกระทรวง (พ.ศ. 2541) ออกตามความในพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541-5.docx
+  quality: docx_ocr
+- short_name: MR-LPA-06
+  name: กฎกระทรวง ฉบับที่ 6 ออกตามความในพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541
+  parent: LPA2541
+  type: ministerial_reg
+  level: 3
+  unit: ข้อ
+  file: ministerial/กฎกระทรวง/กฎกระทรวง (พ.ศ. 2541) ออกตามความในพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541-6.docx
+  quality: docx_ocr
+- short_name: MR-LPA-07
+  name: กฎกระทรวง ฉบับที่ 7 ออกตามความในพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541
+  parent: LPA2541
+  type: ministerial_reg
+  level: 3
+  unit: ข้อ
+  file: ministerial/กฎกระทรวง/กฎกระทรวง (พ.ศ. 2541) ออกตามความในพระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541-7.docx
+  quality: docx_ocr
+- short_name: MR-LPA-OT2568
+  name: กฎกระทรวง กำหนดค่าล่วงเวลาและค่าตอบแทนการทำงานที่เกินวันละแปดชั่วโมงพ.ศ. 2568
+  parent: LPA2541
+  type: ministerial_reg
+  level: 3
+  unit: ข้อ
+  file: ministerial/กฎกระทรวง/กฎกระทรวง กำหนดค่าล่วงเวลาและค่าตอบแทนการทำงานที่เกินวันละแปดชั่วโมงพ.ศ. 2568.docx
+  quality: docx_ocr
+- short_name: MR-LPA-CHILD2559
+  name: กฎกระทรวง กำหนดสถานที่ที่ห้ามนายจ้างให้ลูกจ้างซึ่งเป็นเด็กอายุต่ำกว่าสิบแปดปีทำงาน พ.ศ. 2559
+  parent: LPA2541
+  type: ministerial_reg
+  level: 3
+  unit: ข้อ
+  file: ministerial/กฎกระทรวง/กฎกระทรวง กำหนดสถานที่ที่ห้ามนายจ้างให้ลูกจ้างซึ่งเป็นเด็กอายุต่ำกว่าสิบแปดปีทำงาน พ.ศ. 2559.docx
+  quality: docx_ocr
+- short_name: MR-LRA-01
+  name: กฎกระทรวง ฉบับที่ 1 (พ.ศ. 2518) ออกตามความในพระราชบัญญัติแรงงานสัมพันธ์ พ.ศ. 2518
+  parent: LRA2518
+  type: ministerial_reg
+  level: 3
+  unit: ข้อ
+  file: ministerial/กฎกระทรวง/กฎกระทรวง ฉบับที่ 1 เเรงงานสัมพันธ.docx
+  quality: docx_ocr
+- short_name: MR-LPA-HOME2547
+  name: กฎกระทรวง ว่าด้วยการคุ้มครองแรงงานในงานที่รับไปทำที่บ้าน พ.ศ. 2547
+  parent: LPA2541
+  type: ministerial_reg
+  level: 3
+  unit: ข้อ
+  file: ministerial/กฎกระทรวง/กฎกระทรวง ว่าด้วยการคุ้มครองแรงงานในงานที่รับไปทำที่บ้าน พ.ศ. 2547.docx
+  quality: docx_ocr
+- short_name: MR-LPA-WELFARE2548
+  name: กฎกระทรวง ว่าด้วยการจัดสวัสดิการในสถานประกอบกิจการ พ.ศ. 2548
+  parent: LPA2541
+  type: ministerial_reg
+  level: 3
+  unit: ข้อ
+  file: ministerial/กฎกระทรวง/กฎกระทรวง ว่าด้วยการจัดสวัสดิการในสถานประกอบกิจการ พ.ศ. 2548.docx
+  quality: docx_ocr
+- short_name: ANN-MOL-GUARANTEE2551
+  name: ประกาศกระทรวงแรงงาน เรื่อง หลักเกณฑ์และวิธีการเรียกหรือรับหลักประกันการทำงานหรือหลักประกันความเสียหายในการทำงานจากลูกจ้าง พ.ศ. 2551
+  parent: LPA2541
+  type: announcement
+  level: 4
+  unit: ข้อ
+  file: announcement/ประกาศ/ประกาศกระทรวงแรงงานหลักเกณฑ์และวิธีการเรียกในการทำงานจากลูกจ้าง พ.ศ. 2551.docx
+  quality: docx
