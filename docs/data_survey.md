@@ -35,5 +35,6 @@ Ingest แล้วได้ **1,182 provisions จาก 21 ฉบับ** (`da
 | BM25 (newmm) | 0.342 | 0.516 | 0.662 | 0.827 |
 | dense bge-m3 | – | 0.600 | 0.733 | 0.889 |
 | hybrid RRF (BM25+dense) | – | 0.587 | 0.742 | 0.907 |
+| hybrid + bge-reranker-v2-m3 (pool 50) | – | 0.627 | 0.787 | – |
 
 pool@50 ครอบคลุม 0.91 → ต่อไป: reranker (bge-reranker-v2-m3) + ค้นแยกต่อประเด็น + มาตราหลักจาก taxonomy

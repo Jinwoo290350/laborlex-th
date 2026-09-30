@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
+from functools import lru_cache
 
 from src.index.bm25 import default_index
 from src.index.db import connect
@@ -58,22 +59,46 @@ def rrf(*rankings: list[tuple[int, float]], k: int = RRF_K) -> list[tuple[int, f
     return sorted(scores.items(), key=lambda x: -x[1])
 
 
+RERANKER = "BAAI/bge-reranker-v2-m3"
+RERANK_POOL = 50
+
+
+@lru_cache(maxsize=1)
+def _reranker():
+    import torch
+    from sentence_transformers import CrossEncoder
+    device = "mps" if torch.backends.mps.is_available() else "cpu"
+    return CrossEncoder(RERANKER, device=device, max_length=512)
+
+
+def rerank(query: str, rows: list[dict]) -> list[dict]:
+    scores = _reranker().predict([(query, r["text"][:1500]) for r in rows], batch_size=16,
+                                 show_progress_bar=False)
+    return [{**r, "score": float(s)} for s, r in sorted(zip(scores, rows), key=lambda x: -x[0])]
+
+
 def hybrid_search(query: str, event_date: date | None = None, k: int = 20,
-                  pool: int = 100) -> list[dict]:
-    """BM25 + bge-m3 dense → RRF → filter by validity on event_date."""
+                  pool: int = 100, use_rerank: bool = True) -> list[dict]:
+    """BM25 + bge-m3 dense → RRF → filter by validity on event_date → cross-encoder rerank."""
     fused = rrf(default_index().search(query, pool), dense_search(query, pool))
     ids = [pid for pid, _ in fused]
     score = dict(fused)
     with connect() as conn:
         rows = {r["id"]: r for r in _fetch(conn, "p.id = ANY(%s)", (ids,))}
     out = []
+    limit = max(k, RERANK_POOL) if use_rerank else k
     for pid in ids:
         r = rows.get(pid)
         if r and _in_force(r, event_date):
             out.append({**r, "score": score[pid]})
-        if len(out) >= k:
+        if len(out) >= limit:
             break
-    return out
+    if use_rerank and out:
+        try:
+            out = rerank(query, out)
+        except OSError:          # reranker weights not available → keep RRF order
+            pass
+    return out[:k]
 
 
 search_provisions = hybrid_search
