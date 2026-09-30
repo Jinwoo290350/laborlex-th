@@ -7,7 +7,7 @@ A = AnswerJSON.model_validate({
         "question": "ประเด็นหนึ่งหรือไม่", "consider": "ต้องพิจารณา",
         "laws": [{"citation_key": "T:1:1", "label": "มาตรา 1 กฎหมายทดสอบ",
                   "explanation": "หลัก", "topic": "หัวข้อ"}],
-        "application": [{"heading": "มาตรา 1 (หัวข้อ)", "steps": [["ข้อเท็จจริง", "ผล"]]}],
+        "application": [{"heading": "มาตรา 1 (หัวข้อ)", "steps": [{"fact": "ข้อเท็จจริง", "result": "ผล"}]}],
         "conclusion": [{"headline": "สรุป", "citations": ["T:1:1"]}],
         "opinion": "ได้", "basis": "ม.1"}],
 })

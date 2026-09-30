@@ -27,7 +27,16 @@ def _in_force(r: dict, on: date | None) -> bool:
             and (r["valid_to"] is None or on < r["valid_to"]))
 
 
+def dense_ready() -> bool:
+    with connect() as conn:
+        return conn.execute("SELECT EXISTS (SELECT 1 FROM provisions"
+                            " WHERE embedding IS NOT NULL)").fetchone()[0]
+
+
 def dense_search(query: str, k: int = 50) -> list[tuple[int, float]]:
+    """bge-m3 nearest neighbours; empty when the index has no embeddings yet."""
+    if not dense_ready():
+        return []
     from pgvector.psycopg import register_vector
 
     from src.index.embed import embed

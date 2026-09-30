@@ -90,7 +90,10 @@ def generate_json(prompt: str, schema: type[T], *, system: str = "", name: str =
                                             "usage": {"in": inp, "out": outp}},
                                            ensure_ascii=False), encoding="utf-8")
             return out
-        except Exception as e:  # noqa: BLE001 — retry any API/parse failure
+        except Exception as e:  # retry any API/parse failure
+            code = getattr(e, "code", None)
+            if isinstance(code, int) and 400 <= code < 500 and code != 429:
+                raise RuntimeError(f"{name}: Gemini {code} (not retried): {e}") from e
             last = e
             time.sleep(2 ** attempt * 2)
     raise RuntimeError(f"{name}: Gemini failed after 3 attempts: {last}") from last

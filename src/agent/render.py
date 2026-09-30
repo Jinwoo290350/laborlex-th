@@ -23,7 +23,7 @@ def render(a: AnswerJSON) -> str:
         out += ["", "### การปรับบทกฎหมายกับข้อเท็จจริง"]
         for ap in i.application:
             out += [f"**{ap.heading}**"]
-            out += [f"- {fact} → {res}" for fact, res in ap.steps]
+            out += [f"- {st.fact} → {st.result}" for st in ap.steps]
             if ap.citations:
                 out[-1] += _chips(ap.citations)
         if i.calculation:

@@ -88,12 +88,16 @@ def main() -> None:
 
     # issue → gold sections (co-occurrence over dev100)
     by_issue: dict[str, Counter] = defaultdict(Counter)
+    support: dict[str, dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
     q_issues: dict[str, list[str]] = {}
     for q in qs:
         codes = sorted({to_canon.get(t.code, t.code) for t in tagged[q["id"]].issues})
         q_issues[q["id"]] = codes
         for c in codes:
-            by_issue[c].update(g for g in q["gold_citations"].split(";") if g)
+            golds = [g for g in q["gold_citations"].split(";") if g]
+            by_issue[c].update(golds)
+            for g in golds:
+                support[c][g].append(q["id"])
 
     from src.index.tools import get_section
 
@@ -133,6 +137,9 @@ def main() -> None:
         out.append({
             "code": c.code, "name": c.name, "description": c.description,
             "primary_provisions": prims,
+            # section → dev questions whose gold cites it; lets evaluation drop the
+            # question under test (leave-one-out) when choosing primary provisions
+            "provision_support": {k: v for k, v in support[c.code].items()},
             "elements": [e.model_dump() for e in el.elements] if el else [],
             "common_pitfalls": el.common_pitfalls if el else [],
             "formula_key": el.formula_key if el else None,

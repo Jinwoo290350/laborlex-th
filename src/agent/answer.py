@@ -23,13 +23,19 @@ class LawRef(BaseModel):
     topic: str                       # bold principle name
 
 
+class Step(BaseModel):
+    fact: str
+    result: str                      # legal consequence of the fact
+
+
 class Application(BaseModel):
     heading: str                     # e.g. "มาตรา 118 (ค่าชดเชย)"
-    steps: list[tuple[str, str]]     # (fact, legal consequence)
+    steps: list[Step]
     citations: list[str] = Field(default_factory=list)
 
 
 class Issue(BaseModel):
+    code: str = ""                   # taxonomy code
     question: str
     consider: str
     laws: list[LawRef]
