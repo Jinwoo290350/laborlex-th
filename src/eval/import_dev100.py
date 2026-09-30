@@ -18,8 +18,10 @@ import openpyxl
 FIELDS = ["id", "question", "gold_answer", "gold_issues", "gold_citations", "event_date",
           "source", "notes", "category", "question_type", "difficulty", "ref_answer"]
 SECTION_RE = re.compile(r"มาตรา\s*(\d+(?:/\d+)?)((?:\s*(?:,|และ|หรือ)\s*(?:มาตรา\s*)?\d+(?:/\d+)?(?!\d))*)")
+# "มาตรา 41/2 … ไม่มีอยู่ในกฎหมาย" = gold says the section does not exist; plain "ไม่มีอำนาจ" is not
+NONEXISTENT_RE = re.compile(r"ไม่มี(อยู่|ใน(กฎหมาย|พ\.?ร\.?บ)|จริง|บทบัญญัติ)")
 LAW_NAMES = [("คุ้มครองแรงงาน", "LPA2541"), ("กฎหมายแรงงาน", "LPA2541"), ("แรงงานสัมพันธ์", "LRA2518"),
-             ("ป.พ.พ", "CCC"), ("แพ่งและพาณิชย์", "CCC")]
+             ("ป.พ.พ", "CCC"), ("แพ่งและพาณิชย์", "CCC"), ("ศาลแรงงาน", "LCA2522")]
 
 
 def _law_near(before: str, after: str) -> str:
@@ -40,7 +42,7 @@ def resolve_citations(gold: str) -> list[str]:
     out = []
     for m in SECTION_RE.finditer(gold):
         clause = re.split(r"มาตรา|\n", gold[m.end():m.end() + 120], maxsplit=1)[0]
-        if "ไม่มี" in clause:
+        if NONEXISTENT_RE.search(clause):
             continue
         law = _law_near(gold[:m.start()], gold[m.end():m.end() + 60])
         nums = [m.group(1), *re.findall(r"\d+(?:/\d+)?", m.group(2) or "")]

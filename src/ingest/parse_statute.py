@@ -67,9 +67,17 @@ def _join(a: str, b: str) -> str:
     return a + " " + b
 
 
-def section_sort_key(no: str) -> tuple[int, int]:
-    main, _, sub = no.partition("/")
-    return int(main), int(sub or 0)
+LATIN_SUFFIX = ["ทวิ", "ตรี", "จัตวา", "เบญจ", "ฉ", "สัตต", "อัฏฐ", "นว", "ทศ"]
+SUFFIX_RE = "|".join(LATIN_SUFFIX)
+
+
+def section_sort_key(no: str) -> tuple[int, int, int]:
+    """"118" < "118/1" ; "17" < "17ทวิ" < "17ตรี" (older acts use Latin ordinals)."""
+    m = re.match(rf"(\d+)(?:/(\d+))?({SUFFIX_RE})?$", no)
+    if not m:
+        raise ValueError(f"bad section number {no!r}")
+    suffix = LATIN_SUFFIX.index(m.group(3)) + 1 if m.group(3) else 0
+    return int(m.group(1)), int(m.group(2) or 0), suffix
 
 
 @dataclass
@@ -120,7 +128,7 @@ def parse(text: str, unit: str = "มาตรา", normalized: bool = False) ->
     stops a wrapped cross-reference ("…ตาม\nมาตรา 17/1 หรือ…") from opening a section."""
     if not normalized:
         text = normalize(text)
-    head_re = re.compile(rf"^\s*{unit}\s*(\d+(?:/\d+)?)\s*(.*)$")
+    head_re = re.compile(rf"^\s*{unit}\s*(\d+(?:/\d+)?(?:\s*(?:{SUFFIX_RE})(?=\s|\[|$))?)\s*(.*)$")
     lines = text.split("\n")
     indent_mode = any(ln.startswith("  ") for ln in lines)
 
@@ -157,8 +165,9 @@ def parse(text: str, unit: str = "มาตรา", normalized: bool = False) ->
 
         m = head_re.match(stripped) if starts_unit else None
         # A heading must also advance the numbering (guards non-indented sources).
-        if m and (cur is None or section_sort_key(m.group(1)) > section_sort_key(cur.section_no)):
-            cur = Section(section_no=m.group(1), chapter=chapter, part=part,
+        if m and (cur is None or section_sort_key(re.sub(r"\s+", "", m.group(1)))
+                  > section_sort_key(cur.section_no)):
+            cur = Section(section_no=re.sub(r"\s+", "", m.group(1)), chapter=chapter, part=part,
                           chapter_title=chapter_title)
             sections.append(cur)
             await_title = False

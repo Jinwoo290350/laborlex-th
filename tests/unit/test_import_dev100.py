@@ -9,3 +9,4 @@ def test_resolve_citations():
         "LPA2541:14/1", "LPA2541:118", "CCC:150"]
     assert resolve_citations("ไม่ถูกต้อง มาตรา 41/2 ที่อ้างถึง ไม่มีอยู่ในกฎหมาย") == []
     assert resolve_citations("มาตรา 118") == ["LPA2541:118"]
+    assert resolve_citations("มาตรา 123 (ไม่มีอำนาจรับคำร้อง)") == ["LPA2541:123"]

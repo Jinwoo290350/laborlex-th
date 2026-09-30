@@ -20,6 +20,7 @@ from src.ingest.parse_statute import (
     normalize,
     parse,
     reconcile_footnotes,
+    section_sort_key,
     to_rows,
 )
 
@@ -41,6 +42,11 @@ def load_law(entry: dict) -> tuple[list[Section], dict[str, str], str, list[str]
         body = "\n".join(lines[1:]) if len(lines) > 1 else text
         secs = parse(f"  {entry['unit']} 0\n{body}", unit=entry["unit"], normalized=True)
     log = reconcile_footnotes(secs, ex.footnotes)
+    if entry.get("include_sections"):
+        # large codes: keep only the ranges relevant to labour cases
+        ranges = entry["include_sections"]
+        secs = [s for s in secs
+                if any(lo <= section_sort_key(s.section_no)[0] <= hi for lo, hi in ranges)]
     return secs, ex.footnotes, text, log
 
 

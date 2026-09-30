@@ -79,3 +79,9 @@ def test_unit_kho():
 def test_letter_items_nest_in_sub():
     secs = parse("  ข้อ ๑ งานดังนี้\n  (๑) งานหนึ่ง\n  (ก) ย่อยหนึ่ง\n  (ข) ย่อยสอง\n  (๒) งานสอง", unit="ข้อ")
     assert secs[0].paragraphs[0].subs == [("(1)", "งานหนึ่ง\n(ก) ย่อยหนึ่ง\n(ข) ย่อยสอง"), ("(2)", "งานสอง")]
+
+
+def test_latin_suffix_sections():
+    secs = parse("  มาตรา ๑๗ ก\n  มาตรา ๑๗ ทวิ ข\n  มาตรา ๑๗ ตรี ค\n  มาตรา ๑๘ ง")
+    assert [s.section_no for s in secs] == ["17", "17ทวิ", "17ตรี", "18"]
+    assert secs[1].paragraphs[0].text == "ข"

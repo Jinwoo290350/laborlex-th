@@ -134,6 +134,29 @@ def extract_docx(path: str | Path) -> Extracted:
     return Extracted("\n".join(lines), {}, "")
 
 
+INLINE_FN_RE = re.compile(r"(?<=[\u0e00-\u0e7f\d)])\[\d+\]")   # "มาตรา ๒[1]" superscript refs
+
+
+def extract_ocs_txt(path: str | Path) -> Extracted:
+    """Text saved from searchlaw.ocs.go.th (ฉบับปรับปรุงล่าสุด): one unit per line, indented,
+    footnote refs as " [^n]", endnotes after "=====FOOTNOTES=====". A first line
+    "#INFO …" carries the page's metadata."""
+    raw = Path(path).read_text(encoding="utf-8")
+    body, _, notes = raw.partition("=====FOOTNOTES=====")
+    lines = [ln for ln in body.split("\n") if not ln.startswith("#INFO")]
+    text = "\n".join(INLINE_FN_RE.sub("", ln) for ln in lines)
+    footnotes = {}
+    for ln in notes.strip().split("\n"):
+        m = re.match(r"\[(\d+)\]\s*(.*)", ln)
+        if m:
+            footnotes[m.group(1)] = m.group(2)
+    return Extracted(text, footnotes, "")
+
+
 def extract(path: str | Path) -> Extracted:
     p = Path(path)
-    return extract_pdf(p) if p.suffix.lower() == ".pdf" else extract_docx(p)
+    if p.suffix.lower() == ".pdf":
+        return extract_pdf(p)
+    if p.suffix.lower() == ".txt":
+        return extract_ocs_txt(p)
+    return extract_docx(p)

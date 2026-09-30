@@ -13,13 +13,19 @@ PER_ISSUE = 24
 
 
 def primary_sections(code: str, exclude: set[str]) -> list[str]:
-    """Taxonomy sections for an issue, ignoring support that comes only from excluded
-    (leave-one-out) questions."""
+    """Taxonomy sections for an issue. A section qualifies when at least two dev questions
+    tagged with the issue cite it (support from excluded / leave-one-out questions does not
+    count) or when one of the issue's elements cites it. Co-occurrence from a single
+    multi-issue question is noise (e.g. ม.43 showing up under severance_pay)."""
     issue = taxonomy()[code]
     support = issue.get("provision_support") or {}
+    from_elements = {":".join(k.split(":")[:2])            # "LPA2541:118:1:(1)" → "LPA2541:118"
+                     for e in issue.get("elements", []) for k in e.get("citation_keys", [])}
     ranked = sorted(((sec, len(set(qs) - exclude)) for sec, qs in support.items()),
                     key=lambda x: -x[1])
-    return [sec for sec, n in ranked if n > 0][:6]
+    keep = [sec for sec, n in ranked if n >= 2 or (n >= 1 and sec in from_elements)]
+    keep += sorted(s for s in from_elements if s not in keep)
+    return keep[:6]
 
 
 def _search(query: str, event_date, k: int) -> list[dict]:
