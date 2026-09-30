@@ -30,11 +30,11 @@ draft.provision_chars:
   evidence: longest paragraph 3141 chars
   status: final
 cases.summary_chars:
-  value: 4700
+  value: 3300
   kind: data
   source: cases table (holding)
   rule: p95 headnote length rounded up to 100
-  evidence: headnote chars p50 1562, p95 4689, n=886
+  evidence: headnote chars p50 1035, p95 3232, n=3591
   status: final
 api.max_question_chars:
   value: 3400
@@ -55,7 +55,7 @@ cases.per_issue:
   kind: design
   source: prompt budget
   rule: case block ≤ median selected-provision block in the drafting prompt
-  evidence: median selected-provision block per issue 1975 chars over 48 issue-runs; median headnote 1562 chars → floor(block/headnote)
+  evidence: median selected-provision block per issue 1975 chars over 48 issue-runs; median headnote 1035 chars → floor(block/headnote)
   status: final
 llm.temperature:
   value: 0.0
