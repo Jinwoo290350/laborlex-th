@@ -181,6 +181,9 @@ def _label(r: dict) -> str:
     para = r["paragraph_no"]
     unit = "ข้อ" if r["level"] >= 3 else "มาตรา"
     lab = f"{unit} {r['section_no']}"
+    term = re.match(r"\s*“([^”]+)”\s*หมายความว่า", r.get("text") or "")
+    if term:                                # definitions section: name the defined term
+        return f"{lab} นิยามคำว่า “{term.group(1)}” {r['law_name']}"
     if para and para > 1:
         lab += f" วรรค{THAI_ORD[para] if para < len(THAI_ORD) else para}"
     if r.get("sub_no"):

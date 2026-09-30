@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import threading
 from datetime import date
 from functools import lru_cache
 
 from src.index.bm25 import default_index
 from src.index.db import connect
+from src.index.gpu import DEVICE_LOCK
 
 RRF_K = 60
 _COLS = ("p.id, l.short_name AS law, l.name AS law_name, l.level, p.section_no, p.paragraph_no,"
@@ -75,11 +75,8 @@ def _reranker():
     return CrossEncoder(RERANKER, device=device, max_length=512)
 
 
-_RERANK_LOCK = threading.Lock()
-
-
 def rerank(query: str, rows: list[dict]) -> list[dict]:
-    with _RERANK_LOCK:                     # MPS models are not thread-safe
+    with DEVICE_LOCK:
         scores = _reranker().predict([(query, r["text"][:1500]) for r in rows], batch_size=16,
                                      show_progress_bar=False)
     return [{**r, "score": float(s)} for s, r in sorted(zip(scores, rows), key=lambda x: -x[0])]

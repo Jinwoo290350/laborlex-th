@@ -131,6 +131,12 @@ def numbers_in(text: str) -> set[Decimal]:
     return nums
 
 
+def baht(x: Decimal) -> str:
+    """40000 → "40,000"; 1333.333 → "1,333.33"."""
+    q = _q(Decimal(x))
+    return f"{q:,.0f}" if q == q.to_integral() else f"{q:,.2f}"
+
+
 def _q(x: Decimal) -> Decimal:
     return x.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
@@ -149,12 +155,14 @@ def to_daily_wage(amount: Decimal, period: str, on: date, book: RateBook,
     op = "÷" if period == "month" else "×"
     return CalcResult(
         amount=daily if exact else _q(daily),
-        steps=[f"ค่าจ้างรายวัน = {amount} {op} {r.value} = {_q(daily)}"],
+        steps=[f"ค่าจ้างรายวัน = {baht(amount)} {op} {r.value} = {baht(daily)} บาท"],
         citations=[r.citation_key],
     )
 
 
-def severance(daily_wage: Decimal, tenure: Tenure, on: date, book: RateBook) -> CalcResult:
+def severance(daily_wage: Decimal, tenure: Tenure, on: date, book: RateBook,
+              wage_expr: str = "ค่าจ้างรายวัน") -> CalcResult:
+    """wage_expr: how the daily wage is written in the final step, e.g. "40,000 ÷ 30"."""
     r = book.get("severance_tiers", on)
     tier = next((t for t in r.tiers
                  if tenure.reaches(t.min) and (t.max is None or not tenure.reaches(t.max))), None)
@@ -166,7 +174,7 @@ def severance(daily_wage: Decimal, tenure: Tenure, on: date, book: RateBook) -> 
     return CalcResult(
         amount=_q(amt),
         steps=[f"{base} เข้าเกณฑ์ค่าจ้างอัตราสุดท้าย {tier.value} วัน",
-               f"ค่าชดเชย (ถ้ามีสิทธิ) = ค่าจ้างรายวัน × {tier.value} = {_q(amt)} บาท"],
+               f"ค่าชดเชย (ถ้ามีสิทธิ) = {wage_expr} × {tier.value} = {baht(amt)} บาท"],
         citations=[tier.citation_key],
     )
 

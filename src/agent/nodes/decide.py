@@ -146,7 +146,10 @@ def calculate(state: AgentState) -> dict:
                 tenure = tenure_from_facts(f)
                 if tenure is None:
                     raise ValueError("อายุงานไม่ทราบ")
-                r = labor.severance(daily.amount, tenure, on, book)
+                wage = Decimal(str(f.wage_amount))
+                expr = (f"{labor.baht(wage)} ÷ 30" if f.wage_period == "month"
+                        else "ค่าจ้างรายวัน")
+                r = labor.severance(daily.amount, tenure, on, book, wage_expr=expr)
                 out[iss.code] = labor.CalcResult(amount=r.amount, steps=daily.steps + r.steps,
                                                  citations=daily.citations + r.citations)
             else:

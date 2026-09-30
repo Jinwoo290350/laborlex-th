@@ -5,10 +5,11 @@ Usage: python -m src.index.embed   (embeds rows whose embedding IS NULL)
 
 from __future__ import annotations
 
-import threading
 from functools import lru_cache
 
 import numpy as np
+
+from src.index.gpu import DEVICE_LOCK
 
 MODEL = "BAAI/bge-m3"
 
@@ -21,11 +22,8 @@ def model():
     return SentenceTransformer(MODEL, device=device)
 
 
-_LOCK = threading.Lock()
-
-
 def embed(texts: list[str], batch_size: int = 16) -> np.ndarray:
-    with _LOCK:                           # MPS models are not thread-safe
+    with DEVICE_LOCK:
         return model().encode(texts, batch_size=batch_size, normalize_embeddings=True,
                               show_progress_bar=len(texts) > 64, convert_to_numpy=True)
 
