@@ -1,0 +1,14 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+# data: only manifest + reviewed taxonomy are tracked
+data/**
+!data/**/
+!data/raw/MANIFEST.csv
+!data/processed/issues.yaml
+!data/processed/rates.yaml
+data/eval/test160.csv

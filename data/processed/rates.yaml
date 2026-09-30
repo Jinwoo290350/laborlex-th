@@ -1,0 +1,5 @@
+# Legal numbers used by src/calc/labor.py. Fill ONLY from provisions in the DB
+# (after ingest), one entry per version. Run RateBook.verify() after every edit.
+# Keys used by the calculator: days_per_month, hours_per_day, severance_tiers,
+# ot_multiplier, holiday_work_multiplier, holiday_ot_multiplier, interest_rate_pa
+[]

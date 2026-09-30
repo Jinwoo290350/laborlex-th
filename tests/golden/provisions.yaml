@@ -1,0 +1,11 @@
+# Golden structure tests for the statute parser.
+# Fill paragraph/sub counts FROM THE SOURCE FILE after download (never from memory),
+# cross-checked with krisdika.go.th. Leave null until verified; tests skip nulls.
+# law: short_name used in citation_key; section: section_no as parsed.
+- {law: LPA2541, section: "17",   paragraphs: null, subs: null, verified_by: null}
+- {law: LPA2541, section: "17/1", paragraphs: null, subs: null, verified_by: null}
+- {law: LPA2541, section: "61",   paragraphs: null, subs: null, verified_by: null}
+- {law: LPA2541, section: "62",   paragraphs: null, subs: null, verified_by: null}
+- {law: LPA2541, section: "63",   paragraphs: null, subs: null, verified_by: null}
+- {law: LPA2541, section: "118",  paragraphs: null, subs: null, verified_by: null}
+- {law: LPA2541, section: "119",  paragraphs: null, subs: null, verified_by: null}

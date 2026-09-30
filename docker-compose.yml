@@ -1,0 +1,13 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: laborlex
+      POSTGRES_PASSWORD: laborlex
+      POSTGRES_DB: laborlex
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./src/index/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+volumes:
+  pgdata:
