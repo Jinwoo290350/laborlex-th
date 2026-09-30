@@ -849,6 +849,9 @@ name = "laborlex-th"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "google-genai" },
+    { name = "openpyxl" },
+    { name = "pandas" },
     { name = "pgvector" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pydantic" },
@@ -893,10 +896,13 @@ requires-dist = [
     { name = "bm25s", marker = "extra == 'ml'", specifier = ">=0.2" },
     { name = "fastapi", marker = "extra == 'app'", specifier = ">=0.111" },
     { name = "flagembedding", marker = "extra == 'ml'", specifier = ">=1.2" },
+    { name = "google-genai", specifier = ">=2.25.0" },
     { name = "google-genai", marker = "extra == 'agent'", specifier = ">=1.0" },
     { name = "httpx", marker = "extra == 'agent'", specifier = ">=0.27" },
     { name = "langgraph", marker = "extra == 'agent'", specifier = ">=0.2" },
+    { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "openpyxl", marker = "extra == 'eval'", specifier = ">=3.1" },
+    { name = "pandas", specifier = ">=3.0.6" },
     { name = "pandas", marker = "extra == 'eval'", specifier = ">=2.2" },
     { name = "pgvector", specifier = ">=0.3" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2" },

@@ -14,6 +14,9 @@ manifest:
 ingest: manifest
 	uv run python -m src.ingest.pipeline
 
+dev100:
+	uv run python -m src.eval.import_dev100
+
 test:
 	uv run pytest -q
 

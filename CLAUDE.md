@@ -23,7 +23,7 @@
 
 | | |
 |---|---|
-| LLM หลัก | Gemini 3.5 Flash (ลูกค้ากำหนด) — ตรวจ model id จริงด้วย `client.models.list()` ก่อนใช้ อย่าเดา |
+| LLM หลัก | Gemini 3.5 Flash (ลูกค้ากำหนด) — model id `gemini-3.5-flash` (ตรวจด้วย `client.models.list()` 2026-09-30) |
 | เป้าหมาย | PASS ≥ 90% บน test160 (อาจารย์กฎหมายเป็นผู้ประเมิน) |
 | Baseline (dev100) | Gemini PASS 64 · ChatGPT 34 · Claude 31 |
 | Baseline รายเกณฑ์ (Gemini, % ได้ 2) | A1 100 · B0 97 · B1 81 · B3 78 · B2 78 · **A2 75** |
@@ -82,6 +82,7 @@
 | ประเภท | Folder ID | ปลายทาง |
 |---|---|---|
 | พ.ร.บ.คุ้มครองแรงงาน 2541 + แรงงานสัมพันธ์ 2518 | `1DwdMPYK8TOvBXw-EfY2LiSl3RGI08w5j` | `data/raw/laws/act/` |
+| ป.พ.พ. ลักษณะจ้างแรงงาน (**ยังไม่มีในโฟลเดอร์ลูกค้า** — ตัวอย่างคำตอบลูกค้าอ้าง ม.577) | — | `data/raw/laws/act/` |
 | พ.ร.ก. | `1hCl0G7qT7AdLYJPzKktekZTYUSfEQlk2` | `data/raw/laws/decree/` |
 | กฎกระทรวง | `1Akeh92GBAnAsBmc1kPhvdbF3IR59qCBX` | `data/raw/laws/ministerial/` |
 | ประกาศ | `1byE2ikDpNeKeafDmUGnlkGGhsmUzQ8eL` | `data/raw/laws/announcement/` |
@@ -98,11 +99,13 @@
 ### 4.3 ชุดคำถาม
 | ชุด | ใช้ทำอะไร | ไฟล์ |
 |---|---|---|
-| dev100 (คอลัมน์ E = เฉลย) + คะแนน baseline รายข้อ | พัฒนา, few-shot, error analysis, calibrate judge | `data/eval/dev100.csv` |
+| dev100 (Google Sheet ลูกค้า แท็บ `Sheet2`, split=DEV) → `make dev100` · `gold_answer` = คอลัมน์ H "มาตราและคำตอบที่ถูกสั้นๆ" (คอลัมน์ G = `ref_answer` อาจผิด) · คะแนน baseline รายข้อ **ยังไม่ได้** | พัฒนา, few-shot, error analysis, calibrate judge | `data/eval/dev100.csv` |
 | ข้อสอบเนติฯ แรงงาน 2524–2563 | ทดสอบเพิ่ม (ตรวจซ้ำกับ test160 ก่อนใช้) | `data/eval/bar_labor.csv` |
 | **test160** | **ประเมินจริงโดยอาจารย์เท่านั้น** | `data/eval/test160.csv` |
 
-**Schema ของไฟล์ eval:** `id, question, gold_answer, gold_issues, gold_citations, event_date, source, notes`
+**Schema ของไฟล์ eval:** `id, question, gold_answer, gold_issues, gold_citations, event_date, source, notes` (+ `category, question_type, difficulty, ref_answer` สำหรับ dev100)
+
+> ⚠️ แท็บ `Sheet1` ของชีต dev มีแถวที่ split ไม่ใช่ DEV (สูตรเสีย) อาจเป็นข้อ test → **ห้ามเปิด/ใช้** importer อ่านเฉพาะ `Sheet2` split=DEV
 
 > 🚫 **กฎเหล็ก data leakage**
 > - test160 ห้ามใช้เป็น few-shot, ห้ามจูน prompt/threshold, ห้ามเปิดดูระหว่างพัฒนา
@@ -115,7 +118,7 @@
 - ข้อสอบเนติฯ ปีเก่าอาจเฉลยตามกฎหมายเดิม → บันทึกใน `notes` ของข้อนั้น อย่าจูนระบบให้ตอบตามกฎหมายที่ถูกยกเลิกแล้ว
 
 ### 4.5 รูปแบบคำตอบ
-Template ของลูกค้าอยู่ที่ `prompts/answer_template.md` โครงสร้าง:
+Template ของลูกค้าอยู่ที่ `prompts/answer_template.md` (จาก screenshot ลูกค้า 2026-09-30) · schema `src/agent/answer.py` · renderer `src/agent/render.py` โครงสร้าง:
 คำตอบเบื้องต้น → ประเด็นทางกฎหมาย → [ต่อประเด็น: สิ่งที่ต้องพิจารณา / กฎหมายที่เกี่ยวข้อง (อธิบายสั้น + **หัวข้อตัวหนา**) / การปรับบท (bullet ข้อเท็จจริง → ผล) / การคำนวณ (ถ้ามี) / ข้อสรุป] → ตารางความเห็นทางกฎหมาย → ข้อเท็จจริงที่ต้องถามเพิ่ม (เฉพาะเมื่อจำเป็น)
 
 **ปรับจาก template เดิม:** "ฟันธง" ได้เมื่อมีตัวบทรองรับเท่านั้น · ระบบสร้างคำตอบเป็น **JSON ก่อน** แล้ว render เป็น markdown (เพื่อให้ตรวจ citation และ eval ได้)
@@ -333,7 +336,7 @@ make export-160   # (เฟส 2 เท่านั้น) รัน test160 →
 - [ ] ดาวน์โหลดไฟล์กฎหมาย 4 โฟลเดอร์ → `data/raw/laws/`
 - [ ] โค้ดเวอร์ชันเดิม (`deliverable.zip`) + โค้ดคนเก่า
 - [ ] ข้อมูลฎีกาที่คนเก่าดึงไว้
-- [ ] dev100 + คะแนน baseline รายข้อ
-- [ ] Gemini API key + budget alert
+- [x] dev100 (100 ข้อ DEV) · [ ] คะแนน baseline รายข้อ
+- [x] Gemini API key · [ ] budget alert
 - [ ] กลุ่ม LINE กับอาจารย์ 3 ท่าน
 - [ ] test160 (ก่อนเริ่มเฟส 2)
