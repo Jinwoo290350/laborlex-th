@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from datetime import date
 from functools import lru_cache
 
@@ -22,8 +23,10 @@ def _fetch(conn, where: str, params: tuple) -> list[dict]:
 
 
 def _in_force(r: dict, on: date | None) -> bool:
+    if r["repealed"]:
+        return False
     if on is None:
-        return not r["repealed"]
+        return True
     return ((r["valid_from"] is None or r["valid_from"] <= on)
             and (r["valid_to"] is None or on < r["valid_to"]))
 
@@ -71,9 +74,13 @@ def _reranker():
     return CrossEncoder(RERANKER, device=device, max_length=512)
 
 
+_RERANK_LOCK = threading.Lock()
+
+
 def rerank(query: str, rows: list[dict]) -> list[dict]:
-    scores = _reranker().predict([(query, r["text"][:1500]) for r in rows], batch_size=16,
-                                 show_progress_bar=False)
+    with _RERANK_LOCK:                     # MPS models are not thread-safe
+        scores = _reranker().predict([(query, r["text"][:1500]) for r in rows], batch_size=16,
+                                     show_progress_bar=False)
     return [{**r, "score": float(s)} for s, r in sorted(zip(scores, rows), key=lambda x: -x[0])]
 
 
@@ -107,7 +114,7 @@ search_provisions = hybrid_search
 def get_provision(citation_key: str, on: date | None = None) -> dict | None:
     with connect() as conn:
         rows = _fetch(conn, "p.citation_key = %s", (citation_key,))
-    rows = [r for r in rows if _in_force(r, on)] or rows
+    rows = [r for r in rows if _in_force(r, on)]
     return rows[0] if rows else None
 
 

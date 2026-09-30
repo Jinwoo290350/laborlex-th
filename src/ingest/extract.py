@@ -131,7 +131,22 @@ def extract_docx(path: str | Path) -> Extracted:
         indented = bool(pf.first_line_indent) or bool(pf.left_indent)
         starts = re.match(r"(มาตรา|ข้อ)\s*[\d๐-๙]|\([\d๐-๙]+\)|หมวด|ส่วนที่|บทเฉพาะกาล", t)
         lines.append(("  " if indented or starts else "") + t)
-    return Extracted("\n".join(lines), {}, "")
+    text, tail = cut_tail("\n".join(lines))
+    return Extracted(text, {}, tail)
+
+
+TAIL_RE = re.compile(r"^\s*(ผู้รับสนองพระบรมราชโองการ|หมายเหตุ\s*:?-?|ให้ไว้\s*ณ\s*วันที่)")
+FIRST_UNIT_RE = re.compile(r"^\s*(มาตรา|ข้อ)\s*[\d๐-๙]")
+
+
+def cut_tail(text: str) -> tuple[str, str]:
+    """Split off what follows the operative text: signature block, "หมายเหตุ :-" and the
+    amending acts that consolidated texts append. Markers before the first section
+    (e.g. "ให้ไว้ ณ วันที่" in an act's preamble) are ignored."""
+    lines = text.split("\n")
+    start = next((i for i, ln in enumerate(lines) if FIRST_UNIT_RE.match(ln)), 0)
+    end = next((i for i in range(start + 1, len(lines)) if TAIL_RE.match(lines[i])), len(lines))
+    return "\n".join(lines[:end]), "\n".join(lines[end:])
 
 
 INLINE_FN_RE = re.compile(r"(?<=[\u0e00-\u0e7f\d)])\[\d+\]")   # "มาตรา ๒[1]" superscript refs
@@ -144,13 +159,13 @@ def extract_ocs_txt(path: str | Path) -> Extracted:
     raw = Path(path).read_text(encoding="utf-8")
     body, _, notes = raw.partition("=====FOOTNOTES=====")
     lines = [ln for ln in body.split("\n") if not ln.startswith("#INFO")]
-    text = "\n".join(INLINE_FN_RE.sub("", ln) for ln in lines)
+    text, tail = cut_tail("\n".join(INLINE_FN_RE.sub("", ln) for ln in lines))
     footnotes = {}
     for ln in notes.strip().split("\n"):
         m = re.match(r"\[(\d+)\]\s*(.*)", ln)
         if m:
             footnotes[m.group(1)] = m.group(2)
-    return Extracted(text, footnotes, "")
+    return Extracted(text, footnotes, tail)
 
 
 def extract(path: str | Path) -> Extracted:

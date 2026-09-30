@@ -5,6 +5,7 @@ Usage: python -m src.index.embed   (embeds rows whose embedding IS NULL)
 
 from __future__ import annotations
 
+import threading
 from functools import lru_cache
 
 import numpy as np
@@ -20,9 +21,13 @@ def model():
     return SentenceTransformer(MODEL, device=device)
 
 
+_LOCK = threading.Lock()
+
+
 def embed(texts: list[str], batch_size: int = 16) -> np.ndarray:
-    return model().encode(texts, batch_size=batch_size, normalize_embeddings=True,
-                          show_progress_bar=len(texts) > 64, convert_to_numpy=True)
+    with _LOCK:                           # MPS models are not thread-safe
+        return model().encode(texts, batch_size=batch_size, normalize_embeddings=True,
+                              show_progress_bar=len(texts) > 64, convert_to_numpy=True)
 
 
 def doc_text(chapter_title: str | None, law: str, section: str, text: str) -> str:

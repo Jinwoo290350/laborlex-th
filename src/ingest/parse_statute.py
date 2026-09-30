@@ -139,7 +139,14 @@ def parse(text: str, unit: str = "มาตรา", normalized: bool = False) ->
     new_para = True      # next text line starts a new paragraph
     in_sub = False       # last text went into a sub-item
 
-    for line in lines:
+    def next_unit(i: int) -> str | None:
+        """Stripped text of the next line that starts a unit, after line i."""
+        for ln in lines[i + 1:]:
+            if ln.strip() and (ln.startswith("  ") or not indent_mode):
+                return FN_RE.sub("", ln).strip()
+        return None
+
+    for i, line in enumerate(lines):
         if not line.strip():
             new_para = True
             continue
@@ -203,6 +210,18 @@ def parse(text: str, unit: str = "มาตรา", normalized: bool = False) ->
             para.subs[-1] = (n, f"{t}\n{stripped}")
             para.sub_fns.setdefault(n, []).extend(fns)
             continue
+
+        # An indented plain line inside a sub-item list stays in the current sub-item when
+        # the list continues with the next number, e.g. ม.119 (4) … "หนังสือเตือน…" (5) …
+        if starts_unit and indent_mode and in_sub and para is not None and para.subs:
+            nxt = next_unit(i)
+            m_next = SUB_RE.match(nxt) if nxt else None
+            last = int(para.subs[-1][0].strip("()"))
+            if m_next and int(m_next.group(1)) == last + 1:
+                n, t = para.subs[-1]
+                para.subs[-1] = (n, f"{t}\n{stripped}")
+                para.sub_fns.setdefault(n, []).extend(fns)
+                continue
 
         if para is not None and not para.text and not para.subs:
             para.text = stripped                       # heading line had no body text

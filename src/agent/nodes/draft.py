@@ -137,10 +137,14 @@ def _verify(state: AgentState, draft: AnswerJSON) -> Verdict:
     return generate_json(body.format(question=state.question, facts=fmt_facts(state),
                                      provisions=_provisions_block(state),
                                      draft=draft.model_dump_json(indent=1)),
-                         Verdict, name="verify")
+                         Verdict, name="verify", thinking="low")
 
 
-@traced("verify_select")
+def _verify_fallback(state: AgentState, e: Exception) -> dict:
+    return {"answer": state.drafts[0] if state.drafts else None}
+
+
+@traced("verify_select", fallback=_verify_fallback)
 def verify_select(state: AgentState) -> dict:
     with ThreadPoolExecutor(N_DRAFTS) as ex:
         verdicts = list(ex.map(lambda d: _verify(state, d), state.drafts))
@@ -158,10 +162,12 @@ def verify_select(state: AgentState) -> dict:
 
 # ---------- ⑩ validate citations ----------
 
-SEC_MENTION = re.compile(r"มาตรา\s*(\d+(?:/\d+)?)")
+SEC_MENTION = re.compile(r"(?:มาตรา|ม\.)\s*(\d+(?:/\d+)?)")
 
 
 def _label(r: dict) -> str:
+    if r["section_no"] == "0":            # instrument without numbered clauses
+        return r["law_name"]
     para = r["paragraph_no"]
     unit = "ข้อ" if r["level"] >= 3 else "มาตรา"
     lab = f"{unit} {r['section_no']}"
@@ -172,22 +178,32 @@ def _label(r: dict) -> str:
     return f"{lab} {r['law_name']}"
 
 
+def allowed_keys(state: AgentState) -> set[str]:
+    """Citations the answer may use: provisions ⑤ selected, plus those a calculation used."""
+    keys = {k for ks in state.selected.values() for k in ks}
+    keys |= {k for c in state.calcs.values() for k in c.citations}
+    return keys
+
+
 @traced("validate_cites")
 def validate_cites(state: AgentState) -> dict:
-    """Every citation must exist in the DB and be in force on event_date; labels are
-    rewritten from the DB so a section number in a label can never be wrong."""
+    """Every citation must be one the system selected, exist in the DB and be in force on
+    event_date. Labels and the summary table's legal basis are rebuilt from the DB, so a
+    section number there can never be wrong. Section numbers written in prose that no kept
+    citation supports are reported (they cannot be rewritten safely)."""
     a = state.answer or (state.drafts[0] if state.drafts else None)
     if a is None:
         return {"markdown": "ไม่สามารถสร้างคำตอบได้", "_summary": "no answer"}
     a = a.model_copy(deep=True)
+    allowed = allowed_keys(state)
     removed: list[str] = []
     cache_: dict[str, dict | None] = {}
 
     def ok(key: str) -> dict | None:
+        if key not in allowed:
+            return None
         if key not in cache_:
-            cache_[key] = tools.get_provision(key, state.event_date)
-            if cache_[key] is not None and cache_[key]["repealed"]:
-                cache_[key] = None
+            cache_[key] = tools.get_provision(key, state.event_date)   # None if not in force
         return cache_[key]
 
     def keep(keys: list[str]) -> list[str]:
@@ -207,18 +223,18 @@ def validate_cites(state: AgentState) -> dict:
             else:
                 removed.append(law.citation_key)
         iss.laws = laws
+        iss.basis = ", ".join(dict.fromkeys(law.label for law in laws)) or "-"
         for ap in iss.application:
             ap.citations = keep(ap.citations)
         for p in iss.conclusion:
             p.citations = keep(p.citations)
 
-    # section numbers mentioned in prose must at least exist in some indexed law
-    with tools.connect() as conn:
-        known = {r[0] for r in conn.execute("SELECT DISTINCT section_no FROM provisions")}
+    # prose may only mention sections that some kept citation refers to
+    cited_sections = {ok(k)["section_no"] for k in a.all_citations() if ok(k)}
     prose = a.model_dump_json()
-    unknown = sorted({m for m in SEC_MENTION.findall(prose) if m not in known})
+    uncited = sorted({m for m in SEC_MENTION.findall(prose) if m not in cited_sections})
 
     md = render(a)
     return {"answer": a, "markdown": md, "removed_citations": removed,
-            "_summary": {"removed": removed, "unknown_sections_in_text": unknown,
+            "_summary": {"removed": removed, "uncited_sections_in_text": uncited,
                          "n_citations": len(a.all_citations())}}

@@ -16,7 +16,7 @@ def _facts_fallback(state: AgentState, e: Exception) -> dict:
 @traced("extract_facts", fallback=_facts_fallback)
 def extract_facts(state: AgentState) -> dict:
     _, body = prompt("extract_facts")
-    facts = generate_json(body.format(question=state.question), Facts, name="extract_facts")
+    facts = generate_json(body.format(question=state.question), Facts, name="extract_facts", thinking="low")
     return {"facts": facts, "event_date": state.event_date or facts.event_date,
             "_summary": {"asked": facts.asked, "n_facts": len(facts.key_facts)}}
 
@@ -33,7 +33,7 @@ def spot_issues(state: AgentState) -> dict:
     out = generate_json(
         body.format(question=state.question, asked="\n".join(state.facts.asked if state.facts else []),
                     facts=fmt_facts(state), taxonomy=listing),
-        _Issues, name="spot_issues")
+        _Issues, name="spot_issues", thinking="low")
     # system control: only taxonomy codes survive, no duplicates, at most 4
     seen, issues = set(), []
     for i in out.issues:

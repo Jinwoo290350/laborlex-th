@@ -39,7 +39,7 @@ def _p_gemini_batch(state: AgentState, code: str, cands: list[dict]) -> dict[str
     listing = "\n".join(fmt_provision(r, 700) for r in cands)
     out = generate_json(body.format(issue_name=taxonomy()[code]["name"],
                                     facts=fmt_facts(state), candidates=listing),
-                        _Picks, name="select_citations")
+                        _Picks, name="select_citations", thinking="low")
     return {p.citation_key: p.p for p in out.picks}
 
 
@@ -57,7 +57,12 @@ def _p_decider(state: AgentState, code: str, cands: list[dict]) -> dict[str, flo
         return dict(ex.map(ask, cands))
 
 
-@traced("select_citations")
+def _select_fallback(state: AgentState, e: Exception) -> dict:
+    """Decider unavailable: keep the top retrieved candidates rather than no law at all."""
+    return {"selected": {c: [r["citation_key"] for r in rs[:5]] for c, rs in state.candidates.items()}}
+
+
+@traced("select_citations", fallback=_select_fallback)
 def select_citations(state: AgentState) -> dict:
     """p(applies) per candidate from the configured DECIDER. Only candidate keys can be
     selected — no backend can introduce a citation that retrieval did not return."""
@@ -85,7 +90,7 @@ class _Checks(BaseModel):
     checks: list[ElementCheck]
 
 
-@traced("check_elements")
+@traced("check_elements", fallback=lambda state, e: {"elements": {}})
 def check_elements(state: AgentState) -> dict:
     _, body = prompt("check_elements")
 
@@ -98,7 +103,7 @@ def check_elements(state: AgentState) -> dict:
         listing = "\n".join(f"{e['id']}: {e['question']}" for e in els)
         out = generate_json(body.format(issue_name=taxonomy()[code]["name"], facts=fmt_facts(state),
                                         provisions="\n".join(provs), elements=listing),
-                            _Checks, name="check_elements")
+                            _Checks, name="check_elements", thinking="low")
         ids = {e["id"] for e in els}
         return code, [c for c in out.checks if c.id in ids]
 

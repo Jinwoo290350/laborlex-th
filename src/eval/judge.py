@@ -28,4 +28,4 @@ class Score(BaseModel):
 def judge(question: str, gold: str, answer_md: str) -> Score:
     version, body = prompt("judge")
     return generate_json(body.format(question=question, gold=gold, answer=answer_md), Score,
-                         name=f"judge_v{version}")
+                         name=f"judge_v{version}", thinking="low")

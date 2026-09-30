@@ -3,65 +3,93 @@
 from __future__ import annotations
 
 import logging
+from collections import Counter
 
 from src.agent.nodes.common import taxonomy, traced
 from src.agent.state import AgentState
 from src.index import tools
 
 log = logging.getLogger(__name__)
-PER_ISSUE = 24
+TAX_ROWS = 12          # quota per issue, taken first
+SEARCH_ROWS = 12       # guaranteed quota for hybrid search
+CHILD_ROWS = 6         # guaranteed quota for subordinate law (ISSUED_UNDER)
+MAX_PARAS_PER_SECTION = 4
+LONG_SECTION = 8       # e.g. ม.5 definitions (26 paragraphs): only search picks from these
 
 
 def primary_sections(code: str, exclude: set[str]) -> list[str]:
-    """Taxonomy sections for an issue. A section qualifies when at least two dev questions
-    tagged with the issue cite it (support from excluded / leave-one-out questions does not
-    count) or when one of the issue's elements cites it. Co-occurrence from a single
-    multi-issue question is noise (e.g. ม.43 showing up under severance_pay)."""
+    """Taxonomy sections for an issue: sections cited by the gold of at least two dev
+    questions tagged with the issue, or by one question when an element also cites it.
+    Support from excluded (leave-one-out) questions never counts — element citations were
+    drafted from the same gold, so on their own they are not evidence."""
     issue = taxonomy()[code]
     support = issue.get("provision_support") or {}
     from_elements = {":".join(k.split(":")[:2])            # "LPA2541:118:1:(1)" → "LPA2541:118"
                      for e in issue.get("elements", []) for k in e.get("citation_keys", [])}
     ranked = sorted(((sec, len(set(qs) - exclude)) for sec, qs in support.items()),
                     key=lambda x: -x[1])
-    keep = [sec for sec, n in ranked if n >= 2 or (n >= 1 and sec in from_elements)]
-    keep += sorted(s for s in from_elements if s not in keep)
-    return keep[:6]
+    return [sec for sec, n in ranked if n >= 2 or (n >= 1 and sec in from_elements)][:6]
 
 
-def _search(query: str, event_date, k: int) -> list[dict]:
+def _search(query: str, event_date, k: int) -> tuple[list[dict], str | None]:
+    """Hybrid search; on failure BM25 only. Returns (rows, fallback reason or None)."""
     try:
-        return tools.hybrid_search(query, event_date=event_date, k=k)
-    except Exception as e:  # noqa: BLE001 — dense index missing → lexical only
+        return tools.hybrid_search(query, event_date=event_date, k=k), None
+    except Exception as e:  # noqa: BLE001 — dense index/model missing → lexical only
         log.warning("hybrid search unavailable (%s); using BM25 only", e)
         from src.index.bm25 import default_index
         ids = [pid for pid, _ in default_index().search(query, k * 2)]
         with tools.connect() as conn:
             rows = {r["id"]: r for r in tools._fetch(conn, "p.id = ANY(%s)", (ids,))}
-        return [rows[i] for i in ids if i in rows and tools._in_force(rows[i], event_date)][:k]
+        return ([rows[i] for i in ids if i in rows and tools._in_force(rows[i], event_date)][:k],
+                f"bm25_only: {e!r}")
+
+
+def _add(found: dict[int, dict], rows: list[dict], via: str, quota: int) -> None:
+    """Add up to `quota` new, non-repealed rows from one source."""
+    n = 0
+    for r in rows:
+        if n >= quota:
+            break
+        if r["id"] not in found and not r.get("repealed"):
+            found[r["id"]] = {**r, "via": via}
+            n += 1
 
 
 @traced("retrieve_law")
 def retrieve_law(state: AgentState) -> dict:
+    """Per issue: taxonomy sections, hybrid search and subordinate law, each with its own
+    quota so no source can crowd out the others."""
     exclude = set(state.exclude_example_ids)
     cands: dict[str, list[dict]] = {}
+    fallbacks = []
     for iss in state.issues:
         name = taxonomy()[iss.code]["name"]
         found: dict[int, dict] = {}
+
+        tax_rows = []
         for key in primary_sections(iss.code, exclude):
             law, sec = key.split(":", 1)
-            for r in tools.get_section(law, sec):
-                found.setdefault(r["id"], {**r, "via": "taxonomy"})
-        for r in _search(f"{name}\n{state.question}", state.event_date, 12):
-            found.setdefault(r["id"], {**r, "via": "search"})
-        # 1 hop to subordinate law issued under the found sections
-        for pid in list(found)[:8]:
-            for r in tools.expand(pid).get("children", []):
-                found.setdefault(r["id"], {**r, "via": "issued_under"})
-        cands[iss.code] = [
-            {k: v for k, v in r.items() if k not in ("valid_from", "valid_to")}
-            for r in list(found.values())[:PER_ISSUE]]
-    return {"candidates": cands,
-            "_summary": {c: len(v) for c, v in cands.items()}}
+            paras = tools.get_section(law, sec)
+            if len(paras) <= LONG_SECTION:
+                tax_rows += paras[:MAX_PARAS_PER_SECTION]
+        _add(found, tax_rows, "taxonomy", TAX_ROWS)
+
+        hits, fb = _search(f"{name}\n{state.question}", state.event_date, SEARCH_ROWS * 2)
+        if fb:
+            fallbacks.append(fb)
+        _add(found, hits, "search", SEARCH_ROWS)
+
+        children = [c for pid in list(found)[:8] for c in tools.expand(pid).get("children", [])]
+        _add(found, children, "issued_under", CHILD_ROWS)
+
+        cands[iss.code] = [{k: v for k, v in r.items() if k not in ("valid_from", "valid_to")}
+                           for r in found.values()]
+    summary: dict = {c: {"n": len(v), "via": dict(Counter(r["via"] for r in v))}
+                     for c, v in cands.items()}
+    if fallbacks:
+        summary["fallbacks"] = fallbacks
+    return {"candidates": cands, "_summary": summary}
 
 
 @traced("retrieve_cases")

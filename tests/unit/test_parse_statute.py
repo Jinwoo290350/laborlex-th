@@ -85,3 +85,12 @@ def test_latin_suffix_sections():
     secs = parse("  มาตรา ๑๗ ก\n  มาตรา ๑๗ ทวิ ข\n  มาตรา ๑๗ ตรี ค\n  มาตรา ๑๘ ง")
     assert [s.section_no for s in secs] == ["17", "17ทวิ", "17ตรี", "18"]
     assert secs[1].paragraphs[0].text == "ข"
+
+
+def test_indented_line_inside_sub_list_stays_in_sub():
+    secs = parse("  มาตรา ๑ นายจ้างไม่ต้องจ่าย\n  (๔) ฝ่าฝืนข้อบังคับ\n  หนังสือเตือนมีผลหนึ่งปี\n"
+                 "  (๕) ละทิ้งหน้าที่\n  ในกรณี (๕) ให้ถือว่า\n  วรรคสาม")
+    p = secs[0].paragraphs
+    assert [n for n, _ in p[0].subs] == ["(4)", "(5)"]
+    assert p[0].subs[0][1] == "ฝ่าฝืนข้อบังคับ\nหนังสือเตือนมีผลหนึ่งปี"
+    assert [x.text for x in p[1:]] == ["ในกรณี (5) ให้ถือว่า", "วรรคสาม"]

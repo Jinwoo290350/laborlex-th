@@ -20,6 +20,13 @@ from src.config import settings
 from src.eval.judge import CRITERIA, judge
 from src.llm import USAGE
 
+
+def usage_cost() -> float:
+    """USD spent on fresh (non-cached) Gemini calls in this process."""
+    fresh = [c for c in USAGE.log if not c["cached"]]
+    return (sum(c["in"] for c in fresh) * settings.gemini_price_in
+            + sum(c["out"] for c in fresh) * settings.gemini_price_out) / 1e6
+
 SETS = {"dev100": "data/eval/dev100.csv", "bar_labor": "data/eval/bar_labor.csv"}
 RUNS = Path("data/processed/runs")
 
@@ -29,7 +36,7 @@ def config() -> dict:
     from src.agent.nodes import decide, draft
     from src.agent.nodes.common import prompt
     prompts = sorted(p.stem for p in Path("prompts").glob("*.md") if p.stem != "answer_template")
-    return {"model": settings.gemini_model, "decider": "gemini",
+    return {"model": settings.gemini_model, "decider": settings.decider,
             "steps": [n for n, _ in STEPS], "n_drafts": draft.N_DRAFTS,
             "n_examples": draft.N_EXAMPLES, "select_threshold": decide.SELECT_THRESHOLD,
             "prompts": {p: prompt(p)[0] for p in prompts}}
@@ -55,7 +62,7 @@ def run_one(row: dict, loo: bool, out_dir: Path) -> dict:
                    exclude_example_ids=[row["id"]] if loo else [])
         md, err = s.markdown, None
         trace, removed = s.trace, s.removed_citations
-        unknown = next((t["summary"].get("unknown_sections_in_text", []) for t in s.trace
+        unknown = next((t["summary"].get("uncited_sections_in_text", []) for t in s.trace
                         if t["node"] == "validate_cites" and isinstance(t.get("summary"), dict)), [])
         answer_json = s.answer.model_dump() if s.answer else None
     except Exception as e:  # noqa: BLE001 — record and continue the batch
@@ -89,8 +96,10 @@ def report(recs: list[dict], cfg: dict, name: str, out: Path) -> str:
     lines += [f"- latency p50 {statistics.median(lat):.0f}s · p95 {lat[int(0.95 * (n - 1))]:.0f}s",
               (f"- tokens in/out per question: {sum(r['tokens']['in'] for r in recs) / n:.0f} / "
                f"{sum(r['tokens']['out'] for r in recs) / n:.0f}"),
+              (f"- **cost (agent + judge, excl. cache hits): ${usage_cost():.2f} total · "
+               f"${usage_cost() / n:.3f} per question**"),
               (f"- citations removed by validator: {sum(len(r['removed_citations']) for r in recs)}"
-               f" · unknown section numbers in prose: {sum(len(r['unknown_sections']) for r in recs)}"),
+               f" · section numbers in prose without a kept citation: {sum(len(r['unknown_sections']) for r in recs)}"),
               "", "## By difficulty", ""]
     by = Counter(r["difficulty"] for r in recs)
     for d, k in sorted(by.items()):

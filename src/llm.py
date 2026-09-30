@@ -54,12 +54,15 @@ def _key(*parts: str) -> str:
 
 def generate_json(prompt: str, schema: type[T], *, system: str = "", name: str = "llm",
                   temperature: float = 0.0, model: str | None = None, seed: int = 0,
-                  use_cache: bool = True) -> T:
-    """Call Gemini with a response schema and return a validated model instance."""
+                  use_cache: bool = True, thinking: str | None = None) -> T:
+    """Call Gemini with a response schema and return a validated model instance.
+
+    thinking: None = model default, or "low"/"medium"/"high" (Gemini 3 thinking_level).
+    Thinking tokens are billed as output, so simple classification steps pass "low"."""
     from google.genai import types
 
     model = model or settings.gemini_model
-    params = json.dumps({"t": temperature, "seed": seed})
+    params = json.dumps({"t": temperature, "seed": seed, **({"thinking": thinking} if thinking else {})})
     key = _key(model, system, prompt, json.dumps(schema.model_json_schema(), sort_keys=True), params)
     path = CACHE / key[:2] / f"{key}.json"
     if use_cache and path.exists():
@@ -73,15 +76,20 @@ def generate_json(prompt: str, schema: type[T], *, system: str = "", name: str =
         seed=seed,
         response_mime_type="application/json",
         response_schema=schema,
+        thinking_config=types.ThinkingConfig(thinking_level=thinking.upper()) if thinking else None,
     )
     last: Exception | None = None
     for attempt in range(3):
         t0 = time.monotonic()
         try:
+            if attempt:                       # a deterministic retry would repeat a parse failure
+                cfg.seed, cfg.temperature = seed + attempt, max(temperature, 0.3)
             r = client().models.generate_content(model=model, contents=prompt, config=cfg)
             out = r.parsed if isinstance(r.parsed, schema) else schema.model_validate_json(r.text)
             um = r.usage_metadata
-            inp, outp = um.prompt_token_count or 0, um.candidates_token_count or 0
+            # billed output = answer tokens + thinking tokens
+            inp = um.prompt_token_count or 0
+            outp = (um.candidates_token_count or 0) + (um.thoughts_token_count or 0)
             ms = int((time.monotonic() - t0) * 1000)
             USAGE.add(name, inp, outp, ms, False)
             if use_cache:
@@ -95,5 +103,6 @@ def generate_json(prompt: str, schema: type[T], *, system: str = "", name: str =
             if isinstance(code, int) and 400 <= code < 500 and code != 429:
                 raise RuntimeError(f"{name}: Gemini {code} (not retried): {e}") from e
             last = e
-            time.sleep(2 ** attempt * 2)
+            if attempt < 2:
+                time.sleep(2 ** attempt * 2)
     raise RuntimeError(f"{name}: Gemini failed after 3 attempts: {last}") from last
