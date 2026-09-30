@@ -11,6 +11,8 @@ from pydantic import BaseModel
 from src.agent.nodes.common import fmt_facts, fmt_provision, prompt, taxonomy, traced
 from src.agent.state import AgentState, ElementCheck
 from src.calc import labor
+from src.config import settings
+from src.decision.base import QuestionSpec, get_decider
 from src.llm import generate_json
 
 SELECT_THRESHOLD = 0.5
@@ -27,22 +29,46 @@ class _Picks(BaseModel):
     picks: list[_Pick]
 
 
+APPLIES = QuestionSpec(type="noul",
+                       instructions="บทบัญญัตินี้เป็นกฎหมายที่ต้องใช้วินิจฉัยประเด็นนี้กับข้อเท็จจริงนี้โดยตรงหรือไม่")
+
+
+def _p_gemini_batch(state: AgentState, code: str, cands: list[dict]) -> dict[str, float]:
+    """One Gemini call judges all candidates of an issue (cheaper than one call each)."""
+    _, body = prompt("select_citations")
+    listing = "\n".join(fmt_provision(r, 700) for r in cands)
+    out = generate_json(body.format(issue_name=taxonomy()[code]["name"],
+                                    facts=fmt_facts(state), candidates=listing),
+                        _Picks, name="select_citations")
+    return {p.citation_key: p.p for p in out.picks}
+
+
+def _p_decider(state: AgentState, code: str, cands: list[dict]) -> dict[str, float]:
+    """System-One decider: one short state (facts + issue + one provision) per candidate."""
+    dec = get_decider()
+    facts = fmt_facts(state)
+
+    def ask(r: dict) -> tuple[str, float]:
+        d = dec.decide({"ข้อเท็จจริง": facts, "ประเด็น": taxonomy()[code]["name"],
+                        "บทบัญญัติ": fmt_provision(r, 1500)}, {"applies": APPLIES})
+        return r["citation_key"], d["applies"].p
+
+    with ThreadPoolExecutor(4) as ex:
+        return dict(ex.map(ask, cands))
+
+
 @traced("select_citations")
 def select_citations(state: AgentState) -> dict:
-    """Batch judgement per issue (Gemini). Only candidate keys can be selected — the model
-    cannot introduce a citation that retrieval did not return."""
-    _, body = prompt("select_citations")
+    """p(applies) per candidate from the configured DECIDER. Only candidate keys can be
+    selected — no backend can introduce a citation that retrieval did not return."""
+    judge = _p_gemini_batch if settings.decider == "gemini" else _p_decider
 
     def one(code: str) -> tuple[str, list[str], dict]:
         cands = state.candidates.get(code, [])
         if not cands:
             return code, [], {}
-        listing = "\n".join(fmt_provision(r, 700) for r in cands)
-        out = generate_json(body.format(issue_name=taxonomy()[code]["name"],
-                                        facts=fmt_facts(state), candidates=listing),
-                            _Picks, name="select_citations")
         allowed = {r["citation_key"] for r in cands}
-        ps = {p.citation_key: p.p for p in out.picks if p.citation_key in allowed}
+        ps = {k: p for k, p in judge(state, code, cands).items() if k in allowed}
         chosen = sorted((k for k, p in ps.items() if p >= SELECT_THRESHOLD), key=lambda k: -ps[k])
         if not chosen and ps:                      # never leave an issue without law
             chosen = [max(ps, key=ps.get)]
