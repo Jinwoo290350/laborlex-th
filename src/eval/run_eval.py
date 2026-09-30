@@ -34,12 +34,11 @@ RUNS = Path("data/processed/runs")
 
 def config() -> dict:
     from src.agent.graph import STEPS
-    from src.agent.nodes import decide, draft
     from src.agent.nodes.common import prompt
+    from src.params import registry
     prompts = sorted(p.stem for p in Path("prompts").glob("*.md") if p.stem != "answer_template")
     return {"model": settings.gemini_model, "decider": settings.decider,
-            "steps": [n for n, _ in STEPS], "n_drafts": draft.N_DRAFTS,
-            "n_examples": draft.N_EXAMPLES, "select_threshold": decide.SELECT_THRESHOLD,
+            "steps": [n for n, _ in STEPS], "params": {k: v["value"] for k, v in registry().items()},
             "prompts": {p: prompt(p)[0] for p in prompts}}
 
 

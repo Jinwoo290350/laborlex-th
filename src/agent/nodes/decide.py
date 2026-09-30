@@ -15,9 +15,7 @@ from src.calc import labor
 from src.config import settings
 from src.decision.base import QuestionSpec, get_decider
 from src.llm import generate_json
-
-SELECT_THRESHOLD = 0.5
-MAX_SELECTED = 8
+from src.params import P
 
 
 class _Pick(BaseModel):
@@ -37,7 +35,7 @@ APPLIES = QuestionSpec(type="noul",
 def _p_gemini_batch(state: AgentState, code: str, cands: list[dict]) -> dict[str, float]:
     """One Gemini call judges all candidates of an issue (cheaper than one call each)."""
     _, body = prompt("select_citations")
-    listing = "\n".join(fmt_provision(r, 700) for r in cands)
+    listing = "\n".join(fmt_provision(r, P("select.provision_chars")) for r in cands)
     out = generate_json(body.format(issue_name=taxonomy()[code]["name"],
                                     facts=fmt_facts(state), candidates=listing),
                         _Picks, name="select_citations", thinking="low")
@@ -51,7 +49,8 @@ def _p_decider(state: AgentState, code: str, cands: list[dict]) -> dict[str, flo
 
     def ask(r: dict) -> tuple[str, float]:
         d = dec.decide({"ข้อเท็จจริง": facts, "ประเด็น": taxonomy()[code]["name"],
-                        "บทบัญญัติ": fmt_provision(r, 1500)}, {"applies": APPLIES})
+                        "บทบัญญัติ": fmt_provision(r, P("select.provision_chars"))},
+                       {"applies": APPLIES})
         return r["citation_key"], d["applies"].p
 
     with ThreadPoolExecutor(4) as ex:
@@ -75,10 +74,11 @@ def select_citations(state: AgentState) -> dict:
             return code, [], {}
         allowed = {r["citation_key"] for r in cands}
         ps = {k: p for k, p in judge(state, code, cands).items() if k in allowed}
-        chosen = sorted((k for k, p in ps.items() if p >= SELECT_THRESHOLD), key=lambda k: -ps[k])
+        chosen = sorted((k for k, p in ps.items() if p >= P("select.threshold")),
+                        key=lambda k: -ps[k])
         if not chosen and ps:                      # never leave an issue without law
             chosen = [max(ps, key=ps.get)]
-        return code, chosen[:MAX_SELECTED], ps
+        return code, chosen[:P("select.max_selected")], ps
 
     with ThreadPoolExecutor(4) as ex:
         res = list(ex.map(one, [i.code for i in state.issues]))
@@ -100,7 +100,8 @@ def check_elements(state: AgentState) -> dict:
         if not els:
             return code, []
         by_key = {r["citation_key"]: r for r in state.candidates.get(code, [])}
-        provs = [fmt_provision(by_key[k], 900) for k in state.selected.get(code, []) if k in by_key]
+        provs = [fmt_provision(by_key[k], P("select.provision_chars"))
+                 for k in state.selected.get(code, []) if k in by_key]
         listing = "\n".join(f"{e['id']}: {e['question']}" for e in els)
         out = generate_json(body.format(issue_name=taxonomy()[code]["name"], facts=fmt_facts(state),
                                         provisions="\n".join(provs), elements=listing),

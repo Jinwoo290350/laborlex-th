@@ -8,13 +8,9 @@ from collections import Counter
 from src.agent.nodes.common import taxonomy, traced
 from src.agent.state import AgentState
 from src.index import tools
+from src.params import P
 
 log = logging.getLogger(__name__)
-TAX_ROWS = 12          # quota per issue, taken first
-SEARCH_ROWS = 12       # guaranteed quota for hybrid search
-CHILD_ROWS = 6         # guaranteed quota for subordinate law (ISSUED_UNDER)
-MAX_PARAS_PER_SECTION = 4
-LONG_SECTION = 8       # e.g. ม.5 definitions (26 paragraphs): only search picks from these
 
 
 def primary_sections(code: str, exclude: set[str]) -> list[str]:
@@ -28,7 +24,9 @@ def primary_sections(code: str, exclude: set[str]) -> list[str]:
                      for e in issue.get("elements", []) for k in e.get("citation_keys", [])}
     ranked = sorted(((sec, len(set(qs) - exclude)) for sec, qs in support.items()),
                     key=lambda x: -x[1])
-    return [sec for sec, n in ranked if n >= 2 or (n >= 1 and sec in from_elements)][:6]
+    need = P("retrieve.primary_min_support")
+    return [sec for sec, n in ranked
+            if n >= need or (n >= 1 and sec in from_elements)][:P("retrieve.primary_max")]
 
 
 def _search(query: str, event_date, k: int) -> tuple[list[dict], str | None]:
@@ -71,17 +69,18 @@ def retrieve_law(state: AgentState) -> dict:
         for key in primary_sections(iss.code, exclude):
             law, sec = key.split(":", 1)
             paras = tools.get_section(law, sec)
-            if len(paras) <= LONG_SECTION:
-                tax_rows += paras[:MAX_PARAS_PER_SECTION]
-        _add(found, tax_rows, "taxonomy", TAX_ROWS)
+            if len(paras) <= P("retrieve.long_section"):
+                tax_rows += paras[:P("retrieve.max_paras_per_section")]
+        _add(found, tax_rows, "taxonomy", P("retrieve.tax_rows"))
 
-        hits, fb = _search(f"{name}\n{state.question}", state.event_date, SEARCH_ROWS * 2)
+        hits, fb = _search(f"{name}\n{state.question}", state.event_date,
+                           P("retrieve.search_rows") * 2)
         if fb:
             fallbacks.append(fb)
-        _add(found, hits, "search", SEARCH_ROWS)
+        _add(found, hits, "search", P("retrieve.search_rows"))
 
         children = [c for pid in list(found)[:8] for c in tools.expand(pid).get("children", [])]
-        _add(found, children, "issued_under", CHILD_ROWS)
+        _add(found, children, "issued_under", P("retrieve.child_rows"))
 
         cands[iss.code] = [{k: v for k, v in r.items() if k not in ("valid_from", "valid_to")}
                            for r in found.values()]
@@ -92,9 +91,6 @@ def retrieve_law(state: AgentState) -> dict:
     return {"candidates": cands, "_summary": summary}
 
 
-CASES_PER_ISSUE = 3
-
-
 @traced("retrieve_cases", fallback=lambda state, e: {"cases": {}})
 def retrieve_cases(state: AgentState) -> dict:
     """Court decisions per issue: similar facts, boosted when they cite the issue's
@@ -102,7 +98,8 @@ def retrieve_cases(state: AgentState) -> dict:
     out: dict[str, list[dict]] = {}
     for iss in state.issues:
         sections = {f"{r['law']}:{r['section_no']}" for r in state.candidates.get(iss.code, [])}
-        hits = tools.search_cases(state.question, sections, k=CASES_PER_ISSUE)
+        hits = tools.search_cases(state.question, sections, k=P("cases.per_issue"),
+                                  min_overlap=P("cases.min_section_overlap"))
         out[iss.code] = [{k: v for k, v in h.items() if k != "sections"} for h in hits]
     return {"cases": out,
             "_summary": {c: [h["label"] for h in v] for c, v in out.items()}}

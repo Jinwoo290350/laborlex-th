@@ -14,7 +14,6 @@ class Settings(BaseSettings):
     app_password: str = ""
     # USD per 1M tokens (ai.google.dev/gemini-api/docs/pricing, gemini-3.5-flash, 2026-09-30);
     # output includes thinking tokens
-    n_drafts: int = 1          # drafts per question at ⑧ (2 = self-consistency, ~2× output cost)
     gemini_price_in: float = 1.50
     gemini_price_out: float = 9.00
 

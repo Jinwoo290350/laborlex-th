@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from src.agent.nodes.common import fmt_facts, prompt, taxonomy, traced
 from src.agent.state import AgentState, Facts, IssueSel
 from src.llm import generate_json
+from src.params import P
 
 
 def _facts_fallback(state: AgentState, e: Exception) -> dict:
@@ -41,5 +42,7 @@ def spot_issues(state: AgentState) -> dict:
             seen.add(i.code)
             issues.append(i)
     dropped = [i.code for i in out.issues if i.code not in tax]
-    return {"issues": issues[:4],
-            "_summary": {"issues": [i.code for i in issues[:4]], "dropped": dropped}}
+    cap = P("agent.max_issues")
+    return {"issues": issues[:cap],
+            "_summary": {"issues": [i.code for i in issues[:cap]], "dropped": dropped,
+                         "truncated": [i.code for i in issues[cap:]]}}

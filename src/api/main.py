@@ -12,12 +12,12 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel, Field
 
 from src.config import settings
+from src.params import P
 
 app = FastAPI(title="LaborLex-TH")
 security = HTTPBasic(auto_error=False)
 
 
-MAX_QUESTION_CHARS = 4000
 
 
 def auth(cred: Annotated[HTTPBasicCredentials | None, Depends(security)]) -> None:
@@ -35,7 +35,7 @@ def auth(cred: Annotated[HTTPBasicCredentials | None, Depends(security)]) -> Non
 
 
 class AskIn(BaseModel):
-    question: str = Field(min_length=5, max_length=MAX_QUESTION_CHARS)
+    question: str = Field(min_length=5, max_length=P("api.max_question_chars"))
     event_date: date | None = None
 
 

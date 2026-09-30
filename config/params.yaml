@@ -1,0 +1,167 @@
+# Parameter registry — see src/params.py. Values of kind "data" are (re)computed by
+# `python -m src.params_derive`; "measured" values by the tuning scripts named in `rule`.
+
+agent.max_issues:
+  value: 4
+  kind: data
+  source: dev100 issue tags (data/processed/dev100_issues.json)
+  rule: max number of issues any dev question needs
+  evidence: 'issues per question {1: 50, 2: 39, 3: 8, 4: 3}'
+  status: final
+select.max_selected:
+  value: 7
+  kind: data
+  source: dev100 gold_citations
+  rule: max number of gold sections cited by one dev question
+  evidence: 'gold sections per question: max 7, mean 2.4'
+  status: final
+select.provision_chars:
+  value: 1000
+  kind: data
+  source: provisions table (paragraph rows, not repealed)
+  rule: p99 paragraph length rounded up to 100 — at most 1% of paragraphs truncated when judging applicability
+  evidence: paragraph chars p50 169, p99 967, n=1178
+  status: final
+draft.provision_chars:
+  value: 3200
+  kind: data
+  source: provisions table
+  rule: longest paragraph rounded up to 100 — no provision is truncated in the drafting prompt
+  evidence: longest paragraph 3141 chars
+  status: final
+cases.summary_chars:
+  value: 4700
+  kind: data
+  source: cases table (holding)
+  rule: p95 headnote length rounded up to 100
+  evidence: headnote chars p50 1562, p95 4689, n=886
+  status: final
+api.max_question_chars:
+  value: 3400
+  kind: data
+  source: dev100 questions
+  rule: 3 × longest dev question, rounded up to 100 (room for longer real questions, bounded cost)
+  evidence: longest dev question 1111 chars
+  status: final
+cases.min_section_overlap:
+  value: 1
+  kind: design
+  source: logical relevance rule replacing the untuned CASE_BOOST
+  rule: a decision is offered only if it cites at least one section among the issue's candidates
+  evidence: no gold case labels exist to tune a score boost (dev100 cites 8 ฎีกา, none in the DB)
+  status: final
+cases.per_issue:
+  value: 1
+  kind: design
+  source: prompt budget
+  rule: case block ≤ median selected-provision block in the drafting prompt
+  evidence: median selected-provision block per issue 1975 chars over 48 issue-runs; median headnote 1562 chars → floor(block/headnote)
+  status: final
+llm.temperature:
+  value: 0.0
+  kind: design
+  source: reproducibility + disk cache (same prompt → same answer)
+  rule: deterministic decoding; diversity only via explicit self-consistency if ever re-enabled
+  evidence: n/a
+  status: final
+draft.n_drafts:
+  value: 1
+  kind: measured
+  source: docs/results/2026-10-01_dev100_bff0cd62.md vs 2026-10-01_dev100_e4b9bfed.md
+  rule: fewest drafts whose PASS is not significantly lower (McNemar, paired questions)
+  evidence: 2 drafts 10/11 · 1 draft 11/11 on the same 11 questions; no significant difference; 1 draft ~25% cheaper
+  status: provisional
+draft.n_examples:
+  value: 2
+  kind: requirement
+  source: CLAUDE.md §5.7 (dynamic few-shot, 2 examples)
+  rule: fixed by design spec
+  evidence: n/a
+  status: final
+draft.revise_below:
+  value: 0.75
+  kind: measured
+  source: node-level run on tune split (verify scores vs judge PASS)
+  rule: threshold on the verifier's worst criterion that best separates judge-PASS from FAIL (Youden J); if no separation,
+    disable revise
+  evidence: not yet measured — value inherited from first draft of the code
+  status: provisional
+select.threshold:
+  value: 0.5
+  kind: measured
+  source: node-level ⑤ run on tune split (p per candidate vs gold sections)
+  rule: highest precision subject to recall ≥ 0.95 of gold sections present among candidates (missing law costs B1 more than
+    an extra one)
+  evidence: not yet measured
+  status: provisional
+search.rrf_k:
+  value: 60
+  kind: measured
+  source: src/eval/tune_retrieval.py on tune split
+  rule: knee — smallest-cost setting within 1 recall point of the best
+  evidence: literature default (Cormack et al. 2009), not yet measured here
+  status: provisional
+search.pool:
+  value: 100
+  kind: measured
+  source: src/eval/tune_retrieval.py
+  rule: knee on gold-section recall
+  evidence: not yet measured
+  status: provisional
+rerank.pool:
+  value: 50
+  kind: measured
+  source: src/eval/tune_retrieval.py
+  rule: knee on gold-section recall
+  evidence: not yet measured
+  status: provisional
+retrieve.tax_rows:
+  value: 12
+  kind: measured
+  source: src/eval/tune_retrieval.py (oracle issues from dev100 tags, leave-one-out)
+  rule: knee on gold-section recall of the per-issue candidate list vs its size
+  evidence: not yet measured
+  status: provisional
+retrieve.search_rows:
+  value: 12
+  kind: measured
+  source: src/eval/tune_retrieval.py
+  rule: knee on gold-section recall vs candidate count
+  evidence: not yet measured
+  status: provisional
+retrieve.child_rows:
+  value: 6
+  kind: measured
+  source: src/eval/tune_retrieval.py
+  rule: knee on gold-section recall vs candidate count
+  evidence: not yet measured
+  status: provisional
+retrieve.max_paras_per_section:
+  value: 4
+  kind: measured
+  source: src/eval/tune_retrieval.py
+  rule: knee on gold-section recall vs candidate count
+  evidence: not yet measured
+  status: provisional
+retrieve.long_section:
+  value: 6
+  kind: data
+  source: provisions table (paragraphs per section)
+  rule: sections with more paragraphs than p99 are definition-style lists — only search may pick from them
+  evidence: paragraphs per section p50 1, p99 6, max 26
+  status: final
+retrieve.primary_min_support:
+  value: 2
+  kind: design
+  source: noise rule
+  rule: a taxonomy section needs support from ≥ 2 dev questions (one question's co-citations are not evidence), or 1 plus
+    an element citation
+  evidence: sick_leave dropped ม.41/76/120/17 that came from single multi-issue questions
+  status: final
+retrieve.primary_max:
+  value: 6
+  kind: measured
+  source: src/eval/tune_retrieval.py
+  rule: knee on gold-section recall
+  evidence: not yet measured
+  status: provisional

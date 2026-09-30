@@ -8,8 +8,8 @@ from functools import lru_cache
 from src.index.bm25 import default_index
 from src.index.db import connect
 from src.index.gpu import DEVICE_LOCK
+from src.params import P
 
-RRF_K = 60
 _COLS = ("p.id, l.short_name AS law, l.name AS law_name, l.level, p.section_no, p.paragraph_no,"
          " p.sub_no, p.chapter, p.chapter_title, p.text, p.citation_key, p.valid_from,"
          " p.valid_to, p.repealed, p.amendment_notes,"
@@ -55,7 +55,8 @@ def dense_search(query: str, k: int = 50) -> list[tuple[int, float]]:
     return [(i, float(s)) for i, s in rows]
 
 
-def rrf(*rankings: list[tuple[int, float]], k: int = RRF_K) -> list[tuple[int, float]]:
+def rrf(*rankings: list[tuple[int, float]], k: int | None = None) -> list[tuple[int, float]]:
+    k = P("search.rrf_k") if k is None else k
     scores: dict[int, float] = {}
     for ranking in rankings:
         for rank, (pid, _) in enumerate(ranking):
@@ -64,7 +65,6 @@ def rrf(*rankings: list[tuple[int, float]], k: int = RRF_K) -> list[tuple[int, f
 
 
 RERANKER = "BAAI/bge-reranker-v2-m3"
-RERANK_POOL = 50
 
 
 @lru_cache(maxsize=1)
@@ -83,15 +83,16 @@ def rerank(query: str, rows: list[dict]) -> list[dict]:
 
 
 def hybrid_search(query: str, event_date: date | None = None, k: int = 20,
-                  pool: int = 100, use_rerank: bool = True) -> list[dict]:
+                  pool: int | None = None, use_rerank: bool = True) -> list[dict]:
     """BM25 + bge-m3 dense → RRF → filter by validity on event_date → cross-encoder rerank."""
+    pool = P("search.pool") if pool is None else pool
     fused = rrf(default_index().search(query, pool), dense_search(query, pool))
     ids = [pid for pid, _ in fused]
     score = dict(fused)
     with connect() as conn:
         rows = {r["id"]: r for r in _fetch(conn, "p.id = ANY(%s)", (ids,))}
     out = []
-    limit = max(k, RERANK_POOL) if use_rerank else k
+    limit = max(k, P("rerank.pool")) if use_rerank else k
     for pid in ids:
         r = rows.get(pid)
         if r and _in_force(r, event_date):
@@ -142,9 +143,6 @@ def expand(provision_id: int) -> dict:
     return {"provision": b, "section": section, "children": children, "parents": parents}
 
 
-CASE_BOOST = 0.08          # per linked section that is also a candidate section
-
-
 def case_key(deka_no: str) -> str:
     return f"CASE:{deka_no}"
 
@@ -157,9 +155,11 @@ def case_label(c: dict) -> str:
     return f"{kind}{c['court']}ที่ {no}"
 
 
-def search_cases(query: str, sections: set[str], k: int = 3, pool: int = 30) -> list[dict]:
-    """Dense search over case headnotes, boosted when a case cites a candidate section
-    ("LPA2541:118")."""
+def search_cases(query: str, sections: set[str], k: int = 3, min_overlap: int = 1,
+                 pool: int = 200) -> list[dict]:
+    """Decisions that cite at least `min_overlap` of the candidate sections ("LPA2541:118"),
+    ordered by similarity of their headnote to the question. `pool` bounds the dense scan
+    (886 cases: the pool covers ~23% of them)."""
     from pgvector.psycopg import register_vector
 
     from src.index.embed import embed
@@ -179,7 +179,9 @@ def search_cases(query: str, sections: set[str], k: int = 3, pool: int = 30) -> 
         d = dict(zip(("id", "deka_no", "court", "doc_type", "year", "holding", "source_url",
                       "sim", "sections"), r))
         d["overlap"] = sorted(set(d["sections"]) & sections)
-        d["score"] = float(d["sim"]) + CASE_BOOST * len(d["overlap"])
+        if len(d["overlap"]) < min_overlap:
+            continue
+        d["score"] = float(d["sim"])
         d["key"] = case_key(d["deka_no"])
         d["label"] = case_label(d)
         out.append(d)

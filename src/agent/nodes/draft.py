@@ -16,14 +16,11 @@ from src.agent.nodes.common import fmt_facts, fmt_provision, prompt, taxonomy, t
 from src.agent.render import render
 from src.agent.rules.hierarchy import pair_notes
 from src.agent.state import AgentState
-from src.config import settings
 from src.index import tools
 from src.index.bm25 import tokenize
 from src.llm import generate_json
+from src.params import P
 
-N_DRAFTS = settings.n_drafts
-N_EXAMPLES = 2
-REVISE_BELOW = 0.75
 THAI_ORD = ["", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า", "สิบ"]
 
 
@@ -39,7 +36,8 @@ def _example_bank() -> tuple[list[dict], dict[str, list[str]]]:
     return rows, json.loads(tags.read_text(encoding="utf-8"))
 
 
-def pick_examples(state: AgentState, n: int = N_EXAMPLES) -> list[dict]:
+def pick_examples(state: AgentState, n: int | None = None) -> list[dict]:
+    n = P("draft.n_examples") if n is None else n
     rows, tags = _example_bank()
     mine = {i.code for i in state.issues}
     exclude = set(state.exclude_example_ids) | ({state.question_id} if state.question_id else set())
@@ -76,7 +74,7 @@ def _selected_rows(state: AgentState) -> list[dict]:
 
 def _provisions_block(state: AgentState) -> str:
     rows = _selected_rows(state)
-    lines = [fmt_provision(r, 2500) for r in rows]
+    lines = [fmt_provision(r, P("draft.provision_chars")) for r in rows]
     notes = pair_notes(rows)
     if notes:
         lines += ["", "ลำดับชั้นกฎหมาย (ระบบกำหนด):"] + [f"- {n}" for n in notes]
@@ -86,11 +84,11 @@ def _provisions_block(state: AgentState) -> str:
 HEADER_LINE = re.compile(r"^(คำ(พิพากษา|วินิจฉัย|สั่ง)|พ\.ร\.บ\.|พ\.ร\.ก|ป\.พ\.พ\.|ป\.วิ\.|ประมวล|พระราช)")
 
 
-def case_summary(holding: str, n: int = 700) -> str:
+def case_summary(holding: str, n: int | None = None) -> str:
     """Headnote without its header lines (case number and list of cited sections)."""
     lines = [ln.strip() for ln in (holding or "").split("\n") if ln.strip()]
     body = [ln for ln in lines if not HEADER_LINE.match(ln)]
-    return " ".join(body)[:n]
+    return " ".join(body)[: n or P("cases.summary_chars")]
 
 
 def _cases_block(state: AgentState) -> str:
@@ -140,11 +138,12 @@ def draft_prompt(state: AgentState, feedback: str = "") -> str:
 @traced("draft_answers")
 def draft_answers(state: AgentState) -> dict:
     p = draft_prompt(state)
-    with ThreadPoolExecutor(N_DRAFTS) as ex:
+    n = P("draft.n_drafts")
+    with ThreadPoolExecutor(n) as ex:
         drafts = list(ex.map(
-            lambda i: generate_json(p, AnswerJSON, name="draft", temperature=0.0 if i == 0 else 0.7,
+            lambda i: generate_json(p, AnswerJSON, name="draft", temperature=P("llm.temperature"),
                                     seed=i),
-            range(N_DRAFTS)))
+            range(n)))
     return {"drafts": drafts, "_summary": {"n": len(drafts),
                                            "examples": [r["id"] for r in pick_examples(state)]}}
 
@@ -179,12 +178,12 @@ def _verify_fallback(state: AgentState, e: Exception) -> dict:
 
 @traced("verify_select", fallback=_verify_fallback)
 def verify_select(state: AgentState) -> dict:
-    with ThreadPoolExecutor(N_DRAFTS) as ex:
+    with ThreadPoolExecutor(max(len(state.drafts), 1)) as ex:
         verdicts = list(ex.map(lambda d: _verify(state, d), state.drafts))
     best = max(range(len(verdicts)), key=lambda i: verdicts[i].score())
     answer, v = state.drafts[best], verdicts[best]
     revised = False
-    if v.worst() < REVISE_BELOW and v.feedback.strip():
+    if v.worst() < P("draft.revise_below") and v.feedback.strip():
         answer = generate_json(draft_prompt(state, v.feedback), AnswerJSON, name="revise")
         revised = True
     scores = [v.model_dump() for v in verdicts]
