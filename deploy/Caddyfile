@@ -1,0 +1,8 @@
+# Replace the domain; Caddy provisions HTTPS automatically.
+# basic auth hash: docker run --rm caddy caddy hash-password --plaintext '<APP_PASSWORD>'
+{$DOMAIN} {
+	basic_auth {
+		{$BASIC_USER} {$BASIC_HASH}
+	}
+	reverse_proxy ui:8501
+}

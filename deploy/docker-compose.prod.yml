@@ -1,0 +1,24 @@
+# Temporary 30-day deployment for the professors (CLAUDE.md §6): db + api + ui behind Caddy.
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment: {POSTGRES_USER: laborlex, POSTGRES_PASSWORD: "${DB_PASSWORD}", POSTGRES_DB: laborlex}
+    volumes: [pgdata:/var/lib/postgresql/data, ../src/index/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro]
+  api:
+    build: ..
+    env_file: ../.env
+    environment: {DATABASE_URL: "postgresql://laborlex:${DB_PASSWORD}@db:5432/laborlex"}
+    volumes: [models:/models]
+    depends_on: [db]
+  ui:
+    build: ..
+    command: ["uv", "run", "--no-sync", "streamlit", "run", "src/ui/app.py", "--server.port", "8501", "--server.address", "0.0.0.0"]
+    env_file: ../.env
+    environment: {API_URL: "http://api:8000"}
+    depends_on: [api]
+  caddy:
+    image: caddy:2
+    ports: ["80:80", "443:443"]
+    volumes: [./Caddyfile:/etc/caddy/Caddyfile:ro, caddy:/data]
+    depends_on: [ui]
+volumes: {pgdata: {}, models: {}, caddy: {}}

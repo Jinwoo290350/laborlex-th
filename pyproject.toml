@@ -20,6 +20,9 @@ dependencies = [
     "bm25s>=0.3.11",
     "sentence-transformers>=6.1.0",
     "langgraph>=1.2.12",
+    "fastapi>=0.142.2",
+    "uvicorn>=0.54.0",
+    "streamlit>=1.64.0",
 ]
 
 [project.optional-dependencies]

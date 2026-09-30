@@ -850,6 +850,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "bm25s" },
+    { name = "fastapi" },
     { name = "google-genai" },
     { name = "langgraph" },
     { name = "openpyxl" },
@@ -865,6 +866,8 @@ dependencies = [
     { name = "python-docx" },
     { name = "pyyaml" },
     { name = "sentence-transformers" },
+    { name = "streamlit" },
+    { name = "uvicorn" },
 ]
 
 [package.optional-dependencies]
@@ -902,6 +905,7 @@ dev = [
 requires-dist = [
     { name = "bm25s", specifier = ">=0.3.11" },
     { name = "bm25s", marker = "extra == 'ml'", specifier = ">=0.2" },
+    { name = "fastapi", specifier = ">=0.142.2" },
     { name = "fastapi", marker = "extra == 'app'", specifier = ">=0.111" },
     { name = "flagembedding", marker = "extra == 'ml'", specifier = ">=1.2" },
     { name = "google-genai", specifier = ">=2.25.0" },
@@ -926,8 +930,10 @@ requires-dist = [
     { name = "scikit-learn", marker = "extra == 'eval'", specifier = ">=1.5" },
     { name = "sentence-transformers", specifier = ">=6.1.0" },
     { name = "sentence-transformers", marker = "extra == 'ml'", specifier = ">=3.0" },
+    { name = "streamlit", specifier = ">=1.64.0" },
     { name = "streamlit", marker = "extra == 'app'", specifier = ">=1.36" },
     { name = "tenacity", marker = "extra == 'agent'", specifier = ">=8.3" },
+    { name = "uvicorn", specifier = ">=0.54.0" },
     { name = "uvicorn", marker = "extra == 'app'", specifier = ">=0.30" },
 ]
 provides-extras = ["ml", "agent", "app", "eval"]

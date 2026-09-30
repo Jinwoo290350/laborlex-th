@@ -1,0 +1,146 @@
+"""Run the agent over an eval set, judge, and write docs/results/<date>_<config>.md.
+
+  python -m src.eval.run_eval --set dev100 --leave-one-out [--limit N | --subset30 | --ids a,b]
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import hashlib
+import json
+import statistics
+import time
+from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+from pathlib import Path
+
+from src.config import settings
+from src.eval.judge import CRITERIA, judge
+from src.llm import USAGE
+
+SETS = {"dev100": "data/eval/dev100.csv", "bar_labor": "data/eval/bar_labor.csv"}
+RUNS = Path("data/processed/runs")
+
+
+def config() -> dict:
+    from src.agent.graph import STEPS
+    from src.agent.nodes import decide, draft
+    from src.agent.nodes.common import prompt
+    prompts = sorted(p.stem for p in Path("prompts").glob("*.md") if p.stem != "answer_template")
+    return {"model": settings.gemini_model, "decider": "gemini",
+            "steps": [n for n, _ in STEPS], "n_drafts": draft.N_DRAFTS,
+            "n_examples": draft.N_EXAMPLES, "select_threshold": decide.SELECT_THRESHOLD,
+            "prompts": {p: prompt(p)[0] for p in prompts}}
+
+
+def subset30(rows: list[dict]) -> list[dict]:
+    """Stratified by difficulty, deterministic (CLAUDE.md §8.11)."""
+    by = {}
+    for r in rows:
+        by.setdefault(r["difficulty"], []).append(r)
+    out = []
+    for _, group in sorted(by.items()):
+        n = round(30 * len(group) / len(rows))
+        out += sorted(group, key=lambda r: hashlib.md5(r["id"].encode()).hexdigest())[:n]
+    return out[:30]
+
+
+def run_one(row: dict, loo: bool, out_dir: Path) -> dict:
+    from src.agent.graph import answer
+    t0 = time.monotonic()
+    try:
+        s = answer(row["question"], question_id=row["id"],
+                   exclude_example_ids=[row["id"]] if loo else [])
+        md, err = s.markdown, None
+        trace, removed = s.trace, s.removed_citations
+        unknown = next((t["summary"].get("unknown_sections_in_text", []) for t in s.trace
+                        if t["node"] == "validate_cites" and isinstance(t.get("summary"), dict)), [])
+        answer_json = s.answer.model_dump() if s.answer else None
+    except Exception as e:  # noqa: BLE001 — record and continue the batch
+        md, err, trace, removed, unknown, answer_json = "", repr(e), [], [], [], None
+    latency = time.monotonic() - t0
+    score = judge(row["question"], row["gold_answer"], md) if md else None
+    rec = {"id": row["id"], "difficulty": row.get("difficulty"), "category": row.get("category"),
+           "latency_s": round(latency, 1), "error": err, "removed_citations": removed,
+           "unknown_sections": unknown, "score": score.model_dump() if score else None,
+           "pass": bool(score and score.passed),
+           "tokens": {"in": sum(t.get("in_tokens", 0) for t in trace),
+                      "out": sum(t.get("out_tokens", 0) for t in trace)}}
+    (out_dir / f"{row['id']}.json").write_text(json.dumps(
+        {**rec, "question": row["question"], "gold": row["gold_answer"], "markdown": md,
+         "answer": answer_json, "trace": trace}, ensure_ascii=False, indent=1, default=str),
+        encoding="utf-8")
+    return rec
+
+
+def report(recs: list[dict], cfg: dict, name: str, out: Path) -> str:
+    scored = [r for r in recs if r["score"]]
+    n = len(recs)
+    lines = [f"# Eval {name} — {datetime.now().astimezone():%Y-%m-%d %H:%M}", "",
+             "```json", json.dumps(cfg, ensure_ascii=False, indent=1), "```", "",
+             f"- questions: {n} · errors: {sum(1 for r in recs if r['error'])}",
+             f"- **PASS: {sum(r['pass'] for r in recs)}/{n} = {sum(r['pass'] for r in recs) / n:.1%}**"]
+    if scored:
+        lines.append("- % ได้ 2 ต่อเกณฑ์: " + " · ".join(
+            f"{c} {sum(r['score'][c] == 2 for r in scored) / len(scored):.0%}" for c in CRITERIA))
+    lat = sorted(r["latency_s"] for r in recs)
+    lines += [f"- latency p50 {statistics.median(lat):.0f}s · p95 {lat[int(0.95 * (n - 1))]:.0f}s",
+              (f"- tokens in/out per question: {sum(r['tokens']['in'] for r in recs) / n:.0f} / "
+               f"{sum(r['tokens']['out'] for r in recs) / n:.0f}"),
+              (f"- citations removed by validator: {sum(len(r['removed_citations']) for r in recs)}"
+               f" · unknown section numbers in prose: {sum(len(r['unknown_sections']) for r in recs)}"),
+              "", "## By difficulty", ""]
+    by = Counter(r["difficulty"] for r in recs)
+    for d, k in sorted(by.items()):
+        p = sum(r["pass"] for r in recs if r["difficulty"] == d)
+        lines.append(f"- {d}: {p}/{k}")
+    fails = [r for r in scored if not r["pass"]][:5]
+    lines += ["", "## ตัวอย่างข้อที่ไม่ผ่าน", ""]
+    for r in fails:
+        low = {c: r["score"][c] for c in CRITERIA if r["score"][c] < 2}
+        lines.append(f"- **{r['id']}** {low} — {r['score']['reasons'][:300]}")
+    lines += ["", f"raw: `{out}`"]
+    return "\n".join(lines) + "\n"
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--set", default="dev100", choices=SETS)
+    ap.add_argument("--leave-one-out", action="store_true")
+    ap.add_argument("--limit", type=int)
+    ap.add_argument("--subset30", action="store_true")
+    ap.add_argument("--ids")
+    ap.add_argument("--workers", type=int, default=4)
+    a = ap.parse_args()
+    if a.set == "test160":  # guarded: phase 2 only via export_for_grading
+        raise SystemExit("test160 is not allowed here")
+
+    with open(SETS[a.set], encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    if a.ids:
+        keep = set(a.ids.split(","))
+        rows = [r for r in rows if r["id"] in keep]
+    if a.subset30:
+        rows = subset30(rows)
+    if a.limit:
+        rows = rows[:a.limit]
+
+    cfg = config()
+    h = hashlib.sha1(json.dumps(cfg, sort_keys=True).encode()).hexdigest()[:8]
+    stamp = f"{datetime.now().astimezone():%Y-%m-%d_%H%M}"
+    out_dir = RUNS / f"{stamp}_{a.set}_{h}"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    with ThreadPoolExecutor(a.workers) as ex:
+        recs = list(ex.map(lambda r: run_one(r, a.leave_one_out, out_dir), rows))
+    md = report(recs, cfg, f"{a.set} ({len(rows)}q, {'LOO' if a.leave_one_out else 'no-LOO'})",
+                out_dir)
+    dest = Path("docs/results") / f"{stamp[:10]}_{a.set}_{h}.md"
+    dest.write_text(md, encoding="utf-8")
+    print(md)
+    print(f"gemini calls={USAGE.calls} cached={USAGE.cached}")
+
+
+if __name__ == "__main__":
+    main()
