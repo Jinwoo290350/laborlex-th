@@ -99,50 +99,55 @@ search.rrf_k:
   kind: measured
   source: src/eval/tune_retrieval.py on tune split
   rule: knee — smallest-cost setting within 1 recall point of the best
-  evidence: literature default (Cormack et al. 2009), not yet measured here
-  status: provisional
+  evidence: 'docs/results/2026-10-01_tune_retrieval.json: rrf_k 10/30/60/100 all within tolerance at pool 50/rerank 30; 60
+    kept (tie → literature default); best recall 0.8417'
+  status: final
 search.pool:
-  value: 100
-  kind: measured
-  source: src/eval/tune_retrieval.py
-  rule: knee on gold-section recall
-  evidence: not yet measured
-  status: provisional
-rerank.pool:
   value: 50
   kind: measured
   source: src/eval/tune_retrieval.py
   rule: knee on gold-section recall
-  evidence: not yet measured
-  status: provisional
+  evidence: 'docs/results/2026-10-01_tune_retrieval.json: pool 50 recall 0.8417 vs pool 100 (old) 0.8058 at rerank 50/30 grid;
+    smallest pool within 1 pt of best'
+  status: final
+rerank.pool:
+  value: 30
+  kind: measured
+  source: src/eval/tune_retrieval.py
+  rule: knee on gold-section recall
+  evidence: 'docs/results/2026-10-01_tune_retrieval.json: rerank 30 in the picked setting; no rerank best 0.7482 → rerank
+    needed'
+  status: final
 retrieve.tax_rows:
   value: 12
   kind: measured
   source: src/eval/tune_retrieval.py (oracle issues from dev100 tags, leave-one-out)
   rule: knee on gold-section recall of the per-issue candidate list vs its size
-  evidence: not yet measured
-  status: provisional
+  evidence: 'docs/results/2026-10-01_tune_retrieval.json: stage 2 pick'
+  status: final
 retrieve.search_rows:
   value: 12
   kind: measured
   source: src/eval/tune_retrieval.py
   rule: knee on gold-section recall vs candidate count
-  evidence: not yet measured
-  status: provisional
+  evidence: 'docs/results/2026-10-01_tune_retrieval.json: stage 2 pick; 18 rows gives 0.9424 (+0.7 pt, within tolerance) at
+    +6 candidates'
+  status: final
 retrieve.child_rows:
   value: 6
-  kind: measured
-  source: src/eval/tune_retrieval.py
-  rule: knee on gold-section recall vs candidate count
-  evidence: not yet measured
-  status: provisional
+  kind: requirement
+  source: client requirement 12 (cite parent and subordinate law together)
+  rule: keep subordinate-law candidates even though dev100 gold cannot measure them
+  evidence: tuning picked 0 because only 0 of 100 dev gold answers cite subordinate law; metric blind to requirement 12
+  status: final
 retrieve.max_paras_per_section:
-  value: 4
+  value: 2
   kind: measured
   source: src/eval/tune_retrieval.py
   rule: knee on gold-section recall vs candidate count
-  evidence: not yet measured
-  status: provisional
+  evidence: 'docs/results/2026-10-01_tune_retrieval.json: 2 paragraphs per section keep recall 0.9353 with 18.4 candidates
+    vs 4 → 22.8'
+  status: final
 retrieve.long_section:
   value: 6
   kind: data
@@ -163,5 +168,5 @@ retrieve.primary_max:
   kind: measured
   source: src/eval/tune_retrieval.py
   rule: knee on gold-section recall
-  evidence: not yet measured
-  status: provisional
+  evidence: 'docs/results/2026-10-01_tune_retrieval.json: 6 vs 9 identical recall; 3 lower'
+  status: final
