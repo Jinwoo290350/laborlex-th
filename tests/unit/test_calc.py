@@ -41,3 +41,8 @@ def test_missing_rate_raises():
 def test_verify_against_text():
     problems = BOOK.verify({"X:1:1": "หารด้วย 10", "X:2:1": "5 7 9", "X:3:1": "หนึ่ง"})
     assert problems == ["ot: 1.5 not found in X:3:1"]
+
+
+def test_numbers_in_thai_words():
+    from src.calc.labor import numbers_in
+    assert {D(30), D(180)} <= numbers_in("ค่าจ้างอัตราสุดท้ายสามสิบวัน หรือหนึ่งร้อยแปดสิบวัน")

@@ -65,13 +65,23 @@ class RateBook(BaseModel):
             if text is None:
                 problems.append(f"{r.key}: citation {r.citation_key} not in DB")
                 continue
-            found = {Decimal(n) for n in re.findall(r"\d+(?:\.\d+)?", text.replace(",", ""))}
+            found = numbers_in(text)
             nums = [r.value] if r.value is not None else []
             nums += [t.value for t in r.tiers]
             for n in nums:
                 if n not in found:
                     problems.append(f"{r.key}: {n} not found in {r.citation_key}")
         return problems
+
+
+def numbers_in(text: str) -> set[Decimal]:
+    """Digits and Thai number words ("หนึ่งร้อยแปดสิบ" → 180) appearing in a provision."""
+    from pythainlp.util import text_to_num
+    nums = {Decimal(n) for n in re.findall(r"\d+(?:\.\d+)?", text.replace(",", ""))}
+    for tok in text_to_num(text):
+        if re.fullmatch(r"\d+(?:\.\d+)?", tok):
+            nums.add(Decimal(tok))
+    return nums
 
 
 def _q(x: Decimal) -> Decimal:
