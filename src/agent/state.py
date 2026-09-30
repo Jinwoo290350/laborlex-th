@@ -16,7 +16,11 @@ class Facts(BaseModel):
     event_date: date | None = Field(None, description="วันเกิดเหตุ ถ้าโจทย์ระบุ")
     wage_amount: float | None = Field(None, description="ค่าจ้างเป็นตัวเลข ถ้าระบุ")
     wage_period: Literal["day", "month", "hour", "piece"] | None = None
-    tenure_days: int | None = Field(None, description="อายุงานเป็นวัน ถ้าคำนวณได้จากโจทย์")
+    start_date: date | None = Field(None, description="วันเริ่มทำงาน ถ้าโจทย์ระบุ (ค.ศ.)")
+    end_date: date | None = Field(None, description="วันเลิกจ้าง/สิ้นสุดการจ้าง ถ้าโจทย์ระบุ (ค.ศ.)")
+    service_years: int | None = Field(None, description="อายุงานส่วนปี ตามที่โจทย์เขียนไว้ตรง ๆ")
+    service_months: int | None = Field(None, description="อายุงานส่วนเดือน ตามที่โจทย์เขียนไว้ตรง ๆ")
+    service_days: int | None = Field(None, description="อายุงานส่วนวัน ตามที่โจทย์เขียนไว้ตรง ๆ")
     parties: list[str] = Field(default_factory=list)
     key_facts: list[str] = Field(default_factory=list,
                                  description="ข้อเท็จจริงสำคัญ ทีละข้อ ตามที่โจทย์ให้มา ไม่ตีความ")

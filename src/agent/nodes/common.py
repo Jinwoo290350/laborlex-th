@@ -59,8 +59,9 @@ def traced(name: str, fallback: Callable[[AgentState, Exception], dict] | None =
 
 
 def fmt_provision(r: dict, max_len: int = 1500) -> str:
+    from src.agent.rules.hierarchy import tag
     note = f" [หมายเหตุแก้ไข: {'; '.join(r['amendment_notes'])}]" if r.get("amendment_notes") else ""
-    return f"{r['citation_key']} | {r['law_name']} | {r['text'][:max_len]}{note}"
+    return f"{r['citation_key']} | {r['law_name']} [{tag(r)}] | {r['text'][:max_len]}{note}"
 
 
 def fmt_facts(state: AgentState) -> str:

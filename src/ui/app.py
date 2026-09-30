@@ -9,7 +9,7 @@ import streamlit as st
 
 API = os.environ.get("API_URL", "http://127.0.0.1:8000")
 PW = os.environ.get("APP_PASSWORD", "")
-AUTH = ("user", PW) if PW else None
+AUTH = (os.environ.get("APP_USER", "laborlex"), PW) if PW else None
 LEVEL = {1: "พระราชบัญญัติ", 2: "พระราชกฤษฎีกา", 3: "กฎกระทรวง", 4: "ประกาศ"}
 
 st.set_page_config(page_title="LaborLex-TH", layout="wide")

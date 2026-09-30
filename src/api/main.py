@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import os
 import secrets
 from datetime import date
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from src.config import settings
 
@@ -16,15 +17,25 @@ app = FastAPI(title="LaborLex-TH")
 security = HTTPBasic(auto_error=False)
 
 
+MAX_QUESTION_CHARS = 4000
+
+
 def auth(cred: Annotated[HTTPBasicCredentials | None, Depends(security)]) -> None:
+    """Basic auth. Without APP_PASSWORD the API refuses to serve unless DEV=1 is set, so a
+    deployment can never be left open (every /ask spends Gemini budget)."""
     if not settings.app_password:
-        return
-    if cred is None or not secrets.compare_digest(cred.password, settings.app_password):
+        if os.environ.get("DEV") == "1":
+            return
+        raise HTTPException(503, "APP_PASSWORD not configured")
+    ok = cred is not None and secrets.compare_digest(
+        cred.username.encode(), settings.app_user.encode()) & secrets.compare_digest(
+        cred.password.encode(), settings.app_password.encode())
+    if not ok:
         raise HTTPException(401, "unauthorized", headers={"WWW-Authenticate": "Basic"})
 
 
 class AskIn(BaseModel):
-    question: str
+    question: str = Field(min_length=5, max_length=MAX_QUESTION_CHARS)
     event_date: date | None = None
 
 

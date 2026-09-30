@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 from src.agent.answer import AnswerJSON
 from src.agent.nodes.common import fmt_facts, fmt_provision, prompt, taxonomy, traced
 from src.agent.render import render
+from src.agent.rules.hierarchy import pair_notes
 from src.agent.state import AgentState
 from src.index import tools
 from src.index.bm25 import tokenize
@@ -61,14 +62,23 @@ def _issue_block(state: AgentState) -> str:
                      for n, i in enumerate(state.issues, 1))
 
 
-def _provisions_block(state: AgentState) -> str:
-    seen, lines = set(), []
+def _selected_rows(state: AgentState) -> list[dict]:
+    seen, rows = set(), []
     for code, keys in state.selected.items():
         by_key = {r["citation_key"]: r for r in state.candidates.get(code, [])}
         for k in keys:
             if k in by_key and k not in seen:
                 seen.add(k)
-                lines.append(fmt_provision(by_key[k], 2500))
+                rows.append(by_key[k])
+    return rows
+
+
+def _provisions_block(state: AgentState) -> str:
+    rows = _selected_rows(state)
+    lines = [fmt_provision(r, 2500) for r in rows]
+    notes = pair_notes(rows)
+    if notes:
+        lines += ["", "ลำดับชั้นกฎหมาย (ระบบกำหนด):"] + [f"- {n}" for n in notes]
     return "\n".join(lines)
 
 
@@ -185,6 +195,27 @@ def allowed_keys(state: AgentState) -> set[str]:
     return keys
 
 
+def version_notes(a: AnswerJSON, ok, event_date) -> list[str]:
+    """Deterministic §4.4 notes: the index holds the current consolidated text only, so say
+    so, and list the amendment footnotes of every cited provision."""
+    notes: dict[str, None] = {}
+    for key in sorted(a.all_citations()):
+        r = ok(key)
+        for n in (r or {}).get("amendment_notes") or []:
+            notes[normalize_digits(n)] = None
+    if not notes:
+        return []
+    head = ("คำตอบนี้ใช้ตัวบทฉบับปัจจุบัน หากข้อเท็จจริงเกิดก่อนการแก้ไขต่อไปนี้ หลักเกณฑ์อาจแตกต่าง"
+            if event_date is None else
+            f"ระบบมีเฉพาะตัวบทฉบับปัจจุบัน ยังไม่ได้ตรวจตัวบท ณ วันที่ {event_date.isoformat()} — "
+            "มาตราที่อ้างมีการแก้ไขดังนี้")
+    return [head, *notes]
+
+
+def normalize_digits(s: str) -> str:
+    return s.translate(str.maketrans("๐๑๒๓๔๕๖๗๘๙", "0123456789"))
+
+
 @traced("validate_cites")
 def validate_cites(state: AgentState) -> dict:
     """Every citation must be one the system selected, exist in the DB and be in force on
@@ -228,6 +259,8 @@ def validate_cites(state: AgentState) -> dict:
             ap.citations = keep(ap.citations)
         for p in iss.conclusion:
             p.citations = keep(p.citations)
+
+    a.version_notes = version_notes(a, ok, state.event_date)
 
     # prose may only mention sections that some kept citation refers to
     cited_sections = {ok(k)["section_no"] for k in a.all_citations() if ok(k)}

@@ -33,6 +33,8 @@ def render(a: AnswerJSON) -> str:
 
     out += ["", "## ความเห็นทางกฎหมาย", "| ประเด็น | ข้อสรุป | ฐานกฎหมาย |", "|---|---|---|"]
     out += [f"| {i.question} | {i.opinion} | {i.basis} |" for i in a.issues]
+    if a.version_notes:
+        out += ["", "## หมายเหตุฉบับกฎหมาย"] + [f"- {n}" for n in a.version_notes]
     if a.follow_up_questions:
         out += ["", "## ข้อเท็จจริงที่ต้องถามเพิ่ม"] + [f"- {q}" for q in a.follow_up_questions]
     return "\n".join(out) + "\n"

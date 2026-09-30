@@ -68,11 +68,15 @@ def run_one(row: dict, loo: bool, out_dir: Path) -> dict:
     except Exception as e:  # noqa: BLE001 — record and continue the batch
         md, err, trace, removed, unknown, answer_json = "", repr(e), [], [], [], None
     latency = time.monotonic() - t0
+    cited = {":".join(k.split(":")[:2]) for k in (answer_json and _all_keys(answer_json)) or []}
+    gold = {g for g in row.get("gold_citations", "").split(";") if g}
     score = judge(row["question"], row["gold_answer"], md) if md else None
     rec = {"id": row["id"], "difficulty": row.get("difficulty"), "category": row.get("category"),
            "latency_s": round(latency, 1), "error": err, "removed_citations": removed,
            "unknown_sections": unknown, "score": score.model_dump() if score else None,
            "pass": bool(score and score.passed),
+           "gold_sections": sorted(gold), "cited_sections": sorted(cited),
+           "gold_hit": len(gold & cited), "extra_cited": len(cited - gold),
            "tokens": {"in": sum(t.get("in_tokens", 0) for t in trace),
                       "out": sum(t.get("out_tokens", 0) for t in trace)}}
     (out_dir / f"{row['id']}.json").write_text(json.dumps(
@@ -80,6 +84,16 @@ def run_one(row: dict, loo: bool, out_dir: Path) -> dict:
          "answer": answer_json, "trace": trace}, ensure_ascii=False, indent=1, default=str),
         encoding="utf-8")
     return rec
+
+
+CAVEAT = ("> ⚠️ ข้อจำกัดของตัวเลขนี้: taxonomy และองค์ประกอบร่างจากเฉลย dev100 ทั้งชุด "
+          "(leave-one-out ตัดเฉพาะ few-shot และมาตราหลัก) → PASS บน dev100 น่าจะสูงกว่า test160 · "
+          "judge เป็น Gemini ที่ยังไม่ได้ calibrate กับคะแนนอาจารย์ → ใช้ดูแนวโน้ม")
+
+
+def _all_keys(answer_json: dict) -> set[str]:
+    from src.agent.answer import AnswerJSON
+    return AnswerJSON.model_validate(answer_json).all_citations()
 
 
 def report(recs: list[dict], cfg: dict, name: str, out: Path) -> str:
@@ -92,6 +106,11 @@ def report(recs: list[dict], cfg: dict, name: str, out: Path) -> str:
     if scored:
         lines.append("- % ได้ 2 ต่อเกณฑ์: " + " · ".join(
             f"{c} {sum(r['score'][c] == 2 for r in scored) / len(scored):.0%}" for c in CRITERIA))
+    g_tot = sum(len(r["gold_sections"]) for r in recs)
+    g_hit = sum(r["gold_hit"] for r in recs)
+    c_tot = sum(len(r["cited_sections"]) for r in recs)
+    lines.append(f"- **มาตราในเฉลยที่คำตอบอ้างถึง (ไม่ใช้ judge): {g_hit}/{g_tot} = "
+                 f"{g_hit / g_tot:.0%}** · มาตราที่อ้างนอกเฉลย {c_tot - g_hit}/{c_tot}" if g_tot else "")
     lat = sorted(r["latency_s"] for r in recs)
     lines += [f"- latency p50 {statistics.median(lat):.0f}s · p95 {lat[int(0.95 * (n - 1))]:.0f}s",
               (f"- tokens in/out per question: {sum(r['tokens']['in'] for r in recs) / n:.0f} / "
@@ -100,6 +119,7 @@ def report(recs: list[dict], cfg: dict, name: str, out: Path) -> str:
                f"${usage_cost() / n:.3f} per question**"),
               (f"- citations removed by validator: {sum(len(r['removed_citations']) for r in recs)}"
                f" · section numbers in prose without a kept citation: {sum(len(r['unknown_sections']) for r in recs)}"),
+              "", CAVEAT,
               "", "## By difficulty", ""]
     by = Counter(r["difficulty"] for r in recs)
     for d, k in sorted(by.items()):

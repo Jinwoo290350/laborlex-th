@@ -34,4 +34,4 @@ serve:
 
 # Phase 2 only
 export-160:
-	uv run python -m src.eval.export_for_grading --set test160
+	uv run python -m src.eval.export_for_grading --set test160 --confirm-phase2

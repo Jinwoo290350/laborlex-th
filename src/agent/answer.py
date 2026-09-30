@@ -50,6 +50,8 @@ class AnswerJSON(BaseModel):
     preliminary: list[Point]
     issues: list[Issue]
     follow_up_questions: list[str] = Field(default_factory=list)
+    # set by the system in ⑩ from the DB's amendment footnotes (anything the LLM puts here is replaced)
+    version_notes: list[str] = Field(default_factory=list)
 
     def all_citations(self) -> set[str]:
         keys: set[str] = set()

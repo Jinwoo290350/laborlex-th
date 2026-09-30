@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     jev_api_key: str = ""
     database_url: str = "postgresql://laborlex:laborlex@127.0.0.1:5432/laborlex"
     decider: str = "openthai"
+    app_user: str = "laborlex"
     app_password: str = ""
     # USD per 1M tokens (ai.google.dev/gemini-api/docs/pricing, gemini-3.5-flash, 2026-09-30);
     # output includes thinking tokens

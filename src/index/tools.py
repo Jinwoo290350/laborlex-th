@@ -12,7 +12,8 @@ from src.index.db import connect
 RRF_K = 60
 _COLS = ("p.id, l.short_name AS law, l.name AS law_name, l.level, p.section_no, p.paragraph_no,"
          " p.sub_no, p.chapter, p.chapter_title, p.text, p.citation_key, p.valid_from,"
-         " p.valid_to, p.repealed, p.amendment_notes")
+         " p.valid_to, p.repealed, p.amendment_notes,"
+         " (SELECT pl.name FROM laws pl WHERE pl.id = l.parent_law_id) AS parent_law_name")
 
 
 def _fetch(conn, where: str, params: tuple) -> list[dict]:
@@ -135,9 +136,9 @@ def expand(provision_id: int) -> dict:
         section = _fetch(conn, "l.short_name=%s AND p.section_no=%s AND p.sub_no IS NULL"
                                " ORDER BY p.paragraph_no", (b["law"], b["section_no"]))
         children = _fetch(conn, "p.id IN (SELECT k.from_id FROM links k JOIN provisions t"
-                                " ON t.id=k.to_id WHERE k.type='ISSUED_UNDER' AND"
-                                " t.law_id=(SELECT law_id FROM provisions WHERE id=%s) AND"
-                                " t.section_no=%s)", (provision_id, b["section_no"]))
+                                " ON t.id=k.to_id WHERE k.type IN ('ISSUED_UNDER','REFERS_TO')"
+                                " AND t.law_id=(SELECT law_id FROM provisions WHERE id=%s)"
+                                " AND t.section_no=%s)", (provision_id, b["section_no"]))
         parents = _fetch(conn, "p.id IN (SELECT to_id FROM links WHERE type='ISSUED_UNDER'"
                                " AND from_id IN (SELECT id FROM provisions WHERE law_id="
                                "(SELECT law_id FROM provisions WHERE id=%s)))", (provision_id,))

@@ -123,6 +123,24 @@ def main() -> None:
                      law_id[short], law_id[parent], sec),
                 )
                 n_links += cur.rowcount
+        # REFERS_TO: a subordinate provision naming "มาตรา N" of its parent act
+        n_refs = 0
+        for short, (e, rows, _, _, _) in parsed.items():
+            parent = e.get("parent")
+            if not parent:
+                continue
+            for r in rows:
+                if r.sub_no:
+                    continue
+                for sec in dict.fromkeys(SEC_REF_RE.findall(r.text)):
+                    cur.execute(
+                        "INSERT INTO links (from_id, to_id, type, evidence)"
+                        " SELECT c.id, p.id, 'REFERS_TO', %s FROM provisions c, provisions p"
+                        " WHERE c.citation_key=%s AND p.law_id=%s AND p.section_no=%s"
+                        "   AND p.paragraph_no=1 AND p.sub_no IS NULL ON CONFLICT DO NOTHING",
+                        (r.text[:200], r.citation_key, law_id[parent], sec))
+                    n_refs += cur.rowcount
+        print(f"{n_refs} REFERS_TO links")
         cur.execute("SELECT count(*) FROM provisions")
         print(f"loaded {cur.fetchone()[0]} provisions, {n_links} ISSUED_UNDER links")
 

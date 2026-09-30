@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 
@@ -114,14 +115,23 @@ def check_elements(state: AgentState) -> dict:
                          for c, v in res.items()}}
 
 
+def tenure_from_facts(f) -> labor.Tenure | None:
+    if f.start_date and f.end_date and f.end_date >= f.start_date:
+        return labor.Tenure.from_dates(f.start_date, f.end_date)
+    if any(v is not None for v in (f.service_years, f.service_months, f.service_days)):
+        return labor.Tenure.from_stated(f.service_years or 0, f.service_months or 0,
+                                        f.service_days or 0)
+    return None
+
+
 @traced("calculate")
 def calculate(state: AgentState) -> dict:
-    """Deterministic arithmetic. Runs only when the issue has a formula, the needed facts
-    are known, and the rate book has an entry in force; otherwise records why not."""
+    """Deterministic arithmetic (the LLM only extracted dates/amounts). Runs when the issue
+    has a formula, the needed facts are known and a rate is in force; otherwise records why."""
     f = state.facts
     rates_path = Path("data/processed/rates.yaml")
     book = labor.RateBook.load(rates_path) if rates_path.exists() else labor.RateBook(rates=[])
-    on = state.event_date or __import__("datetime").date.today()
+    on = state.event_date or (f.end_date if f else None) or datetime.now().astimezone().date()
     out, notes = {}, {}
     for iss in state.issues:
         fk = taxonomy()[iss.code].get("formula_key")
@@ -129,12 +139,14 @@ def calculate(state: AgentState) -> dict:
             continue
         try:
             if f is None or f.wage_amount is None or f.wage_period in (None, "piece"):
-                raise ValueError("ค่าจ้างไม่ทราบ")
-            daily = labor.to_daily_wage(Decimal(str(f.wage_amount)), f.wage_period, on, book)
+                raise ValueError("ค่าจ้างไม่ทราบหรือเป็นค่าจ้างตามผลงาน")
+            daily = labor.to_daily_wage(Decimal(str(f.wage_amount)), f.wage_period, on, book,
+                                        exact=True)
             if fk == "severance":
-                if f.tenure_days is None:
+                tenure = tenure_from_facts(f)
+                if tenure is None:
                     raise ValueError("อายุงานไม่ทราบ")
-                r = labor.severance(daily.amount, f.tenure_days, on, book)
+                r = labor.severance(daily.amount, tenure, on, book)
                 out[iss.code] = labor.CalcResult(amount=r.amount, steps=daily.steps + r.steps,
                                                  citations=daily.citations + r.citations)
             else:

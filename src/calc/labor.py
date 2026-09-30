@@ -9,10 +9,10 @@ provision text stored in the DB, so a rates file cannot drift from the statute.
 from __future__ import annotations
 
 import re
-from datetime import date
+from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, Field
@@ -24,10 +24,43 @@ class CalcResult(BaseModel):
     citations: list[str]
 
 
+class Duration(BaseModel):
+    amount: int
+    unit: Literal["day", "year"]
+
+
 class Tier(BaseModel):
-    min_days: int                     # tenure >= min_days
-    max_days: int | None = None       # tenure < max_days (None = open-ended)
-    value: Decimal
+    min: Duration                     # tenure reaches min ("ครบ …")
+    max: Duration | None = None       # tenure has not reached max ("แต่ไม่ครบ …"); None = open
+    value: Decimal                    # days of last-rate wages
+    citation_key: str
+
+
+class Tenure(BaseModel):
+    """Length of service computed in code (never by the LLM).
+
+    Day counts are inclusive of the first and last day; completed years count whole
+    calendar years from the start date. (Convention to confirm with the professors.)"""
+    days: int
+    years: int
+    months: int
+    source: str
+
+    @classmethod
+    def from_dates(cls, start: date, end: date) -> Tenure:
+        from dateutil.relativedelta import relativedelta
+        rd = relativedelta(end + timedelta(days=1), start)
+        return cls(days=(end - start).days + 1, years=rd.years, months=rd.months,
+                   source=f"{start.isoformat()} ถึง {end.isoformat()}")
+
+    @classmethod
+    def from_stated(cls, years: int = 0, months: int = 0, days: int = 0) -> Tenure:
+        """Only a stated duration is known: day count is approximate for year thresholds."""
+        return cls(days=years * 365 + months * 30 + days, years=years, months=months,
+                   source=f"ตามที่โจทย์ระบุ {years} ปี {months} เดือน {days} วัน")
+
+    def reaches(self, d: Duration) -> bool:
+        return self.years >= d.amount if d.unit == "year" else self.days >= d.amount
 
 
 class Rate(BaseModel):
@@ -67,20 +100,34 @@ class RateBook(BaseModel):
                 continue
             found = numbers_in(text)
             nums = [r.value] if r.value is not None else []
-            nums += [t.value for t in r.tiers]
             for n in nums:
                 if n not in found:
                     problems.append(f"{r.key}: {n} not found in {r.citation_key}")
+            for t in r.tiers:
+                t_found = numbers_in(provision_text.get(t.citation_key, ""))
+                for n in [t.value, t.min.amount] + ([t.max.amount] if t.max else []):
+                    if Decimal(n) not in t_found:
+                        problems.append(f"{r.key}: {n} not found in {t.citation_key}")
         return problems
 
 
+MULTIPLE_WORDS = {"หนึ่งเท่าครึ่ง": Decimal("1.5"), "หนึ่งเท่า": Decimal(1), "สองเท่า": Decimal(2),
+                  "สามเท่า": Decimal(3)}
+
+
 def numbers_in(text: str) -> set[Decimal]:
-    """Digits and Thai number words ("หนึ่งร้อยแปดสิบ" → 180) appearing in a provision."""
-    from pythainlp.util import text_to_num
+    """Digits, Thai number words ("หนึ่งร้อยแปดสิบ" → 180) and multiples ("หนึ่งเท่าครึ่ง")."""
+    from pythainlp.util import text_to_num, thaiword_to_num
     nums = {Decimal(n) for n in re.findall(r"\d+(?:\.\d+)?", text.replace(",", ""))}
+    nums |= {v for w, v in MULTIPLE_WORDS.items() if w in text}
     for tok in text_to_num(text):
         if re.fullmatch(r"\d+(?:\.\d+)?", tok):
             nums.add(Decimal(tok))
+        elif re.fullmatch(r"[ก-๙]+", tok):
+            try:                      # text_to_num misses some bare words, e.g. "สิบ"
+                nums.add(Decimal(thaiword_to_num(tok)))
+            except ValueError:
+                pass
     return nums
 
 
@@ -88,8 +135,11 @@ def _q(x: Decimal) -> Decimal:
     return x.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
-def to_daily_wage(amount: Decimal, period: str, on: date, book: RateBook) -> CalcResult:
-    """period: 'day' | 'month' | 'hour'. Divisors come from the RateBook."""
+def to_daily_wage(amount: Decimal, period: str, on: date, book: RateBook,
+                  exact: bool = False) -> CalcResult:
+    """period: 'day' | 'month' | 'hour'. Divisors come from the RateBook.
+    exact=True keeps full precision so a later multiplication is rounded only once
+    (40,000 ÷ 30 × 300 = 400,000, not 1,333.33 × 300 = 399,999)."""
     if period == "day":
         return CalcResult(amount=_q(amount), steps=["ค่าจ้างรายวันตามที่ระบุ"], citations=[])
     key = {"month": "days_per_month", "hour": "hours_per_day"}[period]
@@ -98,29 +148,26 @@ def to_daily_wage(amount: Decimal, period: str, on: date, book: RateBook) -> Cal
     daily = amount / r.value if period == "month" else amount * r.value
     op = "÷" if period == "month" else "×"
     return CalcResult(
-        amount=_q(daily),
+        amount=daily if exact else _q(daily),
         steps=[f"ค่าจ้างรายวัน = {amount} {op} {r.value} = {_q(daily)}"],
         citations=[r.citation_key],
     )
 
 
-def severance(daily_wage: Decimal, tenure_days: int, on: date, book: RateBook) -> CalcResult:
+def severance(daily_wage: Decimal, tenure: Tenure, on: date, book: RateBook) -> CalcResult:
     r = book.get("severance_tiers", on)
-    tier = next(
-        (t for t in r.tiers if tenure_days >= t.min_days
-         and (t.max_days is None or tenure_days < t.max_days)),
-        None,
-    )
+    tier = next((t for t in r.tiers
+                 if tenure.reaches(t.min) and (t.max is None or not tenure.reaches(t.max))), None)
+    base = f"อายุงาน {tenure.years} ปี {tenure.months} เดือน ({tenure.days} วัน; {tenure.source})"
     if tier is None:
-        return CalcResult(amount=Decimal(0),
-                          steps=[f"อายุงาน {tenure_days} วัน ไม่ถึงเกณฑ์ได้รับค่าชดเชย"],
-                          citations=[r.citation_key])
+        return CalcResult(amount=Decimal(0), steps=[f"{base} ไม่ถึงเกณฑ์ขั้นต่ำที่ได้รับค่าชดเชย"],
+                          citations=[r.tiers[0].citation_key] if r.tiers else [r.citation_key])
     amt = daily_wage * tier.value
     return CalcResult(
         amount=_q(amt),
-        steps=[f"อายุงาน {tenure_days} วัน เข้าเกณฑ์ค่าจ้าง {tier.value} วัน",
-               f"ค่าชดเชย = {daily_wage} × {tier.value} = {_q(amt)}"],
-        citations=[r.citation_key],
+        steps=[f"{base} เข้าเกณฑ์ค่าจ้างอัตราสุดท้าย {tier.value} วัน",
+               f"ค่าชดเชย (ถ้ามีสิทธิ) = ค่าจ้างรายวัน × {tier.value} = {_q(amt)} บาท"],
+        citations=[tier.citation_key],
     )
 
 
