@@ -17,7 +17,35 @@ import openpyxl
 
 FIELDS = ["id", "question", "gold_answer", "gold_issues", "gold_citations", "event_date",
           "source", "notes", "category", "question_type", "difficulty", "ref_answer"]
-SECTION_RE = re.compile(r"มาตรา\s*(\d+(?:/\d+)?)")
+SECTION_RE = re.compile(r"มาตรา\s*(\d+(?:/\d+)?)((?:\s*(?:,|และ|หรือ)\s*(?:มาตรา\s*)?\d+(?:/\d+)?(?!\d))*)")
+LAW_NAMES = [("คุ้มครองแรงงาน", "LPA2541"), ("กฎหมายแรงงาน", "LPA2541"), ("แรงงานสัมพันธ์", "LRA2518"),
+             ("ป.พ.พ", "CCC"), ("แพ่งและพาณิชย์", "CCC")]
+
+
+def _law_near(before: str, after: str) -> str:
+    """Law named last before the mention on the same line, else first after it, else LPA."""
+    line_before = before.split("\n")[-1]
+    hits = [(line_before.rfind(n), code) for n, code in LAW_NAMES if n in line_before]
+    if hits:
+        return max(hits)[1]
+    clause = re.split(r"มาตรา|\n", after, maxsplit=1)[0]
+    if re.match(r"\s*(และ|หรือ|,)", clause):      # "มาตรา 118 และ ป.พ.พ. …" names the next item
+        return "LPA2541"
+    return next((code for n, code in LAW_NAMES if n in clause), "LPA2541")
+
+
+def resolve_citations(gold: str) -> list[str]:
+    """"มาตรา 118" → "LPA2541:118" (section level); "มาตรา 123 และ 124" gives both.
+    Mentions whose clause says it does not exist ("… ไม่มีอยู่ในกฎหมาย") are skipped."""
+    out = []
+    for m in SECTION_RE.finditer(gold):
+        clause = re.split(r"มาตรา|\n", gold[m.end():m.end() + 120], maxsplit=1)[0]
+        if "ไม่มี" in clause:
+            continue
+        law = _law_near(gold[:m.start()], gold[m.end():m.end() + 60])
+        nums = [m.group(1), *re.findall(r"\d+(?:/\d+)?", m.group(2) or "")]
+        out += [f"{law}:{n}" for n in nums]
+    return list(dict.fromkeys(out))
 
 
 def main() -> None:
@@ -45,8 +73,7 @@ def main() -> None:
             "question": str(r[col["คำถาม"]]).strip(),
             "gold_answer": g,
             "gold_issues": "",
-            # section numbers only; law prefix is resolved after the Legal Index exists
-            "gold_citations": ";".join(dict.fromkeys(SECTION_RE.findall(g))),
+            "gold_citations": ";".join(resolve_citations(g)),
             "event_date": "",
             "source": "client_dev_sheet",
             "notes": "",
