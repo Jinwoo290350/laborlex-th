@@ -21,11 +21,12 @@ from src.eval.judge import CRITERIA, judge
 from src.llm import USAGE
 
 
-def usage_cost() -> float:
-    """USD spent on fresh (non-cached) Gemini calls in this process."""
-    fresh = [c for c in USAGE.log if not c["cached"]]
-    return (sum(c["in"] for c in fresh) * settings.gemini_price_in
-            + sum(c["out"] for c in fresh) * settings.gemini_price_out) / 1e6
+def usage_cost(include_cached: bool = False) -> float:
+    """USD for Gemini calls in this process: fresh calls only (= spent now), or including
+    cache hits (= what the questions cost end to end)."""
+    calls = [c for c in USAGE.log if include_cached or not c["cached"]]
+    return (sum(c["in"] for c in calls) * settings.gemini_price_in
+            + sum(c["out"] for c in calls) * settings.gemini_price_out) / 1e6
 
 SETS = {"dev100": "data/eval/dev100.csv", "bar_labor": "data/eval/bar_labor.csv"}
 RUNS = Path("data/processed/runs")
@@ -115,8 +116,8 @@ def report(recs: list[dict], cfg: dict, name: str, out: Path) -> str:
     lines += [f"- latency p50 {statistics.median(lat):.0f}s · p95 {lat[int(0.95 * (n - 1))]:.0f}s",
               (f"- tokens in/out per question: {sum(r['tokens']['in'] for r in recs) / n:.0f} / "
                f"{sum(r['tokens']['out'] for r in recs) / n:.0f}"),
-              (f"- **cost (agent + judge, excl. cache hits): ${usage_cost():.2f} total · "
-               f"${usage_cost() / n:.3f} per question**"),
+              (f"- **cost per question (agent + judge, full price): ${usage_cost(True) / n:.3f}** · "
+               f"spent in this run (cache hits free): ${usage_cost():.2f}"),
               (f"- citations removed by validator: {sum(len(r['removed_citations']) for r in recs)}"
                f" · section numbers in prose without a kept citation: {sum(len(r['unknown_sections']) for r in recs)}"),
               "", CAVEAT,

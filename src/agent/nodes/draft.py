@@ -16,11 +16,12 @@ from src.agent.nodes.common import fmt_facts, fmt_provision, prompt, taxonomy, t
 from src.agent.render import render
 from src.agent.rules.hierarchy import pair_notes
 from src.agent.state import AgentState
+from src.config import settings
 from src.index import tools
 from src.index.bm25 import tokenize
 from src.llm import generate_json
 
-N_DRAFTS = 2
+N_DRAFTS = settings.n_drafts
 N_EXAMPLES = 2
 REVISE_BELOW = 0.75
 THAI_ORD = ["", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า", "สิบ"]
@@ -172,6 +173,8 @@ def verify_select(state: AgentState) -> dict:
 
 # ---------- ⑩ validate citations ----------
 
+KEY_IN_TEXT = re.compile(r"\[?\b((?:LPA|LRA|LCA)\d{4}|CCC|RD-[A-Z-]+|MR-[A-Z0-9-]+|ANN-[A-Z0-9-]+)"
+                         r"(:[0-9ก-๙/]+(?::\d+)?(?::\(\d+\))?)\]?")
 SEC_MENTION = re.compile(r"(?:มาตรา|ม\.)\s*(\d+(?:/\d+)?)")
 
 
@@ -196,6 +199,28 @@ def allowed_keys(state: AgentState) -> set[str]:
     keys = {k for ks in state.selected.values() for k in ks}
     keys |= {k for c in state.calcs.values() for k in c.citations}
     return keys
+
+
+def humanize_keys(a: AnswerJSON, ok) -> None:
+    """Replace internal citation keys the LLM copied into prose ("ตาม LPA2541:11:1") with the
+    DB label; keys that fail validation are dropped from the text."""
+    def sub(m: re.Match) -> str:
+        r = ok(m.group(1) + m.group(2))
+        return _label(r) if r else ""
+
+    def walk(obj):
+        for name, val in obj:
+            if isinstance(val, str) and name not in ("citation_key", "code"):
+                setattr(obj, name, KEY_IN_TEXT.sub(sub, val))
+            elif isinstance(val, list):
+                for i, x in enumerate(val):
+                    if isinstance(x, str) and name not in ("citations",):
+                        val[i] = KEY_IN_TEXT.sub(sub, x)
+                    elif hasattr(x, "model_fields"):
+                        walk(x)
+            elif hasattr(val, "model_fields"):
+                walk(val)
+    walk(a)
 
 
 def version_notes(a: AnswerJSON, ok, event_date) -> list[str]:
@@ -264,6 +289,7 @@ def validate_cites(state: AgentState) -> dict:
             p.citations = keep(p.citations)
 
     a.version_notes = version_notes(a, ok, state.event_date)
+    humanize_keys(a, ok)
 
     # prose may only mention sections that some kept citation refers to
     cited_sections = {ok(k)["section_no"] for k in a.all_citations() if ok(k)}
