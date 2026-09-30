@@ -13,6 +13,10 @@ manifest:
 
 ingest: manifest
 	uv run python -m src.ingest.pipeline
+	uv run python -m src.ingest.load_cases
+	uv run python -m src.index.embed
+	uv run python -m src.index.embed --cases
+	uv run python -m src.calc.build_rates
 
 dev100:
 	uv run python -m src.eval.import_dev100

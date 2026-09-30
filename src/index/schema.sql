@@ -44,11 +44,14 @@ CREATE TABLE IF NOT EXISTS links (
 
 CREATE TABLE IF NOT EXISTS cases (
     id         SERIAL PRIMARY KEY,
-    deka_no    TEXT NOT NULL UNIQUE,
+    deka_no    TEXT NOT NULL UNIQUE,              -- case number as the court prints it
+    court      TEXT NOT NULL,                     -- ศาลฎีกา | ศาลอุทธรณ์คดีชำนัญพิเศษ | …
+    doc_type   TEXT,                              -- คำพิพากษา | คำวินิจฉัย | คำสั่ง
     year       INT,
     facts      TEXT,
-    holding    TEXT,
+    holding    TEXT,                              -- headnote / ย่อสั้น
     full_text  TEXT,
+    source     TEXT,                              -- dataset it came from
     source_url TEXT,
     embedding  vector(1024)
 );

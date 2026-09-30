@@ -58,7 +58,9 @@ def ask(body: AskIn) -> AskOut:
     from src.index.tools import get_provision
     s = answer(body.question, event_date=body.event_date)
     keys = sorted(s.answer.all_citations()) if s.answer else []
-    cites = [c for c in (get_provision(k, s.event_date) for k in keys) if c]
+    from src.index.tools import get_case
+    cites = [c for c in ((get_case(k) if k.startswith("CASE:") else get_provision(k, s.event_date))
+                         for k in keys) if c]
     return AskOut(markdown=s.markdown, answer=s.answer.model_dump() if s.answer else None,
                   citations=[_public(c) for c in cites],
                   follow_up_questions=s.answer.follow_up_questions if s.answer else [],
@@ -75,6 +77,9 @@ def provision(citation_key: str) -> dict:
 
 
 def _public(r: dict) -> dict:
+    if "key" in r and r["key"].startswith("CASE:"):        # court decision
+        return {"citation_key": r["key"], "label": r["label"], "court": r["court"],
+                "year": r["year"], "source_url": r["source_url"], "kind": "case"}
     return {k: (str(v) if isinstance(v, date) else v) for k, v in r.items()
             if k in ("citation_key", "law", "law_name", "level", "section_no", "paragraph_no",
                      "sub_no", "chapter", "chapter_title", "text", "valid_from", "valid_to",

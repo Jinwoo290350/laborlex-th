@@ -83,6 +83,26 @@ def _provisions_block(state: AgentState) -> str:
     return "\n".join(lines)
 
 
+HEADER_LINE = re.compile(r"^(คำ(พิพากษา|วินิจฉัย|สั่ง)|พ\.ร\.บ\.|พ\.ร\.ก|ป\.พ\.พ\.|ป\.วิ\.|ประมวล|พระราช)")
+
+
+def case_summary(holding: str, n: int = 700) -> str:
+    """Headnote without its header lines (case number and list of cited sections)."""
+    lines = [ln.strip() for ln in (holding or "").split("\n") if ln.strip()]
+    body = [ln for ln in lines if not HEADER_LINE.match(ln)]
+    return " ".join(body)[:n]
+
+
+def _cases_block(state: AgentState) -> str:
+    seen, lines = set(), []
+    for hits in state.cases.values():
+        for h in hits:
+            if h["key"] not in seen:
+                seen.add(h["key"])
+                lines.append(f"{h['key']} | {h['label']} | {case_summary(h.get('holding'))}")
+    return "\n".join(lines) or "-"
+
+
 def _elements_block(state: AgentState) -> str:
     tax = taxonomy()
     out = []
@@ -110,7 +130,8 @@ def draft_prompt(state: AgentState, feedback: str = "") -> str:
                     asked="\n".join(state.facts.asked if state.facts else []),
                     facts=fmt_facts(state), issues=_issue_block(state),
                     provisions=_provisions_block(state), elements=_elements_block(state),
-                    calcs=_calcs_block(state), examples=_examples_block(state))
+                    calcs=_calcs_block(state), examples=_examples_block(state),
+                    cases=_cases_block(state))
     if feedback:
         p += f"\n\n## ข้อที่ต้องแก้จากร่างก่อน\n{feedback}"
     return p
@@ -174,12 +195,14 @@ def verify_select(state: AgentState) -> dict:
 
 # ---------- ⑩ validate citations ----------
 
-KEY_IN_TEXT = re.compile(r"\[?\b((?:LPA|LRA|LCA)\d{4}|CCC|RD-[A-Z-]+|MR-[A-Z0-9-]+|ANN-[A-Z0-9-]+)"
-                         r"(:[0-9ก-๙/]+(?::\d+)?(?::\(\d+\))?)\]?")
+KEY_IN_TEXT = re.compile(r"\[?\b((?:LPA|LRA|LCA)\d{4}|CCC|RD-[A-Z-]+|MR-[A-Z0-9-]+|ANN-[A-Z0-9-]+|CASE)"
+                         r"(:(?:[ก-ฮ]\s)?[0-9ก-๙/]+(?::\d+)?(?::\(\d+\))?)\]?")
 SEC_MENTION = re.compile(r"(?:มาตรา|ม\.)\s*(\d+(?:/\d+)?)")
 
 
 def _label(r: dict) -> str:
+    if "section_no" not in r:              # a court decision (see tools.case_label)
+        return r["label"]
     if r["section_no"] == "0":            # instrument without numbered clauses
         return r["law_name"]
     para = r["paragraph_no"]
@@ -199,6 +222,7 @@ def allowed_keys(state: AgentState) -> set[str]:
     """Citations the answer may use: provisions ⑤ selected, plus those a calculation used."""
     keys = {k for ks in state.selected.values() for k in ks}
     keys |= {k for c in state.calcs.values() for k in c.citations}
+    keys |= {h["key"] for hits in state.cases.values() for h in hits}
     return keys
 
 
@@ -263,7 +287,8 @@ def validate_cites(state: AgentState) -> dict:
         if key not in allowed:
             return None
         if key not in cache_:
-            cache_[key] = tools.get_provision(key, state.event_date)   # None if not in force
+            cache_[key] = (tools.get_case(key) if key.startswith("CASE:")
+                           else tools.get_provision(key, state.event_date))  # None if not in force
         return cache_[key]
 
     def keep(keys: list[str]) -> list[str]:
@@ -293,7 +318,8 @@ def validate_cites(state: AgentState) -> dict:
     humanize_keys(a, ok)
 
     # prose may only mention sections that some kept citation refers to
-    cited_sections = {ok(k)["section_no"] for k in a.all_citations() if ok(k)}
+    cited_sections = {ok(k)["section_no"] for k in a.all_citations()
+                      if ok(k) and "section_no" in ok(k)}
     prose = a.model_dump_json()
     uncited = sorted({m for m in SEC_MENTION.findall(prose) if m not in cited_sections})
 

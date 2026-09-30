@@ -140,3 +140,59 @@ def expand(provision_id: int) -> dict:
                                " AND from_id IN (SELECT id FROM provisions WHERE law_id="
                                "(SELECT law_id FROM provisions WHERE id=%s)))", (provision_id,))
     return {"provision": b, "section": section, "children": children, "parents": parents}
+
+
+CASE_BOOST = 0.08          # per linked section that is also a candidate section
+
+
+def case_key(deka_no: str) -> str:
+    return f"CASE:{deka_no}"
+
+
+def case_label(c: dict) -> str:
+    """e.g. "คำพิพากษาศาลอุทธรณ์คดีชำนัญพิเศษที่ 2063/2567 (แผนกคดีแรงงาน)" — the court is
+    always named; decisions of other courts are never presented as ฎีกา."""
+    no = c["deka_no"].split(" ", 1)[-1]
+    kind = c.get("doc_type") or "คำพิพากษา"
+    return f"{kind}{c['court']}ที่ {no}"
+
+
+def search_cases(query: str, sections: set[str], k: int = 3, pool: int = 30) -> list[dict]:
+    """Dense search over case headnotes, boosted when a case cites a candidate section
+    ("LPA2541:118")."""
+    from pgvector.psycopg import register_vector
+
+    from src.index.embed import embed
+    q = embed([query])[0]
+    with connect() as conn:
+        register_vector(conn)
+        rows = conn.execute(
+            "SELECT c.id, c.deka_no, c.court, c.doc_type, c.year, c.holding, c.source_url,"
+            " 1 - (c.embedding <=> %s) AS sim,"
+            " ARRAY(SELECT DISTINCT l.short_name || ':' || p.section_no FROM case_links cl"
+            "   JOIN provisions p ON p.id = cl.provision_id JOIN laws l ON l.id = p.law_id"
+            "   WHERE cl.case_id = c.id) AS sections"
+            " FROM cases c WHERE c.embedding IS NOT NULL ORDER BY c.embedding <=> %s LIMIT %s",
+            (q, q, pool)).fetchall()
+    out = []
+    for r in rows:
+        d = dict(zip(("id", "deka_no", "court", "doc_type", "year", "holding", "source_url",
+                      "sim", "sections"), r))
+        d["overlap"] = sorted(set(d["sections"]) & sections)
+        d["score"] = float(d["sim"]) + CASE_BOOST * len(d["overlap"])
+        d["key"] = case_key(d["deka_no"])
+        d["label"] = case_label(d)
+        out.append(d)
+    return sorted(out, key=lambda d: -d["score"])[:k]
+
+
+def get_case(key: str) -> dict | None:
+    if not key.startswith("CASE:"):
+        return None
+    with connect() as conn:
+        r = conn.execute("SELECT deka_no, court, doc_type, year, source_url FROM cases"
+                         " WHERE deka_no=%s", (key[5:],)).fetchone()
+    if not r:
+        return None
+    d = dict(zip(("deka_no", "court", "doc_type", "year", "source_url"), r))
+    return {**d, "key": key, "label": case_label(d)}

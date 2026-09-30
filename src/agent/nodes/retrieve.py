@@ -92,8 +92,17 @@ def retrieve_law(state: AgentState) -> dict:
     return {"candidates": cands, "_summary": summary}
 
 
-@traced("retrieve_cases")
+CASES_PER_ISSUE = 3
+
+
+@traced("retrieve_cases", fallback=lambda state, e: {"cases": {}})
 def retrieve_cases(state: AgentState) -> dict:
-    # Supreme Court case data not delivered yet (CLAUDE.md §9) — keep the node so the
-    # flow and trace are complete; it returns nothing until `cases` is populated.
-    return {"cases": {}, "_summary": "no case data loaded"}
+    """Court decisions per issue: similar facts, boosted when they cite the issue's
+    candidate sections. Only these can be cited (checked at ⑩)."""
+    out: dict[str, list[dict]] = {}
+    for iss in state.issues:
+        sections = {f"{r['law']}:{r['section_no']}" for r in state.candidates.get(iss.code, [])}
+        hits = tools.search_cases(state.question, sections, k=CASES_PER_ISSUE)
+        out[iss.code] = [{k: v for k, v in h.items() if k != "sections"} for h in hits]
+    return {"cases": out,
+            "_summary": {c: [h["label"] for h in v] for c, v in out.items()}}

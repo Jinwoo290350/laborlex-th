@@ -69,7 +69,8 @@ def run_one(row: dict, loo: bool, out_dir: Path) -> dict:
     except Exception as e:  # noqa: BLE001 — record and continue the batch
         md, err, trace, removed, unknown, answer_json = "", repr(e), [], [], [], None
     latency = time.monotonic() - t0
-    cited = {":".join(k.split(":")[:2]) for k in (answer_json and _all_keys(answer_json)) or []}
+    cited = {":".join(k.split(":")[:2]) for k in (answer_json and _all_keys(answer_json)) or []
+             if not k.startswith("CASE:")}
     gold = {g for g in row.get("gold_citations", "").split(";") if g}
     score = judge(row["question"], gold_text(row), md) if md else None
     rec = {"id": row["id"], "difficulty": row.get("difficulty"), "category": row.get("category"),

@@ -44,6 +44,10 @@ with side:
     if st.session_state.history:
         last = st.session_state.history[-1]
         for c in last["citations"]:
+            if c.get("kind") == "case":
+                with st.expander(f"⚖️ {c['label']}"):
+                    st.markdown(f"[เปิดคำพิพากษาต้นฉบับ]({c['source_url']})")
+                continue
             title = f"{c['citation_key']} · {LEVEL.get(c['level'], '')}"
             with st.expander(title):
                 st.markdown(f"**{c['law_name']}**  \n{c.get('chapter') or ''} "

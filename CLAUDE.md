@@ -25,8 +25,8 @@
 |---|---|
 | LLM หลัก | Gemini 3.5 Flash (ลูกค้ากำหนด) — model id `gemini-3.5-flash` (ตรวจด้วย `client.models.list()` 2026-09-30) |
 | เป้าหมาย | PASS ≥ 90% บน test160 (อาจารย์กฎหมายเป็นผู้ประเมิน) |
-| Baseline (dev100) | Gemini PASS 64 · ChatGPT 34 · Claude 31 |
-| Baseline รายเกณฑ์ (Gemini, % ได้ 2) | A1 100 · B0 97 · B1 81 · B3 78 · B2 78 · **A2 75** |
+| Baseline (dev100) | Gemini PASS **55** · ChatGPT 50 · Claude 35 (คำนวณจากคะแนนทนายรายข้อ `data/raw/legacy/client-baseline-scores.jsonl`; ตัวเลขเดิม 64/34/31 ไม่ตรงกับไฟล์) |
+| Baseline รายเกณฑ์ (Gemini, % ได้ 2) | A1 93 · B0 86 · B3 77 · B1 75 · B2 75 · **A2 72** (จากไฟล์เดียวกัน) |
 | คำพูดลูกค้า | "AI ตอบคำถามสั้นได้ แต่พอต้องวิเคราะห์ + คำนวณ มักตายและอ้างมาตราผิด" |
 
 ### Requirements ของลูกค้า (ห้ามละเมิด)
@@ -92,7 +92,8 @@
 - ตัวบทฉบับรวมแก้ไขล่าสุดควรเทียบกับ krisdika.go.th เมื่อสงสัย
 
 ### 4.2 ฎีกา
-- เฟสนี้: ข้อมูลที่คนเก่าดึงจาก deka.supremecourt.or.th (ขอจากลูกค้า) → `data/raw/cases/`
+- มีแล้ว: คำพิพากษา/คำวินิจฉัย **ศาลอุทธรณ์คดีชำนัญพิเศษ แผนกคดีแรงงาน 886 เรื่อง** จากโค้ดคนเก่า (`data/raw/legacy/cases.jsonl`, sjapsc.coj.go.th) — **ไม่ใช่ฎีกา** ต้องระบุชื่อศาลทุกครั้ง
+- ฎีกา: ยังไม่มี · ตัวเลือก: iApp Thai Legal Data API, HF `phoneee/thai-legal-corpus` (CC-BY-4.0), SLegalTools API (ดูรายงาน research 2026-10-01)
 - อนาคต (งานแยก): api.slegaltools.digital, openlawdatathailand.org (HF, **CC BY-SA 4.0**), legal.labour.go.th, area6.labour.go.th, lbudtc.coj.go.th, ops.mol.go.th
 - scraper (ถ้าได้รับจ้าง) ต้อง: ≥ 1 วินาที/request, เคารพ robots.txt, cache, เก็บ URL ต้นทาง
 
