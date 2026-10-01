@@ -112,6 +112,13 @@ def report(recs: list[dict], cfg: dict, name: str, out: Path) -> str:
     c_tot = sum(len(r["cited_sections"]) for r in recs)
     lines.append(f"- **มาตราในเฉลยที่คำตอบอ้างถึง (ไม่ใช้ judge): {g_hit}/{g_tot} = "
                  f"{g_hit / g_tot:.0%}** · มาตราที่อ้างนอกเฉลย {c_tot - g_hit}/{c_tot}" if g_tot else "")
+    with_gold = [r for r in recs if r["gold_sections"]]
+    full = [r for r in with_gold if r["gold_hit"] == len(r["gold_sections"])]
+    if with_gold:   # client criterion: the answer cites at least every section in column H
+        lines.append(f"- **ข้อที่อ้างมาตราในคอลัมน์ H ครบทุกมาตรา (เกณฑ์ลูกค้า): {len(full)}/{len(with_gold)} = "
+                     f"{len(full) / len(with_gold):.0%}** · ขาด: " + ", ".join(
+                         f"{r['id']} {sorted(set(r['gold_sections']) - set(r['cited_sections']))}"
+                         for r in with_gold if r not in full))
     lat = sorted(r["latency_s"] for r in recs)
     lines += [f"- latency p50 {statistics.median(lat):.0f}s · p95 {lat[int(0.95 * (n - 1))]:.0f}s",
               (f"- tokens in/out per question: {sum(r['tokens']['in'] for r in recs) / n:.0f} / "

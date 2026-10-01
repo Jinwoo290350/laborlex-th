@@ -1,10 +1,12 @@
 """Tune retrieval parameters on the dev100 TUNE split without any LLM call.
 
-Oracle issues = dev100 issue tags; taxonomy sections use leave-one-out. Metric = recall of
-the question's gold sections among the union of its per-issue candidates (section level).
-Selection rule (pre-registered, config/params.yaml): among settings whose recall is within
-1 point of the best, take the one with the fewest candidates (prompt cost), then the
-cheapest compute (smaller pools), then the literature default for rrf_k.
+Oracle issues = dev100 issue tags; taxonomy sections use leave-one-out.
+Stage 1 (search ranking) metric = recall of the question's gold sections among the union of
+its per-issue candidates (section level): among settings within 1 point of the best, take
+the cheapest compute (smaller pools), then the literature default for rrf_k.
+Stage 2 (quotas) metric = the client's criterion: share of questions whose candidates
+contain ALL their gold sections (column H). Among settings within one question of the best,
+take the fewest candidates (prompt cost), then smaller primary_max.
 
   python -m src.eval.tune_retrieval            → docs/results/<date>_tune_retrieval.json
 """
@@ -26,7 +28,8 @@ TOL = 0.01
 BIG_POOL = 200
 GRID_SEARCH = {"rrf_k": [10, 30, 60, 100], "pool": [50, 100, 200], "rerank_pool": [0, 30, 50, 100]}
 GRID_QUOTA = {"search_rows": [6, 9, 12, 18, 24], "tax_rows": [0, 6, 12, 18],
-              "max_paras": [2, 4, 6], "child_rows": [0, 6], "primary_max": [3, 6, 9]}
+              "max_paras": [2, 4, 6], "child_rows": [0, 6], "primary_max": [3, 6, 9],
+              "min_support": [1, 2]}
 
 
 def sec(r: dict) -> str:
@@ -44,7 +47,8 @@ def main() -> None:
 
     # ---- per (question, issue) query: raw rankings + rerank scores, computed once
     cache: dict[tuple[str, str], dict] = {}
-    for q in qs:
+    for n, q in enumerate(qs, 1):
+        print(f"  query cache {n}/{len(qs)}", flush=True)
         for code in tags.get(q["id"], []):
             query = f"{taxonomy()[code]['name']}\n{q['question']}"
             bm = idx.search(query, BIG_POOL)
@@ -62,6 +66,11 @@ def main() -> None:
             head = sorted(fused[:rerank_pool], key=lambda i: -c["rr"].get(i, -1e9))
             fused = head + fused[rerank_pool:]
         return fused
+
+    def full(cands_by_q: dict[str, set[str]]) -> float:
+        ok = sum({g for g in q["gold_citations"].split(";") if g} <= cands_by_q.get(q["id"], set())
+                 for q in qs)
+        return ok / len(qs)
 
     def recall(cands_by_q: dict[str, set[str]]) -> float:
         hit = tot = 0
@@ -93,16 +102,23 @@ def main() -> None:
             section_cache[key] = tools.get_section(law, s)
         return section_cache[key]
 
+    child_cache: dict[int, list[dict]] = {}
+
+    def children(pid: int) -> list[dict]:
+        if pid not in child_cache:
+            child_cache[pid] = tools.expand(pid).get("children", [])
+        return child_cache[pid]
+
     from src.params import P
     long_section = P("retrieve.long_section")
     stage2 = []
-    for sr, tr, mp, cr, pm in itertools.product(*GRID_QUOTA.values()):
+    for sr, tr, mp, cr, pm, ms in itertools.product(*GRID_QUOTA.values()):
         by_q: dict[str, set[str]] = {}
         n_cands = []
         for (qid, code) in cache:
             found: dict[int, dict] = {}
             tax = []
-            for key in primary_sections(code, {qid})[:pm]:
+            for key in primary_sections(code, {qid}, ms)[:pm]:
                 paras = section_rows(key)
                 if len(paras) <= long_section:
                     tax += paras[:mp]
@@ -116,16 +132,17 @@ def main() -> None:
                     found[i] = rows_by_id[i]
                     n += 1
             if cr:
-                kids = [k for pid in list(found)[:8] for k in tools.expand(pid).get("children", [])]
+                kids = [k for pid in list(found)[:8] for k in children(pid)]
                 for k in kids[:cr]:
                     found.setdefault(k["id"], k)
             by_q.setdefault(qid, set()).update(sec(r) for r in found.values())
             n_cands.append(len(found))
         stage2.append({"search_rows": sr, "tax_rows": tr, "max_paras": mp, "child_rows": cr,
-                       "primary_max": pm, "recall": round(recall(by_q), 4),
+                       "primary_max": pm, "min_support": ms, "full": round(full(by_q), 4),
+                       "recall": round(recall(by_q), 4),
                        "mean_candidates": round(sum(n_cands) / len(n_cands), 1)})
-    best2 = max(s["recall"] for s in stage2)
-    ok2 = [s for s in stage2 if s["recall"] >= best2 - TOL]
+    best2 = max(s["full"] for s in stage2)
+    ok2 = [s for s in stage2 if s["full"] >= best2 - 1 / len(qs) - 1e-9]
     pick2 = min(ok2, key=lambda s: (s["mean_candidates"], s["primary_max"]))
     print("stage 2 best", best2, "→ pick", pick2)
 

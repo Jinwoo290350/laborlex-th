@@ -1,0 +1,9 @@
+# Corrections to gold_citations parsed from Sheet2 column H, where H names a section only to
+# say it does NOT apply. Each entry quotes H. Applied by src/eval/import_dev100.py.
+dev014:
+  remove: [LPA2541:102, LRA2518:102]
+  evidence: "H: มาตรา102ไม่เกี่ยวกับการเลิกจ้างกรรมการลูกจ้าง มาตราที่ถูกต้องคือ พรบ.แรงงานสัมพันธ์ ม.52"
+dev032:
+  remove: [LPA2541:17, LPA2541:118]
+  evidence: "H: มาตรา 4/1 ไม่ได้ให้สิทธิเรียกร้องสินจ้างแทนการบอกกล่าวล่วงหน้าตามมาตรา 17 หรือค่าชดเชยตามมาตรา 118"
+# dev012 kept as is: "มาตรา 34(2) ไม่ถูกต้อง มาตราที่ถูกต้องคือ: 34(1)" — section 34 is still required.

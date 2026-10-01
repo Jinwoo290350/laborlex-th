@@ -81,10 +81,23 @@ def main() -> None:
         pick = max(curve, key=lambda c: (c["recall"], c["precision"], c["t"]))
     selected = {(i, section(k)) for (i, k, p) in triples if p >= pick["t"]}
     missed = sorted(f"{i} {g}" for i in present for g in present[i] if (i, g) not in selected)
+    # client criterion: a question passes only if ALL its gold sections are covered
+    cand_secs = {}
+    for i, k, _ in triples:
+        cand_secs.setdefault(i, set()).add(section(k))
+    full = {"retrieval": [], "selection": []}
+    for i, g in gold.items():
+        if not g <= cand_secs.get(i, set()):
+            full["retrieval"].append(f"{i} missing {sorted(g - cand_secs.get(i, set()))}")
+        elif not g <= {s for (j, s) in selected if j == i}:
+            full["selection"].append(f"{i} missing {sorted(g - {s for (j, s) in selected if j == i})}")
+    n_ok = len(gold) - len(full["retrieval"]) - len(full["selection"])
+    coverage = {"questions_all_gold_selected": f"{n_ok}/{len(gold)} = {n_ok / len(gold):.0%}",
+                "fail_at_retrieval": full["retrieval"], "fail_at_selection": full["selection"]}
     cost = (sum(c["in"] for c in USAGE.log if not c["cached"]) * 1.5
             + sum(c["out"] for c in USAGE.log if not c["cached"]) * 9) / 1e6
     report = {"questions": len(qs), "pairs": len(triples), "gold_sections_present": n_present,
-              "current": at(P("select.threshold")), "pick": pick, "missed_at_pick": missed,
+              "current": at(P("select.threshold")), "pick": pick, "missed_at_pick": missed, "coverage": coverage,
               "curve": curve,
               "calls": USAGE.calls, "cost_usd": round(cost, 3),
               "approximation": "oracle issues (dev tags) and question text as facts"}

@@ -16,6 +16,7 @@ import re
 from pathlib import Path
 
 import openpyxl
+import yaml
 
 FIELDS = ["id", "question", "gold_answer", "gold_issues", "gold_citations", "event_date",
           "source", "notes", "category", "question_type", "difficulty",
@@ -56,27 +57,33 @@ LAW_NAMES = [("คุ้มครองแรงงาน", "LPA2541"), ("กฎ
              ("ป.พ.พ", "CCC"), ("แพ่งและพาณิชย์", "CCC"), ("ศาลแรงงาน", "LCA2522")]
 
 
-def _law_near(before: str, after: str) -> str:
-    """Law named last before the mention on the same line, else first after it, else LPA."""
+def _law_near(before: str, after: str, default: str = "LPA2541") -> str:
+    """Law named last before the mention on the same line, else first after it, else default."""
     line_before = before.split("\n")[-1]
     hits = [(line_before.rfind(n), code) for n, code in LAW_NAMES if n in line_before]
     if hits:
         return max(hits)[1]
     clause = re.split(r"มาตรา|\n", after, maxsplit=1)[0]
     if re.match(r"\s*(และ|หรือ|,)", clause):      # "มาตรา 118 และ ป.พ.พ. …" names the next item
-        return "LPA2541"
-    return next((code for n, code in LAW_NAMES if n in clause), "LPA2541")
+        return default
+    return next((code for n, code in LAW_NAMES if n in clause), default)
 
 
-def resolve_citations(gold: str) -> list[str]:
+def first_law(text: str) -> str | None:
+    hits = [(text.find(n), code) for n, code in LAW_NAMES if n in text]
+    return min(hits)[1] if hits else None
+
+
+def resolve_citations(gold: str, default: str = "LPA2541") -> list[str]:
     """"มาตรา 118" → "LPA2541:118" (section level); "มาตรา 123 และ 124" gives both.
-    Mentions whose clause says it does not exist ("… ไม่มีอยู่ในกฎหมาย") are skipped."""
+    Mentions whose clause says it does not exist ("… ไม่มีอยู่ในกฎหมาย") are skipped.
+    `default` = law for mentions with no law named nearby."""
     out = []
     for m in SECTION_RE.finditer(gold):
         clause = re.split(r"มาตรา|\n", gold[m.end():m.end() + 120], maxsplit=1)[0]
         if NONEXISTENT_RE.search(clause):
             continue
-        law = _law_near(gold[:m.start()], gold[m.end():m.end() + 60])
+        law = _law_near(gold[:m.start()], gold[m.end():m.end() + 60], default)
         nums = [m.group(1), *re.findall(r"\d+(?:/\d+)?", m.group(2) or "")]
         out += [f"{law}:{n}" for n in nums]
     return list(dict.fromkeys(out))
@@ -97,6 +104,7 @@ def main() -> None:
     gold = col["มาตราเเละคำตอบที่ถูกสั้นๆ"]
     draft = col["ผลเฉลย (ระบุเฉพาะมาตราหลักเเละระบุคำตอบสั้นๆ)"]      # G: draft, has errors
 
+    overrides = yaml.safe_load(Path("config/gold_overrides.yaml").read_text(encoding="utf-8")) or {}
     out = []
     for r in rows:
         if r[split] != "DEV":
@@ -106,11 +114,15 @@ def main() -> None:
         verdict, answer = split_verdict(h)
         if not answer:                     # H is only "ถูกต้อง": the draft is confirmed
             answer = g_draft
-        cites = resolve_citations(answer)
+        # H reviewing G ("มาตรา 22 ถูกต้อง …") without naming a law means G's law
+        default = (first_law(answer) or (first_law(g_draft) if verdict else None) or "LPA2541")
+        cites = resolve_citations(answer, default)
         if not cites and verdict in ("correct", "partial"):
             cites = resolve_citations(g_draft)
+        qid = f"dev{int(float(r[col['Items']])):03d}"
+        cites = [c for c in cites if c not in overrides.get(qid, {}).get("remove", [])]
         out.append({
-            "id": f"dev{int(float(r[col['Items']])):03d}",
+            "id": qid,
             "question": str(r[col["คำถาม"]]).strip(),
             "gold_answer": answer,
             "gold_issues": "",

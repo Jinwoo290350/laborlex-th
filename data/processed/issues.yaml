@@ -16,7 +16,6 @@
     LPA2541:118:
     - dev015
     - dev022
-    - dev032
     - dev033
     - dev035
     - dev039
@@ -35,7 +34,6 @@
     - dev088
     LPA2541:17:
     - dev015
-    - dev032
     - dev033
     - dev039
     - dev079
@@ -169,6 +167,11 @@
   - LPA2541:77
   - LPA2541:120
   provision_support:
+    LPA2541:118:
+    - dev019
+    - dev045
+    - dev047
+    - dev128
     LPA2541:119:
     - dev043
     - dev045
@@ -187,10 +190,6 @@
     - dev143
     - dev147
     - dev150
-    LPA2541:118:
-    - dev045
-    - dev047
-    - dev128
     LPA2541:32:
     - dev049
     - dev074
@@ -311,18 +310,7 @@
   provision_support:
     LPA2541:4/1:
     - dev032
-    LPA2541:17:
-    - dev032
-    - dev033
-    - dev039
-    - dev112
-    - dev117
-    - dev119
-    - dev120
-    - dev126
-    - dev136
     LPA2541:118:
-    - dev032
     - dev033
     - dev039
     - dev117
@@ -340,6 +328,15 @@
     LPA2541:5:
     - dev033
     - dev039
+    LPA2541:17:
+    - dev033
+    - dev039
+    - dev112
+    - dev117
+    - dev119
+    - dev120
+    - dev126
+    - dev136
     LPA2541:75:
     - dev112
     LPA2541:76:
@@ -431,6 +428,7 @@
     LPA2541:5:
     - dev022
     - dev023
+    - dev024
     - dev033
     - dev034
     - dev039
@@ -439,6 +437,7 @@
     - dev143
     LPA2541:61:
     - dev022
+    - dev024
     LPA2541:118:
     - dev022
     - dev033
@@ -526,9 +525,12 @@
     - dev159
     LPA2541:5:
     - dev022
+    - dev024
     - dev034
+    - dev036
     LPA2541:61:
     - dev022
+    - dev024
     - dev078
     - dev159
     LPA2541:118:
@@ -539,6 +541,7 @@
     LPA2541:62:
     - dev028
     - dev034
+    - dev036
     - dev156
     - dev160
     LPA2541:63:
@@ -946,13 +949,14 @@
     - dev006
     - dev048
     - dev149
+    LPA2541:5:
+    - dev011
+    - dev096
     LPA2541:118:
     - dev047
     LPA2541:4:
     - dev048
     - dev149
-    LPA2541:5:
-    - dev096
   elements:
   - id: '1'
     question: มีการตกลงกันที่บุคคลหนึ่งเรียกว่าลูกจ้างตกลงจะทำงานให้แก่บุคคลอีกบุคคลหนึ่งเรียกว่านายจ้าง และนายจ้างตกลงจะให้ค่าจ้างตลอดเวลาที่ทำงานให้
@@ -1048,22 +1052,20 @@
   - LRA2518:99
   - LRA2518:121
   provision_support:
-    LPA2541:22:
+    LRA2518:22:
     - dev012
-    LPA2541:34:
-    - dev012
-    LRA2518:31:
-    - dev087
+    - dev114
     LRA2518:34:
+    - dev012
     - dev087
     - dev114
+    LRA2518:31:
+    - dev087
     LRA2518:99:
     - dev087
     LRA2518:121:
     - dev087
     LRA2518:18:
-    - dev114
-    LRA2518:22:
     - dev114
   elements:
   - id: element_1
@@ -1302,6 +1304,7 @@
     - dev015
     LPA2541:118/1:
     - dev015
+    - dev017
     - dev140
     LPA2541:17:
     - dev015
@@ -1572,6 +1575,7 @@
   - LPA2541:62
   provision_support:
     LPA2541:123:
+    - dev051
     - dev062
     - dev070
     LPA2541:124:
@@ -1663,6 +1667,11 @@
   - LPA2541:25
   - LPA2541:61
   provision_support:
+    LPA2541:5:
+    - dev036
+    LPA2541:62:
+    - dev036
+    - dev160
     LPA2541:23:
     - dev078
     LPA2541:25:
@@ -1686,8 +1695,6 @@
     LPA2541:119:
     - dev138
     LPA2541:29:
-    - dev160
-    LPA2541:62:
     - dev160
   elements:
   - id: '1'

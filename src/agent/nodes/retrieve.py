@@ -13,7 +13,7 @@ from src.params import P
 log = logging.getLogger(__name__)
 
 
-def primary_sections(code: str, exclude: set[str]) -> list[str]:
+def primary_sections(code: str, exclude: set[str], need: int | None = None) -> list[str]:
     """Taxonomy sections for an issue: sections cited by the gold of at least two dev
     questions tagged with the issue, or by one question when an element also cites it.
     Support from excluded (leave-one-out) questions never counts — element citations were
@@ -24,7 +24,7 @@ def primary_sections(code: str, exclude: set[str]) -> list[str]:
                      for e in issue.get("elements", []) for k in e.get("citation_keys", [])}
     ranked = sorted(((sec, len(set(qs) - exclude)) for sec, qs in support.items()),
                     key=lambda x: -x[1])
-    need = P("retrieve.primary_min_support")
+    need = P("retrieve.primary_min_support") if need is None else need
     return [sec for sec, n in ranked
             if n >= need or (n >= 1 and sec in from_elements)][:P("retrieve.primary_max")]
 
