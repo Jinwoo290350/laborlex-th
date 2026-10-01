@@ -141,6 +141,72 @@ def _q(x: Decimal) -> Decimal:
     return x.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
+# months per pay period (calendar arithmetic, not a legal number)
+MONTHS = {"month": Decimal(1), "quarter": Decimal(3), "year": Decimal(12)}
+
+
+class WageBase(BaseModel):
+    monthly: Decimal | None            # None: some wage item cannot be put on a monthly basis
+    expr: str                          # "80,000 + 25,000"
+    steps: list[str]
+    unknown: list[str]
+
+
+def wage_item_status(purpose: str, basis: str, conditional: bool | None) -> str:
+    """"wage" | "not_wage" | "unknown" under the definition of ค่าจ้าง (LPA ม.5): money paid as
+    consideration for work for normal working time per period, or computed from the work
+    done. Payments for the cost of working (expense, actual-cost reimbursement), welfare and
+    discretionary or conditional payments are not consideration for work. Mapping and dev100
+    evidence: docs/decisions.md #9."""
+    if purpose in ("expense", "welfare") or basis in ("actual_cost", "discretionary"):
+        return "not_wage"
+    if conditional:
+        return "not_wage"
+    if purpose == "work" and basis in ("fixed", "output"):
+        return "wage"
+    return "unknown"
+
+
+REASON = {"expense": "เป็นเงินช่วยค่าใช้จ่ายในการทำงาน ไม่ใช่ค่าตอบแทนการทำงาน",
+          "welfare": "เป็นสวัสดิการ ไม่ใช่ค่าตอบแทนการทำงาน",
+          "actual_cost": "เบิกตามที่จ่ายจริง ไม่ใช่ค่าตอบแทนการทำงาน",
+          "discretionary": "นายจ้างให้ตามดุลพินิจ ไม่ได้ตกลงจ่ายเป็นค่าตอบแทนการทำงาน",
+          "conditional": "จ่ายเมื่อเข้าเงื่อนไขอื่นนอกจากการทำงาน"}
+
+
+def wage_base(items: list[Any], definition_key: str) -> WageBase:
+    """Sum the items that are wages, each converted to a monthly amount. Every item gets a
+    step saying whether it counts and why, citing the definition of ค่าจ้าง."""
+    total, parts, steps, unknown = Decimal(0), [], [], []
+    monthly_ok = True
+    for it in items:
+        amt = Decimal(str(it.amount))
+        st = wage_item_status(it.purpose, it.basis, it.conditional)
+        if st == "wage":
+            if it.period in MONTHS:
+                m = amt / MONTHS[it.period]
+                total += m
+                parts.append(baht(m))
+                per = "" if it.period == "month" else f" (เฉลี่ยต่อเดือน {baht(amt)} ÷ {MONTHS[it.period]} = {baht(m)})"
+                steps.append(f"{it.name} {baht(amt)} บาท — เป็นค่าจ้าง (ตอบแทนการทำงาน"
+                             f"{'ตามผลงาน' if it.basis == 'output' else ''}) นับรวมเป็นฐานค่าจ้าง{per}")
+            else:
+                monthly_ok = False
+                steps.append(f"{it.name} {baht(amt)} บาท — เป็นค่าจ้าง แต่จ่ายเป็นราย{it.period} "
+                             "ระบบยังแปลงเป็นรายเดือนอัตโนมัติไม่ได้")
+        elif st == "not_wage":
+            why = ("conditional" if it.conditional else it.purpose if it.purpose in REASON else it.basis)
+            steps.append(f"{it.name} {baht(amt)} บาท — ไม่นับเป็นค่าจ้าง ({REASON[why]})")
+        else:
+            unknown.append(it.name)
+            steps.append(f"{it.name} {baht(amt)} บาท — ข้อเท็จจริงไม่พอจะบอกว่าเป็นค่าจ้างหรือไม่ "
+                         "(คำนวณโดยไม่นับรวม ถ้าเป็นค่าตอบแทนการทำงานต้องนับรวม)")
+    if parts:
+        steps.append(f"ฐานค่าจ้างต่อเดือน = {' + '.join(parts)} = {baht(total)} บาท")
+    return WageBase(monthly=total if monthly_ok and parts else None,
+                    expr=" + ".join(parts), steps=steps, unknown=unknown)
+
+
 def to_daily_wage(amount: Decimal, period: str, on: date, book: RateBook,
                   exact: bool = False) -> CalcResult:
     """period: 'day' | 'month' | 'hour'. Divisors come from the RateBook.

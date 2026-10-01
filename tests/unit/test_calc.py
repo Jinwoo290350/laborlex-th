@@ -67,3 +67,45 @@ def test_monthly_wage_rounded_once():
                           RateBook(rates=[{"key": "days_per_month", "citation_key": "X", "value": "30"}]),
                           exact=True).amount
     assert (daily * 300).quantize(D("0.01")) == D("400000.00")
+
+
+def _item(name, amount, period, purpose, basis, conditional=None):
+    from src.agent.state import PayItem
+    return PayItem(name=name, amount=amount, period=period, purpose=purpose, basis=basis,
+                   conditional=conditional)
+
+
+def test_wage_base_dev039_salary_plus_sales_bonus_not_fuel_phone():
+    # dev100 gold dev039: wage base 80,000 + 25,000 = 105,000 (fuel and phone excluded)
+    from src.calc.labor import wage_base
+    b = wage_base([_item("เงินเดือน", 80000, "month", "work", "fixed"),
+                   _item("ค่าน้ำมันรถ", 10000, "month", "expense", "fixed"),
+                   _item("ค่าโทรศัพท์", 3000, "month", "expense", "fixed"),
+                   _item("โบนัสรายเดือนตามยอดขาย", 25000, "month", "work", "output")], "LPA2541:5:11")
+    assert b.monthly == D(105000)
+    assert any("ไม่นับเป็นค่าจ้าง" in s and "ค่าน้ำมันรถ" in s for s in b.steps)
+
+
+def test_wage_base_dev022_quarterly_commission_averaged_monthly():
+    # dev100 gold dev022: commission is a wage and is averaged per month
+    from src.calc.labor import wage_base
+    b = wage_base([_item("เงินเดือน", 30000, "month", "work", "fixed"),
+                   _item("ค่าคอมมิชชัน", 90000, "quarter", "work", "output")], "LPA2541:5:11")
+    assert b.monthly == D(60000)
+
+
+def test_wage_base_dev040_unconditional_allowance_counts_conditional_does_not():
+    from src.calc.labor import wage_base
+    b = wage_base([_item("เงินเดือน", 15000, "month", "work", "fixed"),
+                   _item("เบี้ยขยันคงที่ไม่มีเงื่อนไข", 3000, "month", "work", "fixed", False)], "k")
+    assert b.monthly == D(18000)
+    c = wage_base([_item("เงินเดือน", 15000, "month", "work", "fixed"),
+                   _item("เบี้ยขยันเมื่อไม่ขาดลามาสาย", 3000, "month", "work", "fixed", True)], "k")
+    assert c.monthly == D(15000)
+
+
+def test_wage_base_unknown_item_is_flagged_not_added():
+    from src.calc.labor import wage_base
+    b = wage_base([_item("เงินเดือน", 20000, "month", "work", "fixed"),
+                   _item("เงินพิเศษ", 1000, "month", "unknown", "unknown")], "k")
+    assert b.monthly == D(20000) and b.unknown == ["เงินพิเศษ"]

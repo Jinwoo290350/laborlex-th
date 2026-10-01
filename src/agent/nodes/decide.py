@@ -5,6 +5,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from decimal import Decimal
+from functools import lru_cache
 from pathlib import Path
 
 from pydantic import BaseModel, Field, create_model
@@ -132,6 +133,20 @@ def tenure_from_facts(f) -> labor.Tenure | None:
     return None
 
 
+@lru_cache(maxsize=1)
+def wage_definition_key() -> str:
+    """citation_key of the in-force definition of “ค่าจ้าง”, found by its text in the DB."""
+    from src.index.db import connect
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT citation_key FROM provisions WHERE citation_key LIKE 'LPA2541:%%' "
+            "AND text LIKE %s AND valid_to IS NULL ORDER BY valid_from DESC LIMIT 1",
+            ("“ค่าจ้าง” หมายความว่า%",)).fetchone()
+    if row is None:
+        raise LookupError("ไม่พบนิยามค่าจ้างในฐานข้อมูล")
+    return row[0]
+
+
 @traced("calculate")
 def calculate(state: AgentState) -> dict:
     """Deterministic arithmetic (the LLM only extracted dates/amounts). Runs when the issue
@@ -146,20 +161,25 @@ def calculate(state: AgentState) -> dict:
         if not fk:
             continue
         try:
-            if f is None or f.wage_amount is None or f.wage_period in (None, "piece"):
+            pre_steps, pre_cites = [], []
+            base = labor.wage_base(f.pay_items, wage_definition_key()) if f and f.pay_items else None
+            if base and base.monthly is not None:      # wage = every item that is ค่าจ้าง (ม.5)
+                wage, period = base.monthly, "month"
+                pre_steps, pre_cites = base.steps, [wage_definition_key()]
+            elif f is None or f.wage_amount is None or f.wage_period in (None, "piece"):
                 raise ValueError("ค่าจ้างไม่ทราบหรือเป็นค่าจ้างตามผลงาน")
-            daily = labor.to_daily_wage(Decimal(str(f.wage_amount)), f.wage_period, on, book,
-                                        exact=True)
+            else:
+                wage, period = Decimal(str(f.wage_amount)), f.wage_period
+            daily = labor.to_daily_wage(wage, period, on, book, exact=True)
             if fk == "severance":
                 tenure = tenure_from_facts(f)
                 if tenure is None:
                     raise ValueError("อายุงานไม่ทราบ")
-                wage = Decimal(str(f.wage_amount))
-                expr = (f"{labor.baht(wage)} ÷ 30" if f.wage_period == "month"
-                        else "ค่าจ้างรายวัน")
+                expr = (f"{labor.baht(wage)} ÷ 30" if period == "month" else "ค่าจ้างรายวัน")
                 r = labor.severance(daily.amount, tenure, on, book, wage_expr=expr)
-                out[iss.code] = labor.CalcResult(amount=r.amount, steps=daily.steps + r.steps,
-                                                 citations=daily.citations + r.citations)
+                out[iss.code] = labor.CalcResult(amount=r.amount,
+                                                 steps=pre_steps + daily.steps + r.steps,
+                                                 citations=pre_cites + daily.citations + r.citations)
             else:
                 raise ValueError(f"ยังไม่รองรับสูตร {fk} อัตโนมัติ")
         except (ValueError, LookupError) as e:

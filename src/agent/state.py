@@ -12,6 +12,21 @@ from src.agent.answer import AnswerJSON
 from src.calc.labor import CalcResult
 
 
+class PayItem(BaseModel):
+    """One amount the employer pays, as the question describes it (no legal judgement)."""
+    name: str = Field(description="ชื่อเงินตามโจทย์ เช่น เงินเดือน ค่าคอมมิชชัน ค่าน้ำมันรถ")
+    amount: float
+    period: Literal["hour", "day", "month", "quarter", "year", "once"]
+    purpose: Literal["work", "expense", "welfare", "unknown"] = Field(
+        description="work = ตอบแทนการทำงาน/ผลงาน · expense = ชดใช้หรือช่วยค่าใช้จ่ายในการทำงาน "
+                    "(น้ำมัน โทรศัพท์ ที่พัก) · welfare = สวัสดิการ · unknown = โจทย์ไม่บอกพอ")
+    basis: Literal["fixed", "output", "actual_cost", "discretionary", "unknown"] = Field(
+        description="fixed = จำนวนแน่นอนจ่ายประจำ · output = คำนวณตามผลงาน/ยอดขาย · "
+                    "actual_cost = เบิกตามจริง · discretionary = นายจ้างให้ตามดุลพินิจ")
+    conditional: bool | None = Field(
+        None, description="true ถ้าจ่ายเฉพาะเมื่อเข้าเงื่อนไขอื่นนอกจากการทำงานปกติ เช่น ไม่ขาด ไม่ลา ไม่สาย")
+
+
 class Facts(BaseModel):
     event_date: date | None = Field(None, description="วันเกิดเหตุ ถ้าโจทย์ระบุ")
     wage_amount: float | None = Field(None, description="ค่าจ้างเป็นตัวเลข ถ้าระบุ")
@@ -21,6 +36,8 @@ class Facts(BaseModel):
     service_years: int | None = Field(None, description="อายุงานส่วนปี ตามที่โจทย์เขียนไว้ตรง ๆ")
     service_months: int | None = Field(None, description="อายุงานส่วนเดือน ตามที่โจทย์เขียนไว้ตรง ๆ")
     service_days: int | None = Field(None, description="อายุงานส่วนวัน ตามที่โจทย์เขียนไว้ตรง ๆ")
+    pay_items: list[PayItem] = Field(default_factory=list,
+                                     description="เงินทุกรายการที่นายจ้างจ่าย รวมเงินเดือน/ค่าจ้างพื้นฐาน")
     parties: list[str] = Field(default_factory=list)
     key_facts: list[str] = Field(default_factory=list,
                                  description="ข้อเท็จจริงสำคัญ ทีละข้อ ตามที่โจทย์ให้มา ไม่ตีความ")
