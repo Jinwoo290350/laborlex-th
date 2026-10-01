@@ -343,7 +343,7 @@ def humanize_keys(a: AnswerJSON, ok) -> None:
     """Replace internal citation keys the LLM copied into prose ("ตาม LPA2541:11:1") with the
     DB label. A key that fails validation is dropped together with the connective that
     introduced it ("…เป็นนายจ้างตาม <key> และ…" → "…เป็นนายจ้าง และ…"), so no dangling
-    "ตาม" is left; citation-list fields are never rewritten."""
+    "ตาม" is left; key lists (fields ending in "citations" or "_keys") are never rewritten."""
     def fix(text: str) -> str:
         out, pos, removed = [], 0, False
         for m in KEY_IN_TEXT.finditer(text):
@@ -365,7 +365,7 @@ def humanize_keys(a: AnswerJSON, ok) -> None:
                 setattr(obj, name, fix(val))
             elif isinstance(val, list):
                 for i, x in enumerate(val):
-                    if isinstance(x, str) and not name.endswith("citations"):
+                    if isinstance(x, str) and not name.endswith(("citations", "_keys")):
                         val[i] = fix(x)
                     elif hasattr(x, "model_fields"):
                         walk(x)

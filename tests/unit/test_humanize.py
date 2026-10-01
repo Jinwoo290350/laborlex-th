@@ -35,3 +35,13 @@ def test_citation_lists_are_not_rewritten():
                                    "issues": [], "payments_citations": ["LPA2541:118:1"]})
     humanize_keys(a, _ok)
     assert a.preliminary[0].citations == ["LPA2541:118:1"] and a.payments_citations == ["LPA2541:118:1"]
+
+
+def test_ground_key_lists_stay_database_keys():
+    a = AnswerJSON.model_validate({"preliminary": [{"headline": "h"}], "issues": [], "employees": [
+        {"name": "ก", "m119_applies": True, "alleged_ground_keys": ["LPA2541:118:1"],
+         "found_ground_keys": ["LPA2541:118:1"], "not_found_reason": "ตาม LPA2541:118:1"}]})
+    humanize_keys(a, _ok)
+    e = a.employees[0]
+    assert e.alleged_ground_keys == ["LPA2541:118:1"] and e.found_ground_keys == ["LPA2541:118:1"]
+    assert e.not_found_reason == "ตาม มาตรา 118 พระราชบัญญัติคุ้มครองแรงงาน พ.ศ. 2541"   # prose still humanized

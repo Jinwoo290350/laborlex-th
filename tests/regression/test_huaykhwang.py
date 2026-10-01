@@ -224,6 +224,12 @@ def test_per_employee_table_and_total():
     assert "LPA2541:119:1:(1)" not in a.payments_citations      # alleged but not found
     assert "ม.17 วรรคสี่" in md
     assert not KEY_IN_TEXT.search(md)
+    # ground lists stay database keys after ⑩; the rendered line uses the short labels
+    emp = {e.name: e for e in a.employees}
+    assert emp["นายแพรวพราว"].found_ground_keys == X["employees"]["แพรวพราว"]["found_ground_keys"]
+    assert emp["นายซื่อบื้อ"].alleged_ground_keys == X["employees"]["ซื่อบื้อ"]["alleged_ground_keys"]
+    assert "เหตุที่เข้าจริง `[ม.119 (2)]`" in md
+    assert "เหตุที่นายจ้างอ้าง `[ม.119 (1)]` `[ม.119 (2)]`" in md
 
 
 @needs_db
