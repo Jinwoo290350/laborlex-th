@@ -90,10 +90,13 @@ select.threshold:
   value: 0.5
   kind: measured
   source: node-level ⑤ run on tune split (p per candidate vs gold sections)
-  rule: highest precision subject to recall ≥ 0.95 of gold sections present among candidates (missing law costs B1 more than
-    an extra one)
-  evidence: not yet measured
-  status: provisional
+  rule: highest precision with section recall ≥ 0.95; if the floor is unreachable maximise recall, then precision, then the
+    higher threshold
+  evidence: 'docs/results/2026-10-01_tune_select.json: 60 tune questions, 2,050 candidate pairs, 130 gold sections present;
+    recall ceiling 0.946 (floor unreachable) reached for t ≤ 0.5; t = 0.5 has the best precision (0.622) among them; 7 gold
+    sections never selected (ม.5, 17, 24, 41, 59, 66, LRA 124) → prompt issue, not threshold. Approximation: oracle issues
+    and question text as facts. Cost $1.29'
+  status: final
 search.rrf_k:
   value: 60
   kind: measured

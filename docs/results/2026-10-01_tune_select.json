@@ -1,0 +1,145 @@
+{
+ "questions": 60,
+ "pairs": 2050,
+ "gold_sections_present": 130,
+ "current": {
+  "t": 0.5,
+  "recall": 0.9462,
+  "precision": 0.6223,
+  "selected": 368
+ },
+ "pick": {
+  "t": 0.5,
+  "recall": 0.9462,
+  "precision": 0.6223,
+  "selected": 368
+ },
+ "missed_at_pick": [
+  "dev005 LPA2541:24",
+  "dev015 LPA2541:17",
+  "dev033 LPA2541:5",
+  "dev034 LPA2541:66",
+  "dev120 LRA2518:124",
+  "dev152 LPA2541:41",
+  "dev152 LPA2541:59"
+ ],
+ "curve": [
+  {
+   "t": 0.05,
+   "recall": 0.9462,
+   "precision": 0.5802,
+   "selected": 405
+  },
+  {
+   "t": 0.1,
+   "recall": 0.9462,
+   "precision": 0.5831,
+   "selected": 403
+  },
+  {
+   "t": 0.15,
+   "recall": 0.9462,
+   "precision": 0.6133,
+   "selected": 375
+  },
+  {
+   "t": 0.2,
+   "recall": 0.9462,
+   "precision": 0.6133,
+   "selected": 375
+  },
+  {
+   "t": 0.25,
+   "recall": 0.9462,
+   "precision": 0.6183,
+   "selected": 372
+  },
+  {
+   "t": 0.3,
+   "recall": 0.9462,
+   "precision": 0.6183,
+   "selected": 372
+  },
+  {
+   "t": 0.35,
+   "recall": 0.9462,
+   "precision": 0.6206,
+   "selected": 369
+  },
+  {
+   "t": 0.4,
+   "recall": 0.9462,
+   "precision": 0.6206,
+   "selected": 369
+  },
+  {
+   "t": 0.45,
+   "recall": 0.9462,
+   "precision": 0.6223,
+   "selected": 368
+  },
+  {
+   "t": 0.5,
+   "recall": 0.9462,
+   "precision": 0.6223,
+   "selected": 368
+  },
+  {
+   "t": 0.55,
+   "recall": 0.9308,
+   "precision": 0.6271,
+   "selected": 362
+  },
+  {
+   "t": 0.6,
+   "recall": 0.9308,
+   "precision": 0.6271,
+   "selected": 362
+  },
+  {
+   "t": 0.65,
+   "recall": 0.9308,
+   "precision": 0.6306,
+   "selected": 360
+  },
+  {
+   "t": 0.7,
+   "recall": 0.9308,
+   "precision": 0.6306,
+   "selected": 360
+  },
+  {
+   "t": 0.75,
+   "recall": 0.9308,
+   "precision": 0.64,
+   "selected": 350
+  },
+  {
+   "t": 0.8,
+   "recall": 0.9231,
+   "precision": 0.6427,
+   "selected": 347
+  },
+  {
+   "t": 0.85,
+   "recall": 0.9077,
+   "precision": 0.7089,
+   "selected": 292
+  },
+  {
+   "t": 0.9,
+   "recall": 0.8769,
+   "precision": 0.7286,
+   "selected": 269
+  },
+  {
+   "t": 0.95,
+   "recall": 0.7846,
+   "precision": 0.837,
+   "selected": 184
+  }
+ ],
+ "calls": 98,
+ "cost_usd": 0.0,
+ "approximation": "oracle issues (dev tags) and question text as facts"
+}
