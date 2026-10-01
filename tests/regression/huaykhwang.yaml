@@ -12,9 +12,9 @@ facts:                       # what extract_facts should produce (built by hand;
   pay_days: [15, 31]         # ทุกวันที่ 15 และวันสิ้นเดือน
   pay_items:
     - {name: เงินเดือน, amount: 10000, period: month, purpose: work, basis: fixed, conditional: false}
-    - {name: ค่าเช่าบ้าน, amount: 1000, period: month, purpose: welfare, basis: fixed, conditional: false, requires_proof: false}
-    - {name: ค่าน้ำมันรถส่วนเหมาจ่าย, amount: 500, period: month, purpose: expense, basis: fixed, conditional: false, requires_proof: false}
-    - {name: ค่าน้ำมันรถส่วนเบิกตามใบเสร็จ (ไม่เกิน 500), amount: 500, period: month, purpose: expense, basis: actual_cost, conditional: false, requires_proof: true}
+    - {name: ค่าเช่าบ้าน, amount: 1000, period: month, purpose: welfare, basis: fixed, conditional: false, regardless_of_actual_cost: true, requires_proof: false}
+    - {name: ค่าน้ำมันรถส่วนเหมาจ่าย, amount: 500, period: month, purpose: expense, basis: fixed, conditional: false, regardless_of_actual_cost: true, requires_proof: false}
+    - {name: ค่าน้ำมันรถส่วนเบิกตามใบเสร็จ (ไม่เกิน 500), amount: 500, period: month, purpose: expense, basis: actual_cost, conditional: false, regardless_of_actual_cost: false, requires_proof: true}
 
 authorities:
   "9096/2546":      {in_db: true,  key: "CASE:9096/2546",      holding: "ค่าเช่าบ้านอาจเป็นสวัสดิการ แม้จ่ายจำนวนแน่นอนทุกเดือน"}
@@ -35,7 +35,8 @@ expect:
       authorities: ["9096/2546", "2967/2555"]
     ค่าน้ำมันรถส่วนเหมาจ่าย:
       wage: true
-      reason: "จ่ายแน่นอนทุกเดือน ไม่ต้องพิสูจน์ค่าใช้จ่ายจริง → ลักษณะเป็นค่าตอบแทน ไม่ใช่การชดใช้"
+      reason: "จ่ายเต็มจำนวนแน่นอนทุกเดือนไม่ว่าจะใช้จ่ายจริงเท่าใด → ลักษณะเป็นค่าตอบแทน ไม่ใช่การชดใช้ (การไม่ต้องมีใบเสร็จเป็นเพียงข้อเท็จจริงประกอบ)"
+      reason_must_mention: ไม่ว่าลูกจ้างจะใช้จ่ายจริงเท่าใด
       authorities: ["7402-7403/2544", "7780-7782/2556"]
     ค่าน้ำมันรถส่วนเบิกตามใบเสร็จ (ไม่เกิน 500):
       wage: false

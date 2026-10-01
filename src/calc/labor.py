@@ -153,40 +153,48 @@ class WageBase(BaseModel):
 
 
 def wage_item_status(purpose: str, basis: str, conditional: bool | None,
-                     requires_proof: bool | None = None) -> str:
+                     regardless_of_actual_cost: bool | None = None) -> str:
     """"wage" | "not_wage" | "unknown" under the definition of ค่าจ้าง (LPA ม.5), judged by the
-    purpose and character of the payment (docs/decisions.md #9):
+    purpose and character of the payment — never by the item's name, and never by whether
+    receipts are required alone (docs/decisions.md #9):
+    - conditional on something other than work, or discretionary → not wage
     - welfare purpose → not wage, even when a fixed amount is paid monthly without claims
       (ฎ. 9096/2546, 2967/2555)
-    - reimbursement of actual work expenses → not wage (ฎ. 3934/2557)
-    - an expense allowance paid as a flat monthly amount with no proof of actual spending
-      → wage (ฎ. 7402–7403/2544)
-    - an expense allowance where the question does not say whether proof is required → unknown
-    - discretionary, or conditional on something other than work → not wage
+    - reimbursement of actual work expenses (basis actual_cost) → not wage (ฎ. 3934/2557)
+    - a fixed work-expense allowance paid in full whatever is actually spent → wage, with or
+      without receipts (ฎ. 7402–7403/2544; 7780–7782/2556)
+    - a fixed work-expense allowance whose amount follows actual spending → not wage
+    - a fixed work-expense allowance where the facts do not show which → unknown (flagged)
     - pay for work, fixed per period or by output → wage"""
     if conditional:
         return "not_wage"
     if purpose == "welfare" or basis in ("actual_cost", "discretionary"):
         return "not_wage"
     if purpose == "expense" and basis == "fixed":
-        return {False: "wage", True: "not_wage"}.get(requires_proof, "unknown")
+        return {True: "wage", False: "not_wage"}.get(regardless_of_actual_cost, "unknown")
     if purpose == "work" and basis in ("fixed", "output"):
         return "wage"
     return "unknown"
 
 
+def _proof_note(it: Any) -> str:
+    """requires_proof is context for the reader, never the deciding factor."""
+    rp = getattr(it, "requires_proof", None)
+    return {True: " (แม้มีการแสดงใบเสร็จประกอบ)", False: " และไม่ต้องแสดงหลักฐานค่าใช้จ่าย"}.get(rp, "")
+
+
 def _reason(it: Any, status: str) -> str:
     if status == "wage":
         if it.purpose == "expense":
-            return ("เป็นเงินเหมาจ่ายจำนวนแน่นอนทุกเดือนโดยไม่ต้องแสดงค่าใช้จ่ายจริง "
-                    "มีลักษณะเป็นค่าตอบแทนการทำงาน")
+            return ("จ่ายเต็มจำนวนแน่นอนทุกเดือนไม่ว่าลูกจ้างจะใช้จ่ายจริงเท่าใด"
+                    f"{_proof_note(it)} มีลักษณะเป็นค่าตอบแทนการทำงาน")
         return f"ตอบแทนการทำงาน{'ตามผลงาน' if it.basis == 'output' else ''}"
     if it.conditional:
         return "จ่ายเมื่อเข้าเงื่อนไขอื่นนอกจากการทำงาน"
     if it.purpose == "welfare":
         return "วัตถุประสงค์ของการจ่ายเป็นสวัสดิการ ไม่ใช่ค่าตอบแทนการทำงาน แม้จะจ่ายเป็นจำนวนแน่นอนทุกเดือน"
-    if it.basis == "actual_cost" or (it.purpose == "expense" and it.requires_proof):
-        return "เป็นการชดใช้ค่าใช้จ่ายในการทำงานที่ลูกจ้างจ่ายไปจริง ไม่ใช่ค่าตอบแทนการทำงาน"
+    if it.basis == "actual_cost" or it.purpose == "expense":
+        return "เป็นการชดใช้ค่าใช้จ่ายในการทำงานตามที่ลูกจ้างจ่ายไปจริง ไม่ใช่ค่าตอบแทนการทำงาน"
     if it.basis == "discretionary":
         return "นายจ้างให้ตามดุลพินิจ ไม่ได้ตกลงจ่ายเป็นค่าตอบแทนการทำงาน"
     return ""
@@ -200,7 +208,8 @@ def wage_base(items: list[Any], definition_key: str) -> WageBase:
     monthly_ok = True
     for it in items:
         amt = Decimal(str(it.amount))
-        st = wage_item_status(it.purpose, it.basis, it.conditional, getattr(it, "requires_proof", None))
+        st = wage_item_status(it.purpose, it.basis, it.conditional,
+                              getattr(it, "regardless_of_actual_cost", None))
         if st == "wage":
             if it.period in MONTHS:
                 m = amt / MONTHS[it.period]
@@ -218,8 +227,8 @@ def wage_base(items: list[Any], definition_key: str) -> WageBase:
             unknown.append(it.name)
             if it.period in MONTHS:
                 alt += amt / MONTHS[it.period]
-            hint = ("ถ้าจ่ายเหมาเป็นจำนวนแน่นอนโดยไม่ต้องแสดงค่าใช้จ่ายจริง เป็นค่าจ้าง "
-                    "แต่ถ้าเบิกตามค่าใช้จ่ายจริง ไม่เป็นค่าจ้าง" if it.purpose == "expense"
+            hint = ("ถ้าจ่ายเต็มจำนวนแน่นอนไม่ว่าจะใช้จ่ายจริงเท่าใด เป็นค่าจ้าง แต่ถ้าจ่ายตามค่าใช้จ่ายจริง "
+                    "ไม่เป็นค่าจ้าง — การมีหรือไม่มีใบเสร็จอย่างเดียวไม่ชี้ขาด" if it.purpose == "expense"
                     else "ถ้าเป็นค่าตอบแทนการทำงานต้องนับรวม")
             steps.append(f"{it.name} {baht(amt)} บาท — ข้อเท็จจริงไม่พอจะบอกว่าเป็นค่าจ้างหรือไม่ "
                          f"(คำนวณโดยไม่นับรวม; {hint})")

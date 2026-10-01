@@ -112,3 +112,37 @@ def test_wage_base_unknown_item_is_flagged_not_added():
     b = wage_base([_item("เงินเดือน", 20000, "month", "work", "fixed"),
                    _item("เงินพิเศษ", 1000, "month", "unknown", "unknown")], "k")
     assert b.monthly == D(20000) and b.unknown == ["เงินพิเศษ"]
+
+
+@pytest.mark.parametrize("regardless, proof, expected", [
+    (True, True, "wage"),        # fixed rate every month even with receipts (ฎ. 7780–7782/2556)
+    (True, False, "wage"),       # flat allowance without proof (ฎ. 7402–7403/2544)
+    (True, None, "wage"),
+    (False, True, "not_wage"),   # amount follows actual spending → reimbursement (ฎ. 3934/2557)
+    (None, True, "unknown"),     # receipts alone do not decide
+    (None, False, "unknown"),    # no receipts alone does not decide
+    (None, None, "unknown"),
+])
+def test_fixed_expense_allowance_decided_by_character_not_proof(regardless, proof, expected):
+    from src.calc.labor import wage_base, wage_item_status
+    assert wage_item_status("expense", "fixed", False, regardless) == expected
+    it = _item("ค่าพาหนะ", 2000, "month", "expense", "fixed", False)
+    it.regardless_of_actual_cost, it.requires_proof = regardless, proof
+    b = wage_base([it], "k")
+    assert (b.monthly == D(2000)) is (expected == "wage")
+
+
+@pytest.mark.parametrize("proof", [True, False, None])
+def test_proof_never_changes_welfare_work_or_reimbursement(proof):
+    from src.calc.labor import wage_item_status
+    for regardless in (True, False, None):
+        assert wage_item_status("welfare", "fixed", False, regardless) == "not_wage"
+        assert wage_item_status("work", "fixed", False, regardless) == "wage"
+        assert wage_item_status("expense", "actual_cost", False, regardless) == "not_wage"
+
+
+def test_item_name_is_not_used_for_classification():
+    from src.calc.labor import wage_base
+    a = _item("ค่าเช่าบ้าน", 1000, "month", "work", "fixed", False)
+    b = _item("ค่าตอบแทนพิเศษ", 1000, "month", "welfare", "fixed", False)
+    assert wage_base([a], "k").monthly == D(1000) and wage_base([b], "k").monthly is None

@@ -18,16 +18,20 @@ class PayItem(BaseModel):
     amount: float
     period: Literal["hour", "day", "month", "quarter", "year", "once"]
     purpose: Literal["work", "expense", "welfare", "unknown"] = Field(
-        description="work = ตอบแทนการทำงาน/ผลงาน · expense = ชดใช้หรือช่วยค่าใช้จ่ายในการทำงาน "
-                    "(น้ำมัน โทรศัพท์ ที่พัก) · welfare = สวัสดิการ · unknown = โจทย์ไม่บอกพอ")
+        description="จากลักษณะและวัตถุประสงค์ของการจ่ายตามข้อเท็จจริง ไม่ใช่จากชื่อรายการ: "
+                    "work = ตอบแทนการทำงาน/ผลงาน · expense = เพื่อใช้จ่ายในการทำงานของนายจ้าง · "
+                    "welfare = ช่วยเหลือการดำรงชีพของลูกจ้าง · unknown = ข้อเท็จจริงไม่พอ")
     basis: Literal["fixed", "output", "actual_cost", "discretionary", "unknown"] = Field(
         description="fixed = จำนวนแน่นอนจ่ายประจำ · output = คำนวณตามผลงาน/ยอดขาย · "
-                    "actual_cost = เบิกตามจริง · discretionary = นายจ้างให้ตามดุลพินิจ")
+                    "actual_cost = จ่ายเท่าที่ลูกจ้างใช้จ่ายไปจริง · discretionary = นายจ้างให้ตามดุลพินิจ")
     conditional: bool | None = Field(
         None, description="true ถ้าจ่ายเฉพาะเมื่อเข้าเงื่อนไขอื่นนอกจากการทำงานปกติ เช่น ไม่ขาด ไม่ลา ไม่สาย")
+    regardless_of_actual_cost: bool | None = Field(
+        None, description="true ถ้าจ่ายเต็มจำนวนไม่ว่าลูกจ้างจะใช้จ่ายจริงเท่าใด · false ถ้าจำนวนที่จ่าย"
+                          "ขึ้นกับค่าใช้จ่ายจริง · null ถ้าโจทย์ไม่บอก")
     requires_proof: bool | None = Field(
-        None, description="true ถ้าต้องแสดงใบเสร็จ/หลักฐานค่าใช้จ่ายจริงจึงจะได้ · false ถ้าโจทย์บอกว่า"
-                          "จ่ายเหมาโดยไม่ต้องแสดงหลักฐาน/ไม่คำนึงถึงค่าใช้จ่ายจริง · null ถ้าโจทย์ไม่บอก")
+        None, description="ข้อเท็จจริงประกอบเท่านั้น: true ถ้าต้องแสดงใบเสร็จ/หลักฐาน · false ถ้าไม่ต้อง · "
+                          "null ถ้าโจทย์ไม่บอก")
 
 
 class Facts(BaseModel):

@@ -37,7 +37,8 @@ needs_db = pytest.mark.skipif(not _db_ok(), reason="Legal Index not loaded")
 @pytest.mark.parametrize("item", ITEMS, ids=lambda i: i.name)
 def test_m5_classification(item):
     exp = X["wage_classification"][item.name]
-    status = labor.wage_item_status(item.purpose, item.basis, item.conditional, item.requires_proof)
+    status = labor.wage_item_status(item.purpose, item.basis, item.conditional,
+                                    item.regardless_of_actual_cost)
     assert (status == "wage") is exp["wage"]
     step = next(s for s in labor.wage_base([item], "k").steps if s.startswith(item.name))
     if "reason_must_mention" in exp:
