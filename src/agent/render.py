@@ -15,6 +15,27 @@ def _chips(keys: list[str]) -> str:
     return " " + " ".join(f"`[{_LABELS.get(k, k)}]`" for k in keys) if keys else ""
 
 
+def _section(key: str) -> str:
+    return ":".join(key.split(":")[:2])
+
+
+def _app_heading(ap, issue) -> str:
+    """Sub-heading of an application block in the template's form "มาตรา <n> (<หัวข้อ>)":
+    the first statute the block cites, with the topic the drafter gave that provision under
+    "กฎหมายที่เกี่ยวข้อง". Falls back to the drafted heading when either is missing."""
+    key = next((k for k in ap.citations if not k.startswith("CASE:") and k in _LABELS), None)
+    if key is None:
+        return ap.heading
+    topic = next((law.topic for law in issue.laws if law.citation_key == key), None) or next(
+        (law.topic for law in issue.laws if _section(law.citation_key) == _section(key)), None)
+    if not topic:
+        return ap.heading
+    label = _LABELS[key]
+    if label.startswith("ม."):
+        label = "มาตรา " + label[2:]
+    return f"{label} ({topic.strip()})"
+
+
 def render(a: AnswerJSON, labels: dict[str, str] | None = None) -> str:
     """labels: citation_key → short reader-facing reference (built from the DB at ⑩)."""
     _LABELS.clear()
@@ -51,7 +72,7 @@ def render(a: AnswerJSON, labels: dict[str, str] | None = None) -> str:
                     f"  {law.explanation} (**{law.topic}**){_chips([law.citation_key])}"]
         out += ["", "### การปรับบทกฎหมายกับข้อเท็จจริง"]
         for ap in i.application:
-            out += [f"**{ap.heading}**"]
+            out += [f"**{_app_heading(ap, i)}**"]
             out += [f"- {st.fact} → {st.result}" for st in ap.steps]
             if ap.citations:
                 out[-1] += _chips(ap.citations)

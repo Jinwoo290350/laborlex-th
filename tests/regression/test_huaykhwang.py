@@ -272,3 +272,33 @@ def test_undecided_m119_is_shown_as_conditional_not_guessed():
     (row,) = a.payments
     assert row.m119_applies is None and "ยังไม่ชัด" in row.note
     assert row.total == "42,000" and "กรณีที่ยังไม่ชัด" in a.payments_total
+
+
+@needs_db
+def test_final_run_answer_renders_section_topic_headings():
+    """Re-render the recorded final Gemini run (no LLM): application sub-headings take the
+    form "มาตรา <n> (<topic>)" when the block cites a statute with a topic; no internal keys."""
+    import json
+
+    from src.agent.answer import AnswerJSON
+    from src.agent.nodes.draft import KEY_IN_TEXT, short_label
+    from src.agent.render import render
+    from src.index.tools import get_case, get_provision
+    run = json.loads(Path("docs/results/2026-10-02_huaykhwang_final_run.json").read_text(encoding="utf-8"))
+    a = AnswerJSON.model_validate(run["answer"])
+    for e in a.employees:            # that run predates the _keys fix: map labels back to keys
+        e.alleged_ground_keys = [k for k in e.alleged_ground_keys if ":" in k]
+        e.found_ground_keys = [k for k in e.found_ground_keys if ":" in k]
+    labels = {}
+    for k in a.all_citations():
+        r = get_case(k) if k.startswith("CASE:") else get_provision(k)
+        if r:
+            labels[k] = short_label(r)
+    md = render(a, labels)
+    heads = [ln.strip("*") for ln in md.splitlines() if ln.startswith("**") and ln.endswith("**")
+             and not ln.startswith("**รวม")]
+    assert any(h.startswith("มาตรา 118") and h.endswith(")") for h in heads), heads
+    assert any(h.startswith("มาตรา 5 “ค่าจ้าง”") for h in heads), heads
+    assert not KEY_IN_TEXT.search(md)
+    assert "| นายซื่อบื้อ | 31,500 | 5,250 | 5,250 | **42,000** |" in md
+    assert "**รวมทั้งสิ้น 47,250 บาท**" in md
