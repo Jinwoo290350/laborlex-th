@@ -48,10 +48,13 @@ class Issue(BaseModel):
 
 
 class EmployeeOutcome(BaseModel):
-    """Drafted by the LLM: only the legal judgement, never an amount."""
+    """Drafted by the LLM: only the legal judgement per dismissed employee, never an amount.
+    Ground keys are numbered items (อนุมาตรา) of the exemption provision, e.g. "…:119:1:(2)"."""
     name: str
     m119_applies: bool | None = None          # None = facts not enough to decide
-    m119_ground: str = ""                     # e.g. "(2) จงใจทำให้นายจ้างได้รับความเสียหาย"
+    alleged_ground_keys: list[str] = Field(default_factory=list)   # grounds the employer relied on
+    found_ground_keys: list[str] = Field(default_factory=list)     # grounds the facts actually meet
+    not_found_reason: str = ""                # why alleged grounds that are not found fail
 
 
 class PaymentRow(BaseModel):
@@ -90,4 +93,6 @@ class AnswerJSON(BaseModel):
                 keys.update(p.citations)
             keys.update(i.calculation_citations)
         keys.update(self.payments_citations)
+        for e in self.employees:
+            keys.update(e.alleged_ground_keys + e.found_ground_keys)
         return keys

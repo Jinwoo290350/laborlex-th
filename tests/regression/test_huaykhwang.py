@@ -107,8 +107,8 @@ def test_authorities_in_db_match_fixture():
     for no, a in CASE["authorities"].items():
         assert (get_case(a["key"]) is not None) is a["in_db"] if a["key"] else not a["in_db"], no
     for e in X["employees"].values():
-        if e.get("m119_key"):
-            assert get_provision(e["m119_key"]) is not None
+        for k in e["alleged_ground_keys"] + e["found_ground_keys"]:
+            assert get_provision(k) is not None, k
 
 
 # 6. through the calculate node and ⑩ (DB, no LLM) ---------------------------------------
@@ -187,13 +187,28 @@ def test_termination_money_without_money_issues():
     assert t.effective == X["notice_effective_date"]
 
 
+def _employees() -> list[dict]:
+    """The per-employee decision as the drafter would record it (keys from the fixture)."""
+    out = []
+    for name, e in X["employees"].items():
+        out.append({"name": f"นาย{name}", "m119_applies": e["m119_applies"],
+                    "alleged_ground_keys": e["alleged_ground_keys"],
+                    "found_ground_keys": e["found_ground_keys"],
+                    "not_found_reason": "" if e["found_ground_keys"] else "ไม่มีส่วนร่วม"})
+    return out
+
+
+def _with_exemption_selected(st: AgentState) -> AgentState:
+    from src.agent.nodes.decide import m119_keys
+    st.selected = {"dismissal_for_cause": [m119_keys()["m119"]]}
+    return st
+
+
 @needs_db
 def test_per_employee_table_and_total():
     from src.agent.nodes.draft import KEY_IN_TEXT, validate_cites
-    st = _state_without_money_issues()
-    st.answer = _answer([
-        {"name": "นายแพรวพราว", "m119_applies": True, "m119_ground": "(2) จงใจทำให้นายจ้างได้รับความเสียหาย"},
-        {"name": "นายซื่อบื้อ", "m119_applies": False}])
+    st = _with_exemption_selected(_state_without_money_issues())
+    st.answer = _answer(_employees())
     out = validate_cites(st)
     a, md = out["answer"], out["markdown"]
     rows = {r.name: r for r in a.payments}
@@ -201,11 +216,45 @@ def test_per_employee_table_and_total():
     assert (pw.severance, pw.notice_pay, pw.final_wage, pw.total) == ("0", "0", "5,250", "5,250")
     assert (sb.severance, sb.notice_pay, sb.final_wage, sb.total) == ("31,500", "5,250", "5,250", "42,000")
     assert a.payments_total == f"{X['total']:,}" == "47,250"
+    assert pw.note == "เข้า ม.119 (2)" and sb.note == "ไม่เข้ามาตรา 119"
     assert "| นายแพรวพราว | 0 | 0 | 5,250 | **5,250** |" in md
     assert "| นายซื่อบื้อ | 31,500 | 5,250 | 5,250 | **42,000** |" in md
     assert "**รวมทั้งสิ้น 47,250 บาท**" in md
-    assert "ม.119" in md and "ม.17 วรรคสี่" in md          # exemption provisions shown
+    assert X["employees"]["แพรวพราว"]["m119_key"] in a.payments_citations
+    assert "LPA2541:119:1:(1)" not in a.payments_citations      # alleged but not found
+    assert "ม.17 วรรคสี่" in md
     assert not KEY_IN_TEXT.search(md)
+
+
+@needs_db
+def test_conclusions_cite_only_found_grounds():
+    from src.agent.nodes.draft import validate_cites
+    st = _with_exemption_selected(_state_without_money_issues())
+    st.answer = _answer(_employees())
+    st.answer.preliminary[0].citations = ["LPA2541:119:1:(1)", "LPA2541:119:1:(2)"]
+    a = validate_cites(st)["answer"]
+    assert a.preliminary[0].citations == ["LPA2541:119:1:(2)"]
+
+
+@needs_db
+def test_applies_without_a_valid_found_ground_becomes_undecided():
+    from src.agent.nodes.draft import validate_cites
+    st = _with_exemption_selected(_state_without_money_issues())
+    st.answer = _answer([{"name": "ก", "m119_applies": True, "found_ground_keys": ["LPA2541:118:1:(2)"]},
+                         {"name": "ข", "m119_applies": True, "found_ground_keys": []}])
+    a = validate_cites(st)["answer"]
+    assert [e.found_ground_keys for e in a.employees] == [[], []]
+    assert [e.m119_applies for e in a.employees] == [None, None]
+    assert all("ยังไม่ชัด" in r.note for r in a.payments)
+
+
+@needs_db
+def test_grounds_need_the_exemption_paragraph_selected():
+    from src.agent.nodes.draft import validate_cites
+    st = _state_without_money_issues()              # ⑤ selected nothing
+    st.answer = _answer(_employees())
+    a = validate_cites(st)["answer"]
+    assert all(not e.found_ground_keys and e.m119_applies is not True for e in a.employees)
 
 
 @needs_db

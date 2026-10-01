@@ -27,7 +27,15 @@ def render(a: AnswerJSON, labels: dict[str, str] | None = None) -> str:
                 "|---|---:|---:|---:|---:|---|"]
         out += [f"| {r.name} | {r.severance} | {r.notice_pay} | {r.final_wage} | **{r.total}** | {r.note} |"
                 for r in a.payments]
-        out += ["", f"**รวมทั้งสิ้น {a.payments_total} บาท**", "", "วิธีคำนวณ (ต่อลูกจ้างหนึ่งคน)"]
+        out += ["", f"**รวมทั้งสิ้น {a.payments_total} บาท**"]
+        for e in a.employees:
+            if e.alleged_ground_keys or e.found_ground_keys:
+                line = f"- {e.name}: เหตุที่นายจ้างอ้าง{_chips(e.alleged_ground_keys) or ' -'}"
+                line += f" · เหตุที่เข้าจริง{_chips(e.found_ground_keys) or ' ไม่มี'}"
+                if e.not_found_reason:
+                    line += f" · {e.not_found_reason}"
+                out.append(line)
+        out += ["", "วิธีคำนวณ (ต่อลูกจ้างหนึ่งคน)"]
         out += [f"- {s}" for s in a.payments_steps]
         if a.payments_citations:
             out += [f"- บทบัญญัติที่ใช้ในการคำนวณ:{_chips(a.payments_citations)}"]

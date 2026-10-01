@@ -74,7 +74,12 @@ def _selected_rows(state: AgentState) -> list[dict]:
 
 def _provisions_block(state: AgentState) -> str:
     rows = _selected_rows(state)
-    lines = [fmt_provision(r, P("draft.provision_chars")) for r in rows]
+    lines = []
+    for r in rows:
+        lines.append(fmt_provision(r, P("draft.provision_chars")))
+        subs = tools.get_subitems(r["citation_key"], state.event_date) if not r.get("sub_no") else []
+        if subs:      # numbered items get their own keys so a conclusion can cite the exact one
+            lines += [f"  └ {x['citation_key']} | {x['text'][:160]}" for x in subs]
     notes = pair_notes(rows)
     if notes:
         lines += ["", "ลำดับชั้นกฎหมาย (ระบบกำหนด):"] + [f"- {n}" for n in notes]
@@ -253,12 +258,32 @@ def short_label(r: dict) -> str:
 def allowed_keys(state: AgentState) -> set[str]:
     """Citations the answer may use: provisions ⑤ selected, plus those a calculation used."""
     keys = {k for ks in state.selected.values() for k in ks}
+    keys |= {x["citation_key"] for k in list(keys) for x in tools.get_subitems(k, state.event_date)}
     keys |= {k for c in state.calcs.values() for k in c.citations}
     keys |= {h["key"] for hits in state.cases.values() for h in hits}
     if state.termination:
         from src.agent.nodes.decide import m119_keys
         keys |= set(state.termination.citations) | set(m119_keys().values())
     return keys
+
+
+def check_grounds(a: AnswerJSON, ok, exemption_paragraph: str) -> set[str]:
+    """Ground keys must be numbered items of the exemption paragraph that ⑤ selected and that
+    are in force; anything else is dropped. An employee is held within the exemption only
+    when at least one valid found ground remains; a bare 'applies' without one becomes
+    undecided. Returns all valid found grounds (the only items conclusions may cite)."""
+    def valid(keys: list[str]) -> list[str]:
+        return [k for k in dict.fromkeys(keys) if k.startswith(exemption_paragraph + ":(") and ok(k)]
+    found_all: set[str] = set()
+    for e in a.employees:
+        e.alleged_ground_keys = valid(e.alleged_ground_keys)
+        e.found_ground_keys = valid(e.found_ground_keys)
+        if e.found_ground_keys:
+            e.m119_applies = True
+        elif e.m119_applies:
+            e.m119_applies = None
+        found_all |= set(e.found_ground_keys)
+    return found_all
 
 
 def payments(a: AnswerJSON, t, ok) -> None:
@@ -275,7 +300,8 @@ def payments(a: AnswerJSON, t, ok) -> None:
     for e in people:
         got = labor.apply_m119(sev or Decimal(0), t.notice_pay.amount, t.final_wage.amount,
                                bool(e.m119_applies), keys)
-        note = (f"เข้ามาตรา 119 {e.m119_ground}".strip() if e.m119_applies
+        grounds = ", ".join(short_label(ok(k)) for k in e.found_ground_keys if ok(k))
+        note = (f"เข้า {grounds}" if e.m119_applies
                 else "ไม่เข้ามาตรา 119" if e.m119_applies is False
                 else "ยังไม่ชัดว่าเข้ามาตรา 119 หรือไม่ — แสดงจำนวนกรณีไม่เข้า")
         if sev is None and not e.m119_applies:
@@ -294,7 +320,8 @@ def payments(a: AnswerJSON, t, ok) -> None:
     if any(e.m119_applies for e in people):
         a.payments_steps.append("ลูกจ้างที่เข้ามาตรา 119 ไม่มีสิทธิได้ค่าชดเชย และไม่ต้องบอกกล่าวล่วงหน้า "
                                 "จึงไม่มีสินจ้างแทนการบอกกล่าวล่วงหน้า แต่ยังได้ค่าจ้างงวดสุดท้าย")
-    used = t.citations + ([keys["m119"], keys["notice_exempt"]] if any(e.m119_applies for e in people) else [])
+    found = [k for e in people for k in e.found_ground_keys]
+    used = t.citations + (found + [keys["notice_exempt"]] if found else [])
     a.payments_citations = [k for k in dict.fromkeys(used) if ok(k)]
 
 
@@ -390,9 +417,17 @@ def validate_cites(state: AgentState) -> dict:
                            else tools.get_provision(key, state.event_date))  # None if not in force
         return cache_[key]
 
+    from src.agent.nodes.decide import m119_keys
+    exemption = m119_keys()["m119"]
+    found_grounds = check_grounds(a, ok, exemption)
+
+    def cited_ok(k: str) -> bool:
+        """Valid, and an exemption item only if it was found to apply to someone."""
+        return bool(ok(k)) and (not k.startswith(exemption + ":(") or k in found_grounds)
+
     def keep(keys: list[str]) -> list[str]:
-        good = [k for k in keys if ok(k)]
-        removed.extend(k for k in keys if not ok(k))
+        good = [k for k in keys if cited_ok(k)]
+        removed.extend(k for k in keys if not cited_ok(k))
         return good
 
     for p in a.preliminary:
@@ -413,7 +448,7 @@ def validate_cites(state: AgentState) -> dict:
                 listed.add(k)
         laws = []
         for law in iss.laws:
-            r = ok(law.citation_key)
+            r = ok(law.citation_key) if cited_ok(law.citation_key) else None
             if r:
                 law.label = _label(r)
                 laws.append(law)

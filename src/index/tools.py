@@ -123,6 +123,14 @@ def get_section(law: str, section_no: str) -> list[dict]:
                             " ORDER BY p.paragraph_no", (law, section_no))
 
 
+def get_subitems(paragraph_key: str, on: date | None = None) -> list[dict]:
+    """Numbered items (อนุมาตรา) of a paragraph, e.g. "LPA2541:119:1" → "…:1:(1)", "…:1:(2)"."""
+    with connect() as conn:
+        rows = _fetch(conn, "p.citation_key LIKE %s AND p.sub_no IS NOT NULL ORDER BY p.id",
+                      (paragraph_key + ":(%",))
+    return [r for r in rows if _in_force(r, on)]
+
+
 def expand(provision_id: int) -> dict:
     """1 hop: whole section, subordinate provisions issued under it, and the parent-law
     sections a subordinate provision was issued under."""
