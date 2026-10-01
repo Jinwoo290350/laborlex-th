@@ -149,6 +149,7 @@ def main() -> None:
     ap.add_argument("--limit", type=int)
     ap.add_argument("--subset30", action="store_true")
     ap.add_argument("--ids")
+    ap.add_argument("--split", choices=["tune", "holdout"], help="dev100 split in config/dev100_split.json")
     ap.add_argument("--workers", type=int, default=4)
     a = ap.parse_args()
     if a.set == "test160":  # guarded: phase 2 only via export_for_grading
@@ -156,6 +157,8 @@ def main() -> None:
 
     with open(SETS[a.set], encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
+    if a.split:
+        a.ids = ",".join(json.loads(Path("config/dev100_split.json").read_text(encoding="utf-8"))[a.split])
     if a.ids:
         keep = set(a.ids.split(","))
         rows = [r for r in rows if r["id"] in keep]
@@ -171,9 +174,9 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     with ThreadPoolExecutor(a.workers) as ex:
         recs = list(ex.map(lambda r: run_one(r, a.leave_one_out, out_dir), rows))
-    md = report(recs, cfg, f"{a.set} ({len(rows)}q, {'LOO' if a.leave_one_out else 'no-LOO'})",
+    md = report(recs, cfg, f"{a.set}{'/' + a.split if a.split else ''} ({len(rows)}q, {'LOO' if a.leave_one_out else 'no-LOO'})",
                 out_dir)
-    dest = Path("docs/results") / f"{stamp[:10]}_{a.set}_{h}.md"
+    dest = Path("docs/results") / f"{stamp[:10]}_{a.set}{'_' + a.split if a.split else ''}_{h}.md"
     dest.write_text(md, encoding="utf-8")
     print(md)
     print(f"gemini calls={USAGE.calls} cached={USAGE.cached}")
