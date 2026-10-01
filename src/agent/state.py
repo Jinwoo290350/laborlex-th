@@ -36,6 +36,8 @@ class Facts(BaseModel):
     service_years: int | None = Field(None, description="อายุงานส่วนปี ตามที่โจทย์เขียนไว้ตรง ๆ")
     service_months: int | None = Field(None, description="อายุงานส่วนเดือน ตามที่โจทย์เขียนไว้ตรง ๆ")
     service_days: int | None = Field(None, description="อายุงานส่วนวัน ตามที่โจทย์เขียนไว้ตรง ๆ")
+    pay_days: list[int] = Field(default_factory=list,
+                                description="วันที่จ่ายค่าจ้างในแต่ละเดือนตามโจทย์ สิ้นเดือน = 31")
     pay_items: list[PayItem] = Field(default_factory=list,
                                      description="เงินทุกรายการที่นายจ้างจ่าย รวมเงินเดือน/ค่าจ้างพื้นฐาน")
     parties: list[str] = Field(default_factory=list)

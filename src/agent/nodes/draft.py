@@ -258,7 +258,7 @@ def humanize_keys(a: AnswerJSON, ok) -> None:
                 setattr(obj, name, KEY_IN_TEXT.sub(sub, val))
             elif isinstance(val, list):
                 for i, x in enumerate(val):
-                    if isinstance(x, str) and name not in ("citations",):
+                    if isinstance(x, str) and name not in ("citations", "calculation_citations"):
                         val[i] = KEY_IN_TEXT.sub(sub, x)
                     elif hasattr(x, "model_fields"):
                         walk(x)
@@ -318,9 +318,13 @@ def validate_cites(state: AgentState) -> dict:
     for p in a.preliminary:
         p.citations = keep(p.citations)
     for iss in a.issues:
+        # the calculation section is the calculator's own output, never the LLM's copy
+        calc = state.calcs.get(iss.code)
+        iss.calculation = list(calc.steps) if calc else []
+        iss.calculation_citations = [k for k in dict.fromkeys(calc.citations) if ok(k)] if calc else []
         # provisions a calculation used are part of the issue's law even if the draft omitted them
         listed = {law.citation_key for law in iss.laws}
-        for k in (state.calcs[iss.code].citations if iss.code in state.calcs else []):
+        for k in (calc.citations if calc else []):
             r = ok(k)
             if r and k not in listed:
                 iss.laws.append(LawRef(citation_key=k, label=_label(r),

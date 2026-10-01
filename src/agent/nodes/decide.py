@@ -5,7 +5,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from decimal import Decimal
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 
 from pydantic import BaseModel, Field, create_model
@@ -133,18 +133,29 @@ def tenure_from_facts(f) -> labor.Tenure | None:
     return None
 
 
-@lru_cache(maxsize=1)
-def wage_definition_key() -> str:
-    """citation_key of the in-force definition of “ค่าจ้าง”, found by its text in the DB."""
+@cache
+def key_by_text(prefix: str) -> str:
+    """citation_key of the in-force LPA provision whose text starts with `prefix` (the
+    provision is identified by its wording in the DB, not by a remembered number)."""
     from src.index.db import connect
     with connect() as conn:
         row = conn.execute(
             "SELECT citation_key FROM provisions WHERE citation_key LIKE 'LPA2541:%%' "
-            "AND text LIKE %s AND valid_to IS NULL ORDER BY valid_from DESC LIMIT 1",
-            ("“ค่าจ้าง” หมายความว่า%",)).fetchone()
+            "AND text LIKE %s AND valid_to IS NULL AND sub_no IS NULL "
+            "ORDER BY valid_from DESC LIMIT 1", (prefix + "%",)).fetchone()
     if row is None:
-        raise LookupError("ไม่พบนิยามค่าจ้างในฐานข้อมูล")
+        raise LookupError(f"ไม่พบบทบัญญัติที่ขึ้นต้นว่า “{prefix}” ในฐานข้อมูล")
     return row[0]
+
+
+def wage_definition_key() -> str:
+    return key_by_text("“ค่าจ้าง” หมายความว่า")
+
+
+def notice_keys() -> dict[str, str]:
+    return {"notice": key_by_text("ในกรณีที่สัญญาจ้างไม่มีกำหนดระยะเวลา นายจ้างหรือลูกจ้างอาจบอกเลิกสัญญาจ้าง"),
+            "in_lieu": key_by_text("ในกรณีที่นายจ้างบอกเลิกสัญญาจ้างโดยไม่บอกกล่าวล่วงหน้า"),
+            "final": key_by_text("ในกรณีที่นายจ้างเลิกจ้างลูกจ้าง ให้นายจ้างจ่ายค่าจ้าง")}
 
 
 @traced("calculate")
@@ -180,6 +191,18 @@ def calculate(state: AgentState) -> dict:
                 out[iss.code] = labor.CalcResult(amount=r.amount,
                                                  steps=pre_steps + daily.steps + r.steps,
                                                  citations=pre_cites + daily.citations + r.citations)
+            elif fk == "notice_pay":
+                if not (f.end_date and f.pay_days):
+                    raise ValueError("ไม่ทราบวันเลิกจ้างหรือกำหนดวันจ่ายค่าจ้าง")
+                if period != "month":
+                    raise ValueError("ระบบคำนวณสินจ้างแทนการบอกกล่าวล่วงหน้าเฉพาะค่าจ้างรายเดือน")
+                n = labor.notice_and_final_pay(f.end_date, f.pay_days, wage, daily.amount, notice_keys())
+                out[iss.code] = labor.CalcResult(
+                    amount=n.notice_pay.amount,
+                    steps=pre_steps + ["▶ ค่าจ้างงวดสุดท้าย"] + n.final_period.steps
+                    + ["▶ สินจ้างแทนการบอกกล่าวล่วงหน้า"] + daily.steps + n.notice_pay.steps,
+                    citations=pre_cites + n.final_period.citations + daily.citations
+                    + n.notice_pay.citations)
             else:
                 raise ValueError(f"ยังไม่รองรับสูตร {fk} อัตโนมัติ")
         except (ValueError, LookupError) as e:

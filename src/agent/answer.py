@@ -40,7 +40,8 @@ class Issue(BaseModel):
     consider: str
     laws: list[LawRef]
     application: list[Application]
-    calculation: list[str] = Field(default_factory=list)   # CalcResult.steps
+    calculation: list[str] = Field(default_factory=list)   # CalcResult.steps (set by ⑩ from the calculator)
+    calculation_citations: list[str] = Field(default_factory=list)  # provisions the calculator used (⑩)
     conclusion: list[Point]
     opinion: str                     # short text for the summary table
     basis: str                       # e.g. "ม.13 พ.ร.บ.คุ้มครองแรงงาน, ม.577 ป.พ.พ."
@@ -63,4 +64,5 @@ class AnswerJSON(BaseModel):
                 keys.update(a.citations)
             for p in i.conclusion:
                 keys.update(p.citations)
+            keys.update(i.calculation_citations)
         return keys

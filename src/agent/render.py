@@ -39,6 +39,8 @@ def render(a: AnswerJSON, labels: dict[str, str] | None = None) -> str:
                 out[-1] += _chips(ap.citations)
         if i.calculation:
             out += ["", "### การคำนวณ"] + [f"- {s}" for s in i.calculation]
+            if i.calculation_citations:
+                out += [f"- บทบัญญัติที่ใช้ในการคำนวณ:{_chips(i.calculation_citations)}"]
         out += ["", "### ข้อสรุปประเด็นนี้"]
         out += [f"- {_b(p.headline)} {p.detail}{_chips(p.citations)}".rstrip() for p in i.conclusion]
 

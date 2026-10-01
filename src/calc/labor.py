@@ -195,16 +195,76 @@ def wage_base(items: list[Any], definition_key: str) -> WageBase:
                 steps.append(f"{it.name} {baht(amt)} บาท — เป็นค่าจ้าง แต่จ่ายเป็นราย{it.period} "
                              "ระบบยังแปลงเป็นรายเดือนอัตโนมัติไม่ได้")
         elif st == "not_wage":
-            why = ("conditional" if it.conditional else it.purpose if it.purpose in REASON else it.basis)
+            why = ("conditional" if it.conditional
+                   else it.basis if it.basis in ("actual_cost", "discretionary")
+                   else it.purpose if it.purpose in REASON else it.basis)
             steps.append(f"{it.name} {baht(amt)} บาท — ไม่นับเป็นค่าจ้าง ({REASON[why]})")
         else:
             unknown.append(it.name)
             steps.append(f"{it.name} {baht(amt)} บาท — ข้อเท็จจริงไม่พอจะบอกว่าเป็นค่าจ้างหรือไม่ "
                          "(คำนวณโดยไม่นับรวม ถ้าเป็นค่าตอบแทนการทำงานต้องนับรวม)")
-    if parts:
+    if len(parts) > 1:
         steps.append(f"ฐานค่าจ้างต่อเดือน = {' + '.join(parts)} = {baht(total)} บาท")
+    elif parts:
+        steps.append(f"ฐานค่าจ้างต่อเดือน = {baht(total)} บาท")
     return WageBase(monthly=total if monthly_ok and parts else None,
                     expr=" + ".join(parts), steps=steps, unknown=unknown)
+
+
+def _pay_date(year: int, month: int, day: int) -> date:
+    """Pay day `day` of a month; a day past the month's end means the last day (สิ้นเดือน)."""
+    import calendar
+    return date(year, month, min(day, calendar.monthrange(year, month)[1]))
+
+
+def pay_dates_from(start: date, pay_days: list[int], n: int) -> list[date]:
+    """The first n pay dates on or after `start`."""
+    out, y, m = [], start.year, start.month
+    while len(out) < n:
+        out += sorted(d for d in (_pay_date(y, m, x) for x in set(pay_days)) if d >= start)
+        y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+    return out[:n]
+
+
+def thai_date(d: date) -> str:
+    months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."]
+    return f"{d.day} {months[d.month - 1]} {d.year + 543}"
+
+
+class NoticeResult(BaseModel):
+    effective: date                    # when notice given on the dismissal day would end the contract
+    final_period: CalcResult           # wage of the last pay period worked (ค่าจ้างงวดสุดท้าย)
+    notice_pay: CalcResult             # pay in lieu of notice (สินจ้างแทนการบอกกล่าวล่วงหน้า)
+
+
+def notice_and_final_pay(dismissed: date, pay_days: list[int], monthly: Decimal, daily: Decimal,
+                         keys: dict[str, str]) -> NoticeResult:
+    """Employer ends an open-ended contract on `dismissed` (the employee leaves that day)
+    without notice. Notice given on or before a pay date takes effect on the next pay date
+    (ม.17 วรรคสอง), so notice given on `dismissed` would have ended the contract on the
+    second pay date on or after `dismissed` (a pay date on `dismissed` itself counts as the
+    first). Pay in lieu = wage from the day after leaving to that date
+    (ม.17/1), counted in days at the daily wage. The final pay period is paid in full when
+    `dismissed` is a pay date (monthly wage ÷ pay dates per month).
+    keys: citation_keys {"notice": ม.17 วรรคสอง, "in_lieu": ม.17/1, "final": ม.70 วรรคสอง}."""
+    first, second = pay_dates_from(dismissed, pay_days, 2)
+    effective = second
+    if first != dismissed:
+        raise ValueError("วันเลิกจ้างไม่ตรงวันจ่ายค่าจ้าง ระบบยังไม่คำนวณค่าจ้างงวดสุดท้ายแบบเฉลี่ยรายวัน")
+    per_period = monthly / len(set(pay_days))
+    final = CalcResult(amount=_q(per_period), citations=[keys["final"]], steps=[(
+        f"ค่าจ้างงวดสุดท้ายถึงวันเลิกจ้าง {thai_date(dismissed)} (ซึ่งเป็นวันจ่ายค่าจ้าง) = "
+        f"{baht(monthly)} ÷ {len(set(pay_days))} งวดต่อเดือน = {baht(per_period)} บาท "
+        "ต้องจ่ายภายในสามวันนับแต่วันเลิกจ้าง")])
+    days = (effective - dismissed).days
+    amt = daily * days
+    lieu = CalcResult(amount=_q(amt), citations=[keys["notice"], keys["in_lieu"]], steps=[
+        (f"ถ้าบอกกล่าวในวันที่ {thai_date(dismissed)} การเลิกสัญญาจะมีผลในวันจ่ายค่าจ้างคราวถัดไป "
+         f"คือ {thai_date(effective)}"),
+        (f"สินจ้างแทนการบอกกล่าวล่วงหน้า (ถ้ามีสิทธิ) = {baht(monthly)} ÷ {_q(monthly / daily):.0f} × {days} วัน "
+         f"({thai_date(dismissed + timedelta(days=1))} – {thai_date(effective)}) = {baht(amt)} บาท "
+         "จ่ายในวันที่ให้ลูกจ้างออกจากงาน")])
+    return NoticeResult(effective=effective, final_period=final, notice_pay=lieu)
 
 
 def to_daily_wage(amount: Decimal, period: str, on: date, book: RateBook,
