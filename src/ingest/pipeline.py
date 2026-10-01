@@ -83,10 +83,10 @@ def main() -> None:
         law_id: dict[str, int] = {}
         for e in registry:
             cur.execute(
-                "INSERT INTO laws (name, short_name, type, level, source_file, quality, note) "
-                "VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id",
+                "INSERT INTO laws (name, short_name, type, level, source_file, quality, note, enacted_date) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id",
                 (e["name"], e["short_name"], e["type"], e["level"], e["file"],
-                 e.get("quality"), e.get("note")),
+                 e.get("quality"), e.get("note"), e.get("valid_from")),
             )
             law_id[e["short_name"]] = cur.fetchone()[0]
         for e in registry:
@@ -99,11 +99,12 @@ def main() -> None:
             for r in rows:
                 cur.execute(
                     "INSERT INTO provisions (law_id, chapter, chapter_title, section_no, paragraph_no,"
-                    " sub_no, text, repealed, amendment_notes, citation_key)"
-                    " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                    " sub_no, text, repealed, amendment_notes, citation_key, valid_from)"
+                    " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                     (law_id[short], r.chapter, titles.get(r.section_no), r.section_no,
                      r.paragraph_no, r.sub_no, r.text, r.repealed,
-                     [fns[f] for f in r.footnotes if f in fns], r.citation_key),
+                     [fns[f] for f in r.footnotes if f in fns], r.citation_key,
+                     e.get("valid_from")),     # registry: instrument's effective date, if known
                 )
 
         # ISSUED_UNDER: every provision of a child → the enabling sections of its parent
