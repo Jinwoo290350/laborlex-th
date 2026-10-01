@@ -152,61 +152,83 @@ class WageBase(BaseModel):
     unknown: list[str]
 
 
-def wage_item_status(purpose: str, basis: str, conditional: bool | None) -> str:
-    """"wage" | "not_wage" | "unknown" under the definition of ค่าจ้าง (LPA ม.5): money paid as
-    consideration for work for normal working time per period, or computed from the work
-    done. Payments for the cost of working (expense, actual-cost reimbursement), welfare and
-    discretionary or conditional payments are not consideration for work. Mapping and dev100
-    evidence: docs/decisions.md #9."""
-    if purpose in ("expense", "welfare") or basis in ("actual_cost", "discretionary"):
-        return "not_wage"
+def wage_item_status(purpose: str, basis: str, conditional: bool | None,
+                     requires_proof: bool | None = None) -> str:
+    """"wage" | "not_wage" | "unknown" under the definition of ค่าจ้าง (LPA ม.5), judged by the
+    purpose and character of the payment (docs/decisions.md #9):
+    - welfare purpose → not wage, even when a fixed amount is paid monthly without claims
+      (ฎ. 9096/2546, 2967/2555)
+    - reimbursement of actual work expenses → not wage (ฎ. 3934/2557)
+    - an expense allowance paid as a flat monthly amount with no proof of actual spending
+      → wage (ฎ. 7402–7403/2544)
+    - an expense allowance where the question does not say whether proof is required → unknown
+    - discretionary, or conditional on something other than work → not wage
+    - pay for work, fixed per period or by output → wage"""
     if conditional:
         return "not_wage"
+    if purpose == "welfare" or basis in ("actual_cost", "discretionary"):
+        return "not_wage"
+    if purpose == "expense" and basis == "fixed":
+        return {False: "wage", True: "not_wage"}.get(requires_proof, "unknown")
     if purpose == "work" and basis in ("fixed", "output"):
         return "wage"
     return "unknown"
 
 
-REASON = {"expense": "เป็นเงินช่วยค่าใช้จ่ายในการทำงาน ไม่ใช่ค่าตอบแทนการทำงาน",
-          "welfare": "เป็นสวัสดิการ ไม่ใช่ค่าตอบแทนการทำงาน",
-          "actual_cost": "เบิกตามที่จ่ายจริง ไม่ใช่ค่าตอบแทนการทำงาน",
-          "discretionary": "นายจ้างให้ตามดุลพินิจ ไม่ได้ตกลงจ่ายเป็นค่าตอบแทนการทำงาน",
-          "conditional": "จ่ายเมื่อเข้าเงื่อนไขอื่นนอกจากการทำงาน"}
+def _reason(it: Any, status: str) -> str:
+    if status == "wage":
+        if it.purpose == "expense":
+            return ("เป็นเงินเหมาจ่ายจำนวนแน่นอนทุกเดือนโดยไม่ต้องแสดงค่าใช้จ่ายจริง "
+                    "มีลักษณะเป็นค่าตอบแทนการทำงาน")
+        return f"ตอบแทนการทำงาน{'ตามผลงาน' if it.basis == 'output' else ''}"
+    if it.conditional:
+        return "จ่ายเมื่อเข้าเงื่อนไขอื่นนอกจากการทำงาน"
+    if it.purpose == "welfare":
+        return "วัตถุประสงค์ของการจ่ายเป็นสวัสดิการ ไม่ใช่ค่าตอบแทนการทำงาน แม้จะจ่ายเป็นจำนวนแน่นอนทุกเดือน"
+    if it.basis == "actual_cost" or (it.purpose == "expense" and it.requires_proof):
+        return "เป็นการชดใช้ค่าใช้จ่ายในการทำงานที่ลูกจ้างจ่ายไปจริง ไม่ใช่ค่าตอบแทนการทำงาน"
+    if it.basis == "discretionary":
+        return "นายจ้างให้ตามดุลพินิจ ไม่ได้ตกลงจ่ายเป็นค่าตอบแทนการทำงาน"
+    return ""
 
 
 def wage_base(items: list[Any], definition_key: str) -> WageBase:
     """Sum the items that are wages, each converted to a monthly amount. Every item gets a
     step saying whether it counts and why, citing the definition of ค่าจ้าง."""
     total, parts, steps, unknown = Decimal(0), [], [], []
+    alt = Decimal(0)                      # unknown items that would be added if they are wages
     monthly_ok = True
     for it in items:
         amt = Decimal(str(it.amount))
-        st = wage_item_status(it.purpose, it.basis, it.conditional)
+        st = wage_item_status(it.purpose, it.basis, it.conditional, getattr(it, "requires_proof", None))
         if st == "wage":
             if it.period in MONTHS:
                 m = amt / MONTHS[it.period]
                 total += m
                 parts.append(baht(m))
                 per = "" if it.period == "month" else f" (เฉลี่ยต่อเดือน {baht(amt)} ÷ {MONTHS[it.period]} = {baht(m)})"
-                steps.append(f"{it.name} {baht(amt)} บาท — เป็นค่าจ้าง (ตอบแทนการทำงาน"
-                             f"{'ตามผลงาน' if it.basis == 'output' else ''}) นับรวมเป็นฐานค่าจ้าง{per}")
+                steps.append(f"{it.name} {baht(amt)} บาท — เป็นค่าจ้าง ({_reason(it, st)}) นับรวมเป็นฐานค่าจ้าง{per}")
             else:
                 monthly_ok = False
                 steps.append(f"{it.name} {baht(amt)} บาท — เป็นค่าจ้าง แต่จ่ายเป็นราย{it.period} "
                              "ระบบยังแปลงเป็นรายเดือนอัตโนมัติไม่ได้")
         elif st == "not_wage":
-            why = ("conditional" if it.conditional
-                   else it.basis if it.basis in ("actual_cost", "discretionary")
-                   else it.purpose if it.purpose in REASON else it.basis)
-            steps.append(f"{it.name} {baht(amt)} บาท — ไม่นับเป็นค่าจ้าง ({REASON[why]})")
+            steps.append(f"{it.name} {baht(amt)} บาท — ไม่นับเป็นค่าจ้าง ({_reason(it, st)})")
         else:
             unknown.append(it.name)
+            if it.period in MONTHS:
+                alt += amt / MONTHS[it.period]
+            hint = ("ถ้าจ่ายเหมาเป็นจำนวนแน่นอนโดยไม่ต้องแสดงค่าใช้จ่ายจริง เป็นค่าจ้าง "
+                    "แต่ถ้าเบิกตามค่าใช้จ่ายจริง ไม่เป็นค่าจ้าง" if it.purpose == "expense"
+                    else "ถ้าเป็นค่าตอบแทนการทำงานต้องนับรวม")
             steps.append(f"{it.name} {baht(amt)} บาท — ข้อเท็จจริงไม่พอจะบอกว่าเป็นค่าจ้างหรือไม่ "
-                         "(คำนวณโดยไม่นับรวม ถ้าเป็นค่าตอบแทนการทำงานต้องนับรวม)")
+                         f"(คำนวณโดยไม่นับรวม; {hint})")
     if len(parts) > 1:
         steps.append(f"ฐานค่าจ้างต่อเดือน = {' + '.join(parts)} = {baht(total)} บาท")
     elif parts:
         steps.append(f"ฐานค่าจ้างต่อเดือน = {baht(total)} บาท")
+    if parts and alt:
+        steps.append(f"ถ้ารายการที่ยังไม่แน่ชัดเป็นค่าจ้าง ฐานค่าจ้างต่อเดือนจะเป็น {baht(total + alt)} บาท")
     return WageBase(monthly=total if monthly_ok and parts else None,
                     expr=" + ".join(parts), steps=steps, unknown=unknown)
 
@@ -265,6 +287,33 @@ def notice_and_final_pay(dismissed: date, pay_days: list[int], monthly: Decimal,
          f"({thai_date(dismissed + timedelta(days=1))} – {thai_date(effective)}) = {baht(amt)} บาท "
          "จ่ายในวันที่ให้ลูกจ้างออกจากงาน")])
     return NoticeResult(effective=effective, final_period=final, notice_pay=lieu)
+
+
+class Entitlement(BaseModel):
+    severance: Decimal
+    notice_pay: Decimal
+    final_wage: Decimal
+    steps: list[str]
+    citations: list[str]
+
+
+def apply_m119(severance: Decimal, notice_pay: Decimal, final_wage: Decimal, m119_applies: bool,
+               keys: dict[str, str]) -> Entitlement:
+    """Per-employee amounts once ม.119 is decided (upstream, with reasons). A ม.119 dismissal
+    removes severance (ม.119 วรรคหนึ่ง) and the notice requirement (ม.17 วรรคสี่), so pay in
+    lieu is also 0; wages already earned are owed either way (ม.70 วรรคสอง).
+    keys: {"m119": …, "notice_exempt": …, "final": …}."""
+    if m119_applies:
+        return Entitlement(severance=Decimal(0), notice_pay=Decimal(0), final_wage=final_wage,
+                           citations=[keys["m119"], keys["notice_exempt"], keys["final"]], steps=[
+                               "เลิกจ้างด้วยเหตุตามมาตรา 119 → ไม่มีสิทธิได้ค่าชดเชย",
+                               "การบอกกล่าวล่วงหน้าไม่ใช้บังคับแก่การเลิกจ้างตามมาตรา 119 → ไม่มีสินจ้างแทนการบอกกล่าวล่วงหน้า",
+                               f"ค่าจ้างงวดสุดท้าย {baht(final_wage)} บาท ยังต้องจ่าย"])
+    return Entitlement(severance=severance, notice_pay=notice_pay, final_wage=final_wage,
+                       citations=[keys["final"]], steps=[(
+                           f"ไม่เข้าเหตุตามมาตรา 119 → ค่าชดเชย {baht(severance)} บาท "
+                           f"สินจ้างแทนการบอกกล่าวล่วงหน้า {baht(notice_pay)} บาท "
+                           f"ค่าจ้างงวดสุดท้าย {baht(final_wage)} บาท")])
 
 
 def to_daily_wage(amount: Decimal, period: str, on: date, book: RateBook,

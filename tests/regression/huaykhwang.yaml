@@ -1,42 +1,73 @@
-# Regression case: หจก. ห้วยขวางขนส่ง / นายแพรวพราว / นายซื่อบื้อ (given by Frank 2026-10-02).
-# No gold answer exists. Each expectation is marked:
-#   clear      — follows directly from statute text in the DB (quoted in `evidence`)
-#   convention — follows from a documented system convention (docs/decisions.md)
-#   ambiguous  — needs an expert to confirm; the test PINS current behaviour so a change is
-#                noticed, it does NOT assert the behaviour is legally right
+# Regression case: หจก. ห้วยขวางขนส่ง / นายแพรวพราว / นายซื่อบื้อ.
+# Legal conclusions supplied by Frank on 2026-10-02 from his own Supreme Court research
+# (provisional; not yet confirmed by a professor). Authorities marked in_db: false cannot be
+# cited by the system until loaded into the Legal Index.
 id: reg-huaykhwang
 question_file: tests/regression/huaykhwang_question.txt
+source_of_conclusions: "Frank 2026-10-02 (ฎีกา research) — provisional legal conclusion"
+
 facts:                       # what extract_facts should produce (built by hand; no LLM in the test)
   start_date: 2026-01-01     # 1 ม.ค. 2569
-  end_date: 2026-12-31       # เลิกจ้าง 31 ธ.ค. 2569
+  end_date: 2026-12-31       # เลิกจ้าง 31 ธ.ค. 2569 (วันทำงานสุดท้าย)
   pay_days: [15, 31]         # ทุกวันที่ 15 และวันสิ้นเดือน
   pay_items:
     - {name: เงินเดือน, amount: 10000, period: month, purpose: work, basis: fixed, conditional: false}
-    - {name: ค่าเช่าบ้าน (จ่ายเท่ากันทุกเดือนไม่ว่าจะเช่าจริงหรือไม่), amount: 1000, period: month, purpose: expense, basis: fixed, conditional: false}
-    - {name: ค่าน้ำมันรถส่วนคงที่, amount: 500, period: month, purpose: expense, basis: fixed, conditional: false}
-    - {name: ค่าน้ำมันรถส่วนเบิกตามใบเสร็จ (ไม่เกิน 500), amount: 500, period: month, purpose: expense, basis: actual_cost, conditional: false}
+    - {name: ค่าเช่าบ้าน, amount: 1000, period: month, purpose: welfare, basis: fixed, conditional: false, requires_proof: false}
+    - {name: ค่าน้ำมันรถส่วนเหมาจ่าย, amount: 500, period: month, purpose: expense, basis: fixed, conditional: false, requires_proof: false}
+    - {name: ค่าน้ำมันรถส่วนเบิกตามใบเสร็จ (ไม่เกิน 500), amount: 500, period: month, purpose: expense, basis: actual_cost, conditional: false, requires_proof: true}
+
+authorities:
+  "9096/2546":      {in_db: true,  key: "CASE:9096/2546",      holding: "ค่าเช่าบ้านอาจเป็นสวัสดิการ แม้จ่ายจำนวนแน่นอนทุกเดือน"}
+  "2967/2555":      {in_db: true,  key: "CASE:2967/2555",      holding: "ค่าเช่าบ้านที่สัญญาจ้างระบุเป็นสวัสดิการ ไม่ใช่ค่าจ้าง"}
+  "7402-7403/2544": {in_db: true,  key: "CASE:7402-7403/2544", holding: "ค่าน้ำมัน/ค่าโทรศัพท์เหมาจ่ายคงที่รายเดือนโดยไม่คำนึงถึงค่าใช้จ่ายจริง = ค่าจ้าง"}
+  "7780-7782/2556": {in_db: false, key: null,                  holding: "แม้มีใบเสร็จประกอบ แต่จ่ายอัตราคงที่ทุกเดือน ศาลถือเป็นค่าจ้างได้"}
+  "3934/2557":      {in_db: true,  key: "CASE:3934/2557",      holding: "เงินที่มีวัตถุประสงค์แท้จริงเป็นการชดใช้ค่าใช้จ่ายในการทำงาน = ไม่ใช่ค่าจ้าง"}
+  "11096/2556":     {in_db: true,  key: "CASE:11096/2556",     holding: "ลูกจ้างประกอบกิจการแข่งขัน/บริการลูกค้ากลุ่มเดียวกับนายจ้าง = ปฏิปักษ์ทางการค้า จงใจทำให้นายจ้างเสียหาย ม.119(2) แม้ยังไม่ปรากฏว่าลูกค้าใช้บริการคู่แข่งแล้ว"}
+  "4554/2540":      {in_db: true,  key: "CASE:4554/2540",      holding: "รู้ว่าเพื่อนร่วมงานรับงานประเภทเดียวกับนายจ้างแต่ไม่แจ้ง ยังไม่ถึงขั้นทุจริตต่อหน้าที่หรือจงใจทำให้นายจ้างเสียหาย"}
 
 expect:
-  m5_salary:            {status: clear, wage: true, evidence: "ม.5 “ค่าจ้าง”: เงินที่ตกลงจ่ายเป็นค่าตอบแทนในการทำงาน … รายเดือน"}
-  m5_fuel_reimbursed:   {status: clear, wage: false, evidence: "จ่ายตามใบเสร็จจริง = ชดใช้ค่าใช้จ่าย ไม่ใช่ค่าตอบแทนการทำงาน"}
-  m5_rent:              {status: ambiguous, pinned_wage: false,
-                         question: "ค่าเช่าบ้านที่จ่ายเท่ากันทุกเดือนโดยไม่คำนึงว่าเช่าจริงหรือไม่ เป็นค่าจ้างตาม ม.5 หรือไม่ (ระบบปัจจุบัน: ถ้า LLM ติดป้าย purpose=expense → ไม่นับ) — โจทย์จงใจให้ข้อเท็จจริงนี้ ซึ่งชี้ไปทางเป็นค่าจ้าง แต่ dev100 ไม่มีเฉลยแนวนี้"}
-  m5_fuel_fixed:        {status: ambiguous, pinned_wage: false,
-                         question: "ค่าน้ำมันส่วน 500 บาทแรกที่ไม่ต้องมีใบเสร็จ เป็นค่าจ้างหรือไม่ และการแยกค่าน้ำมัน 1,000 เป็นส่วนคงที่ 500 + ส่วนเบิกจริง ≤ 500 ถูกต้องหรือไม่"}
-  m118_tenure:          {status: convention, years: 1, tier_days: 90,
-                         evidence: "นับรวมวันแรกและวันสุดท้าย (decision #4): 1 ม.ค.–31 ธ.ค. 2569 = ครบ 1 ปี → ม.118 ขั้นครบ 1 ปีแต่ไม่ครบ 3 ปี"}
-  m118_severance_by_base: {status: depends_on_m5, "10000": 30000, "11000": 33000, "11500": 34500}
-  m119:                 {status: ambiguous, needs_llm: true,
-                         prae_wpraw: "อาจเข้า ม.119 (1) ทุจริตต่อหน้าที่ หรือ (2) จงใจทำให้นายจ้างเสียหาย — ยังไม่มีผู้ประกอบการรายใดทำสัญญา จึงยังไม่ชัดว่าเกิดความเสียหายแล้วหรือไม่",
-                         sue_bue: "ไม่มีส่วนร่วม เพียงไม่แจ้งเพราะเกรงกลัว — ไม่ใช่ทุจริตหรือจงใจ → ไม่เข้า ม.119 ได้ค่าชดเชย (ค่อนข้างชัด แต่ยังต้องให้ผู้รู้ยืนยัน)",
-                         system_gap: "ระบบตรวจองค์ประกอบต่อประเด็น ไม่ได้แยกต่อบุคคล — การแยกสองคนขึ้นกับ LLM ตอนร่างคำตอบ ทดสอบไม่ได้โดยไม่ยิง Gemini"}
-  m17_effective_date:   {status: clear, date: 2027-01-15,
-                         evidence: "ม.17 วรรคสอง: บอกกล่าวเมื่อถึง/ก่อนถึงกำหนดจ่ายค่าจ้างคราวหนึ่ง มีผลเมื่อถึงกำหนดจ่ายคราวถัดไป — 31 ธ.ค. เป็นวันจ่าย → มีผล 15 ม.ค. 2570"}
-  m17_notice_pay:       {status: convention, days: 15, amount_base_10000: 5000,
-                         evidence: "ม.17/1: ค่าจ้างนับแต่วันให้ออกจากงานถึงวันที่เลิกสัญญามีผล; นับ 1–15 ม.ค. = 15 วัน × 10,000/30 (= ครึ่งเดือนพอดี)",
-                         applies_to: "ซื่อบื้อ; แพรวพราวเฉพาะถ้าไม่เข้า ม.119 (ม.17 วรรคสี่)"}
-  m70_final_period:     {status: clear, amount_base_10000: 5000,
-                         evidence: "ม.70 วรรคสอง: เลิกจ้างต้องจ่ายค่าจ้างที่มีสิทธิภายในสามวัน — งวด 16–31 ธ.ค. = 10,000 ÷ 2 งวด"}
-  other_money_2_2:      {status: ambiguous,
-                         question: "ค่าเช่าบ้าน/ค่าน้ำมันของเดือน ธ.ค. ที่ยังไม่ได้จ่าย ต้องจ่ายในข้อ 2.2 หรือไม่ และจ่ายเต็มเดือนหรือตามสัดส่วน"}
-  not_covered:          "ข้อ 1 ใครต้องรับผิดในฐานะนายจ้าง (ห้างฯ, หุ้นส่วนผู้จัดการ, ผู้จัดการฝ่ายบุคคลในฐานะผู้ได้รับมอบหมาย) — นอกขอบเขต 6 จุดที่ขอ ต้องใช้ LLM"
+  wage_classification:
+    เงินเดือน: {wage: true}
+    ค่าเช่าบ้าน:
+      wage: false
+      reason_must_mention: สวัสดิการ           # purpose/character of the payment
+      reason_must_not_mention: ตามจริง          # "not paid at actual cost = non-wage" is NOT the rule
+      authorities: ["9096/2546", "2967/2555"]
+    ค่าน้ำมันรถส่วนเหมาจ่าย:
+      wage: true
+      reason: "จ่ายแน่นอนทุกเดือน ไม่ต้องพิสูจน์ค่าใช้จ่ายจริง → ลักษณะเป็นค่าตอบแทน ไม่ใช่การชดใช้"
+      authorities: ["7402-7403/2544", "7780-7782/2556"]
+    ค่าน้ำมันรถส่วนเบิกตามใบเสร็จ (ไม่เกิน 500):
+      wage: false
+      reason: "ชดใช้ค่าใช้จ่ายในการทำงานที่จ่ายไปจริง"
+      authorities: ["3934/2557"]
+  wage_base_monthly: 10500
+  tenure: {years: 1, tier_days: 90, convention: "นับรวมวันแรกและวันสุดท้าย (decision #4)"}
+  notice_effective_date: 2027-01-15        # ม.17 วรรคสอง: บอกกล่าว 31 ธ.ค. (วันจ่าย) → มีผลวันจ่ายคราวถัดไป 15 ม.ค. 2570
+  employees:
+    แพรวพราว:
+      m119_applies: true
+      m119_ground: "(2) จงใจทำให้นายจ้างได้รับความเสียหาย"
+      m119_key: "LPA2541:119:1:(2)"
+      reasons:
+        - ทำงานในเส้นทาง/ธุรกิจเดียวกับนายจ้าง
+        - ไปเสนอรับงานขนส่งในนามส่วนตัว
+        - แจ้งข้อมูลเท็จว่านายจ้างไม่มีสัมปทานแล้ว
+        - เสนอราคาครึ่งหนึ่งเพื่อดึงงานไปทำเอง
+        - มีผู้ประกอบการหลายรายสนใจ
+      authorities: ["11096/2556"]
+      note: "นายจ้างอ้างเหตุจงใจทำให้เสียหายไว้ในคำสั่งเลิกจ้างแล้ว (ม.119 วรรคสาม)"
+      severance: 0
+      notice_pay: 0                         # ม.17 วรรคสี่
+      final_wage: 5250
+    ซื่อบื้อ:
+      m119_applies: false
+      reasons:
+        - ไม่มีส่วนร่วม ไม่ได้รับประโยชน์ ไม่ใช่ผู้ดำเนินการ
+        - เพียงไม่แจ้งนายจ้างเพราะกลัวหัวหน้างานกลั่นแกล้ง
+      authorities: ["4554/2540"]
+      severance: 31500                      # 10,500 ÷ 30 × 90
+      notice_pay: 5250                      # 10,500 ÷ 30 × 15 วัน (1–15 ม.ค. 2570)
+      final_wage: 5250                      # งวด 16–31 ธ.ค. = 10,500 ÷ 2 งวด (= 10,500 × 15/30)
+  total: 47250
+  not_covered: "ข้อ 1 ใครต้องรับผิดในฐานะนายจ้าง และข้อ 2.2 เงินอื่น (ค่าเช่าบ้าน/ค่าน้ำมันเดือน ธ.ค.) — ยังไม่มีข้อสรุป"

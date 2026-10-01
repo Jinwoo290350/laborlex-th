@@ -25,6 +25,9 @@ class PayItem(BaseModel):
                     "actual_cost = เบิกตามจริง · discretionary = นายจ้างให้ตามดุลพินิจ")
     conditional: bool | None = Field(
         None, description="true ถ้าจ่ายเฉพาะเมื่อเข้าเงื่อนไขอื่นนอกจากการทำงานปกติ เช่น ไม่ขาด ไม่ลา ไม่สาย")
+    requires_proof: bool | None = Field(
+        None, description="true ถ้าต้องแสดงใบเสร็จ/หลักฐานค่าใช้จ่ายจริงจึงจะได้ · false ถ้าโจทย์บอกว่า"
+                          "จ่ายเหมาโดยไม่ต้องแสดงหลักฐาน/ไม่คำนึงถึงค่าใช้จ่ายจริง · null ถ้าโจทย์ไม่บอก")
 
 
 class Facts(BaseModel):

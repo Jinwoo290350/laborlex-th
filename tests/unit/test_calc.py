@@ -75,15 +75,18 @@ def _item(name, amount, period, purpose, basis, conditional=None):
                    conditional=conditional)
 
 
-def test_wage_base_dev039_salary_plus_sales_bonus_not_fuel_phone():
-    # dev100 gold dev039: wage base 80,000 + 25,000 = 105,000 (fuel and phone excluded)
+def test_wage_base_dev039_fuel_phone_flagged_when_proof_not_stated():
+    # dev100 gold dev039: base 80,000 + 25,000 = 105,000. The question does not say whether
+    # fuel/phone need proof of actual cost, so they are excluded but flagged (decision #9):
+    # a flat amount without proof would be a wage (ฎ. 7402–7403/2544) → base 118,000.
     from src.calc.labor import wage_base
     b = wage_base([_item("เงินเดือน", 80000, "month", "work", "fixed"),
                    _item("ค่าน้ำมันรถ", 10000, "month", "expense", "fixed"),
                    _item("ค่าโทรศัพท์", 3000, "month", "expense", "fixed"),
                    _item("โบนัสรายเดือนตามยอดขาย", 25000, "month", "work", "output")], "LPA2541:5:11")
     assert b.monthly == D(105000)
-    assert any("ไม่นับเป็นค่าจ้าง" in s and "ค่าน้ำมันรถ" in s for s in b.steps)
+    assert b.unknown == ["ค่าน้ำมันรถ", "ค่าโทรศัพท์"]
+    assert any("118,000" in s for s in b.steps)
 
 
 def test_wage_base_dev022_quarterly_commission_averaged_monthly():
