@@ -20,7 +20,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 
-from src.agent.nodes.decide import _p_gemini_batch
+from src.agent.nodes.decide import _p_gemini_batch, cap_sections
 from src.agent.nodes.retrieve import retrieve_law
 from src.agent.state import AgentState, IssueSel
 from src.llm import USAGE
@@ -52,18 +52,34 @@ def main() -> None:
         for code, cands in st.candidates.items():
             if cands:
                 ps = _p_gemini_batch(st, code, cands)
-                out += [(q["id"], r["citation_key"], ps.get(r["citation_key"], 0.0)) for r in cands]
+                out += [(q["id"], r["citation_key"], ps.get(r["citation_key"], 0.0), code) for r in cands]
         return out
 
     with ThreadPoolExecutor(6) as ex:
-        triples = [t for chunk in ex.map(judge, states) for t in chunk]
+        quads = [t for chunk in ex.map(judge, states) for t in chunk]
+
+    def chosen(t: float) -> list[tuple[str, str, float]]:
+        """Production rule (select_citations): per issue, keys with p ≥ t, best first,
+        capped at select.max_selected."""
+        by: dict[tuple[str, str], list] = {}
+        for i, k, p, code in quads:
+            if p >= t:
+                by.setdefault((i, code), []).append((i, k, p))
+        out = []
+        for v in by.values():
+            v = sorted(v, key=lambda x: -x[2])
+            keep = set(cap_sections([k for _, k, _ in v], P("select.max_selected")))
+            out += [x for x in v if x[1] in keep]
+        return out
+
+    triples = [(i, k, p) for i, k, p, _ in quads]
 
     gold = {q["id"]: {g for g in q["gold_citations"].split(";") if g} for q in qs}
     present = {qid: {section(k) for (i, k, _) in triples if i == qid} & gold[qid] for qid in gold}
     n_present = sum(len(v) for v in present.values())
 
     def at(t: float) -> dict:
-        sel = [(i, k) for (i, k, p) in triples if p >= t]
+        sel = [(i, k) for (i, k, _) in chosen(t)]
         got = {}
         for i, k in sel:
             got.setdefault(i, set()).add(section(k))
@@ -77,7 +93,7 @@ def main() -> None:
         cand_secs.setdefault(i, set()).add(section(k))
 
     def n_full(t: float) -> int:
-        sel = {(i, section(k)) for (i, k, p) in triples if p >= t}
+        sel = {(i, section(k)) for (i, k, _) in chosen(t)}
         return sum(all((i, g) in sel for g in present[i]) and gold[i] <= cand_secs.get(i, set())
                    for i in gold)
 
@@ -85,7 +101,7 @@ def main() -> None:
     best = max(c["questions_full"] for c in curve)
     pick = max((c for c in curve if c["questions_full"] >= best - 1),
                key=lambda c: (c["precision"], c["t"]))
-    selected = {(i, section(k)) for (i, k, p) in triples if p >= pick["t"]}
+    selected = {(i, section(k)) for (i, k, _) in chosen(pick["t"])}
     missed = sorted(f"{i} {g}" for i in present for g in present[i] if (i, g) not in selected)
     full = {"retrieval": [], "selection": []}
     for i, g in gold.items():

@@ -12,7 +12,7 @@ select.max_selected:
   value: 7
   kind: data
   source: dev100 gold_citations
-  rule: max number of gold sections cited by one dev question
+  rule: max number of gold sections cited by one dev question (applied as distinct sections per issue, cap_sections)
   evidence: 'gold sections per question: max 7, mean 2.4'
   status: final
 select.provision_chars:
@@ -87,15 +87,15 @@ draft.revise_below:
   evidence: not yet measured — value inherited from first draft of the code
   status: provisional
 select.threshold:
-  value: 0.5
+  value: 0.1
   kind: measured
-  source: node-level ⑤ run on tune split (p per candidate vs gold sections)
-  rule: highest precision with section recall ≥ 0.95; if the floor is unreachable maximise recall, then precision, then the
-    higher threshold
-  evidence: 'docs/results/2026-10-01_tune_select.json: 60 tune questions, 2,050 candidate pairs, 130 gold sections present;
-    recall ceiling 0.946 (floor unreachable) reached for t ≤ 0.5; t = 0.5 has the best precision (0.622) among them; 7 gold
-    sections never selected (ม.5, 17, 24, 41, 59, 66, LRA 124) → prompt issue, not threshold. Approximation: oracle issues
-    and question text as facts. Cost $1.29'
+  source: src/eval/tune_select.py — node-level ⑤ on the tune split, production rule (per issue, best first, cap
+    select.max_selected distinct sections)
+  rule: client criterion — maximise questions whose selection contains every column-H section present among candidates;
+    within one question of the best, highest precision, then the higher threshold
+  evidence: 'docs/results/2026-10-01_tune_select.json (after the every-candidate-scored fix, select v3): t 0.05/0.1 → 52/60
+    questions fully covered (0.1 has higher precision 0.44); t 0.15–0.8 → 49/60; 5 of the 8 failures are retrieval misses,
+    3 hit the section cap. Approximation: oracle issues, question text as facts. Cost $1.31'
   status: final
 search.rrf_k:
   value: 60

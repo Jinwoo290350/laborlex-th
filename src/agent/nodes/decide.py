@@ -56,6 +56,19 @@ def _select_fallback(state: AgentState, e: Exception) -> dict:
     return {"selected": {c: [r["citation_key"] for r in rs[:5]] for c, rs in state.candidates.items()}}
 
 
+def cap_sections(keys: list[str], n: int) -> list[str]:
+    """Keep keys (best first) until n distinct sections are used; the cap's evidence
+    (max gold sections per dev question) counts sections, not paragraphs."""
+    out, secs = [], set()
+    for k in keys:
+        sec = ":".join(k.split(":")[:2])
+        if sec not in secs and len(secs) >= n:
+            continue
+        secs.add(sec)
+        out.append(k)
+    return out
+
+
 @traced("select_citations", fallback=_select_fallback)
 def select_citations(state: AgentState) -> dict:
     """p(applies) per candidate from the configured DECIDER. Only candidate keys can be
@@ -72,7 +85,7 @@ def select_citations(state: AgentState) -> dict:
                         key=lambda k: -ps[k])
         if not chosen and ps:                      # never leave an issue without law
             chosen = [max(ps, key=ps.get)]
-        return code, chosen[:P("select.max_selected")], ps
+        return code, cap_sections(chosen, P("select.max_selected")), ps
 
     with ThreadPoolExecutor(4) as ex:
         res = list(ex.map(one, [i.code for i in state.issues]))
