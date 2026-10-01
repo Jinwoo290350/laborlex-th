@@ -14,3 +14,4 @@ data/**
 !data/processed/laws.yaml
 data/eval/test160.csv
 .DS_Store
+deploy/laborlex.dump
