@@ -7,7 +7,7 @@ from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, create_model
 
 from src.agent.nodes.common import fmt_facts, fmt_provision, prompt, taxonomy, traced
 from src.agent.state import AgentState, ElementCheck
@@ -17,29 +17,23 @@ from src.decision.base import QuestionSpec, get_decider
 from src.llm import generate_json
 from src.params import P
 
-
-class _Pick(BaseModel):
-    citation_key: str
-    p: float
-    reason: str
-
-
-class _Picks(BaseModel):
-    picks: list[_Pick]
-
-
 APPLIES = QuestionSpec(type="noul",
                        instructions="บทบัญญัตินี้เป็นกฎหมายที่ต้องใช้วินิจฉัยประเด็นนี้กับข้อเท็จจริงนี้โดยตรงหรือไม่")
 
 
 def _p_gemini_batch(state: AgentState, code: str, cands: list[dict]) -> dict[str, float]:
-    """One Gemini call judges all candidates of an issue (cheaper than one call each)."""
+    """One Gemini call judges all candidates of an issue (cheaper than one call each).
+    The response schema has one required field per candidate (c1…cN), so every candidate
+    gets a probability — a free-form list let the model score only the few it liked."""
     _, body = prompt("select_citations")
-    listing = "\n".join(fmt_provision(r, P("select.provision_chars")) for r in cands)
+    ids = [f"c{i}" for i in range(1, len(cands) + 1)]
+    listing = "\n".join(f"[{i}] {fmt_provision(r, P('select.provision_chars'))}"
+                         for i, r in zip(ids, cands))
+    schema = create_model("Scores", **{i: (float, Field(ge=0, le=1)) for i in ids})
     out = generate_json(body.format(issue_name=taxonomy()[code]["name"],
                                     facts=fmt_facts(state), candidates=listing),
-                        _Picks, name="select_citations", thinking="low")
-    return {p.citation_key: p.p for p in out.picks}
+                        schema, name="select_citations", thinking="low")
+    return {r["citation_key"]: getattr(out, i) for i, r in zip(ids, cands)}
 
 
 def _p_decider(state: AgentState, code: str, cands: list[dict]) -> dict[str, float]:

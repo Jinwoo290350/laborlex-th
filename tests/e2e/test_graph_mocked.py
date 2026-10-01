@@ -2,6 +2,8 @@
 
 Checks wiring, system controls (taxonomy-only issues, candidate-only citations,
 DB-validated labels) and that every node writes a trace entry. Skips without the DB."""
+import re
+
 import pytest
 
 from src.agent.answer import AnswerJSON
@@ -30,10 +32,9 @@ def fake_generate_json(prompt, schema, **kw):
         return schema.model_validate({"issues": [
             {"code": "severance_pay", "reason": "ถามเรื่องค่าชดเชย"},
             {"code": "not_a_real_code", "reason": "ต้องถูกตัดทิ้ง"}]})
-    if name == "_Picks":
-        return schema.model_validate({"picks": [
-            {"citation_key": "LPA2541:118:1", "p": 0.9, "reason": "หลัก"},
-            {"citation_key": "LPA2541:999:1", "p": 0.99, "reason": "ไม่มีจริง"}]})
+    if name == "Scores":   # one required score per listed candidate "[cN] <key> | …"
+        keys = dict(re.findall(r"^\[(c\d+)\] (\S+)", prompt, re.MULTILINE))
+        return schema.model_validate({i: 0.9 if k == "LPA2541:118:1" else 0.1 for i, k in keys.items()})
     if name == "_Checks":
         return schema.model_validate({"checks": []})
     if schema is AnswerJSON:

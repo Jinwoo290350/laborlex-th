@@ -1,35 +1,36 @@
 {
  "questions": 60,
- "pairs": 2050,
- "gold_sections_present": 128,
+ "pairs": 2640,
+ "gold_sections_present": 131,
  "current": {
   "t": 0.5,
-  "recall": 0.9453,
-  "precision": 0.606,
-  "selected": 368
+  "recall": 0.9313,
+  "precision": 0.576,
+  "selected": 441
  },
  "pick": {
-  "t": 0.5,
-  "recall": 0.9453,
-  "precision": 0.606,
-  "selected": 368
+  "t": 0.8,
+  "recall": 0.9313,
+  "precision": 0.625,
+  "selected": 384,
+  "questions_full": 48
  },
  "missed_at_pick": [
   "dev005 LPA2541:24",
   "dev015 LPA2541:17",
-  "dev033 LPA2541:5",
+  "dev034 LPA2541:65",
   "dev034 LPA2541:66",
+  "dev062 CCC:193/34",
+  "dev079 LPA2541:70",
   "dev120 LRA2518:124",
   "dev152 LPA2541:41",
   "dev152 LPA2541:59"
  ],
  "coverage": {
-  "questions_all_gold_selected": "47/60 = 78%",
+  "questions_all_gold_selected": "48/60 = 80%",
   "fail_at_retrieval": [
-   "dev012 missing ['LPA2541:22', 'LPA2541:34']",
    "dev040 missing ['LPA2541:14/1']",
    "dev042 missing ['CCC:150']",
-   "dev079 missing ['LPA2541:70']",
    "dev088 missing ['LPA2541:14/1']",
    "dev099 missing ['LRA2518:125']",
    "dev159 missing ['LPA2541:24', 'LPA2541:25']"
@@ -37,8 +38,9 @@
   "fail_at_selection": [
    "dev005 missing ['LPA2541:24']",
    "dev015 missing ['LPA2541:17']",
-   "dev033 missing ['LPA2541:5']",
-   "dev034 missing ['LPA2541:66']",
+   "dev034 missing ['LPA2541:65', 'LPA2541:66']",
+   "dev062 missing ['CCC:193/34']",
+   "dev079 missing ['LPA2541:70']",
    "dev120 missing ['LRA2518:124']",
    "dev152 missing ['LPA2541:41', 'LPA2541:59']"
   ]
@@ -46,120 +48,139 @@
  "curve": [
   {
    "t": 0.05,
-   "recall": 0.9453,
-   "precision": 0.5654,
-   "selected": 405
+   "recall": 0.9313,
+   "precision": 0.5295,
+   "selected": 491,
+   "questions_full": 48
   },
   {
    "t": 0.1,
-   "recall": 0.9453,
-   "precision": 0.5682,
-   "selected": 403
+   "recall": 0.9313,
+   "precision": 0.5339,
+   "selected": 487,
+   "questions_full": 48
   },
   {
    "t": 0.15,
-   "recall": 0.9453,
-   "precision": 0.5973,
-   "selected": 375
+   "recall": 0.9313,
+   "precision": 0.5689,
+   "selected": 450,
+   "questions_full": 48
   },
   {
    "t": 0.2,
-   "recall": 0.9453,
-   "precision": 0.5973,
-   "selected": 375
+   "recall": 0.9313,
+   "precision": 0.5714,
+   "selected": 448,
+   "questions_full": 48
   },
   {
    "t": 0.25,
-   "recall": 0.9453,
-   "precision": 0.6022,
-   "selected": 372
+   "recall": 0.9313,
+   "precision": 0.574,
+   "selected": 446,
+   "questions_full": 48
   },
   {
    "t": 0.3,
-   "recall": 0.9453,
-   "precision": 0.6022,
-   "selected": 372
+   "recall": 0.9313,
+   "precision": 0.574,
+   "selected": 446,
+   "questions_full": 48
   },
   {
    "t": 0.35,
-   "recall": 0.9453,
-   "precision": 0.6043,
-   "selected": 369
+   "recall": 0.9313,
+   "precision": 0.576,
+   "selected": 441,
+   "questions_full": 48
   },
   {
    "t": 0.4,
-   "recall": 0.9453,
-   "precision": 0.6043,
-   "selected": 369
+   "recall": 0.9313,
+   "precision": 0.576,
+   "selected": 441,
+   "questions_full": 48
   },
   {
    "t": 0.45,
-   "recall": 0.9453,
-   "precision": 0.606,
-   "selected": 368
+   "recall": 0.9313,
+   "precision": 0.576,
+   "selected": 441,
+   "questions_full": 48
   },
   {
    "t": 0.5,
-   "recall": 0.9453,
-   "precision": 0.606,
-   "selected": 368
+   "recall": 0.9313,
+   "precision": 0.576,
+   "selected": 441,
+   "questions_full": 48
   },
   {
    "t": 0.55,
-   "recall": 0.9297,
-   "precision": 0.6105,
-   "selected": 362
+   "recall": 0.9313,
+   "precision": 0.574,
+   "selected": 439,
+   "questions_full": 48
   },
   {
    "t": 0.6,
-   "recall": 0.9297,
-   "precision": 0.6105,
-   "selected": 362
+   "recall": 0.9313,
+   "precision": 0.574,
+   "selected": 439,
+   "questions_full": 48
   },
   {
    "t": 0.65,
-   "recall": 0.9297,
-   "precision": 0.6139,
-   "selected": 360
+   "recall": 0.9313,
+   "precision": 0.5764,
+   "selected": 432,
+   "questions_full": 48
   },
   {
    "t": 0.7,
-   "recall": 0.9297,
-   "precision": 0.6139,
-   "selected": 360
+   "recall": 0.9313,
+   "precision": 0.5764,
+   "selected": 432,
+   "questions_full": 48
   },
   {
    "t": 0.75,
-   "recall": 0.9297,
-   "precision": 0.6229,
-   "selected": 350
+   "recall": 0.9313,
+   "precision": 0.6065,
+   "selected": 399,
+   "questions_full": 48
   },
   {
    "t": 0.8,
-   "recall": 0.9219,
-   "precision": 0.6254,
-   "selected": 347
+   "recall": 0.9313,
+   "precision": 0.625,
+   "selected": 384,
+   "questions_full": 48
   },
   {
    "t": 0.85,
-   "recall": 0.9062,
-   "precision": 0.6918,
-   "selected": 292
+   "recall": 0.9008,
+   "precision": 0.6935,
+   "selected": 323,
+   "questions_full": 46
   },
   {
    "t": 0.9,
-   "recall": 0.875,
-   "precision": 0.71,
-   "selected": 269
+   "recall": 0.8321,
+   "precision": 0.7452,
+   "selected": 259,
+   "questions_full": 40
   },
   {
    "t": 0.95,
-   "recall": 0.7812,
-   "precision": 0.8261,
-   "selected": 184
+   "recall": 0.7252,
+   "precision": 0.8861,
+   "selected": 158,
+   "questions_full": 31
   }
  ],
  "calls": 98,
- "cost_usd": 0.0,
+ "cost_usd": 1.336,
  "approximation": "oracle issues (dev tags) and question text as facts"
 }
