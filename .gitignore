@@ -15,3 +15,6 @@ data/**
 data/eval/test160.csv
 .DS_Store
 deploy/laborlex.dump
+api.log
+ui.log
+demo.log

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hmac
 import os
 
 import requests
@@ -15,6 +16,16 @@ LEVEL = {1: "พระราชบัญญัติ", 2: "พระราชก
 st.set_page_config(page_title="LaborLex-TH", layout="wide")
 st.title("LaborLex-TH · ผู้ช่วยกฎหมายแรงงานไทย")
 st.caption("คำตอบอ้างอิงเฉพาะตัวบทในฐานข้อมูล · ไม่ใช่คำปรึกษาทางกฎหมาย")
+
+# The UI holds the API password, so the UI itself must be gated when exposed (tunnel/VM).
+if PW and not st.session_state.get("authed"):
+    entered = st.text_input("รหัสผ่าน", type="password")
+    if entered and hmac.compare_digest(entered, PW):
+        st.session_state.authed = True
+        st.rerun()
+    elif entered:
+        st.error("รหัสผ่านไม่ถูกต้อง")
+    st.stop()
 
 if "history" not in st.session_state:
     st.session_state.history = []
