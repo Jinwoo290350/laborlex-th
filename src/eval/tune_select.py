@@ -4,9 +4,10 @@ Cheap by design: issues = dev100 tags (oracle) and facts = the question text, so
 calls Gemini (one batch call per issue). Retrieval uses the production parameters.
 Labels: a candidate is positive if its section is among the question's gold sections.
 
-Rule (config/params.yaml select.threshold): highest precision among thresholds whose
-section-level recall of gold sections present among candidates is ≥ 0.95; if none reaches
-the floor, maximise recall, then precision, then prefer the higher threshold.
+Rule (config/params.yaml select.threshold) = the client's criterion: maximise the number of
+questions whose selection contains ALL their gold sections (column H) present among the
+candidates; among thresholds within one question of the best, highest precision, then the
+higher threshold.
 
   python -m src.eval.tune_select
 """
@@ -24,8 +25,6 @@ from src.agent.nodes.retrieve import retrieve_law
 from src.agent.state import AgentState, IssueSel
 from src.llm import USAGE
 from src.params import P
-
-RECALL_FLOOR = 0.95
 
 
 def section(key: str) -> str:
@@ -73,18 +72,21 @@ def main() -> None:
         return {"t": t, "recall": round(hit / n_present, 4),
                 "precision": round(tp / len(sel), 4) if sel else 0.0, "selected": len(sel)}
 
-    curve = [at(t / 20) for t in range(1, 20)]
-    ok = [c for c in curve if c["recall"] >= RECALL_FLOOR]
-    if ok:
-        pick = max(ok, key=lambda c: (c["precision"], c["t"]))
-    else:  # floor unreachable: maximise recall, then precision, then the higher threshold
-        pick = max(curve, key=lambda c: (c["recall"], c["precision"], c["t"]))
-    selected = {(i, section(k)) for (i, k, p) in triples if p >= pick["t"]}
-    missed = sorted(f"{i} {g}" for i in present for g in present[i] if (i, g) not in selected)
-    # client criterion: a question passes only if ALL its gold sections are covered
-    cand_secs = {}
+    cand_secs: dict[str, set[str]] = {}
     for i, k, _ in triples:
         cand_secs.setdefault(i, set()).add(section(k))
+
+    def n_full(t: float) -> int:
+        sel = {(i, section(k)) for (i, k, p) in triples if p >= t}
+        return sum(all((i, g) in sel for g in present[i]) and gold[i] <= cand_secs.get(i, set())
+                   for i in gold)
+
+    curve = [{**at(t / 20), "questions_full": n_full(t / 20)} for t in range(1, 20)]
+    best = max(c["questions_full"] for c in curve)
+    pick = max((c for c in curve if c["questions_full"] >= best - 1),
+               key=lambda c: (c["precision"], c["t"]))
+    selected = {(i, section(k)) for (i, k, p) in triples if p >= pick["t"]}
+    missed = sorted(f"{i} {g}" for i in present for g in present[i] if (i, g) not in selected)
     full = {"retrieval": [], "selection": []}
     for i, g in gold.items():
         if not g <= cand_secs.get(i, set()):

@@ -129,12 +129,12 @@ retrieve.tax_rows:
   evidence: 'docs/results/2026-10-01_tune_retrieval.json: stage 2 pick'
   status: final
 retrieve.search_rows:
-  value: 12
+  value: 18
   kind: measured
-  source: src/eval/tune_retrieval.py
-  rule: knee on gold-section recall vs candidate count
-  evidence: 'docs/results/2026-10-01_tune_retrieval.json: stage 2 pick; 18 rows gives 0.9424 (+0.7 pt, within tolerance) at
-    +6 candidates'
+  source: src/eval/tune_retrieval.py (stage 2 objective = client criterion, all column-H sections among candidates)
+  rule: best per-question full coverage, ties within one question → fewest candidates; child_rows fixed at 6 (requirement)
+  evidence: 'docs/results/2026-10-01_tune_retrieval.json: with child_rows 6, 12 rows → 54/60 (0.900), 18 → 55/60 (0.917),
+    24 → 55/60 at +6 candidates'
   status: final
 retrieve.child_rows:
   value: 6
