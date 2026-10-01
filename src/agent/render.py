@@ -21,6 +21,16 @@ def render(a: AnswerJSON, labels: dict[str, str] | None = None) -> str:
     _LABELS.update(labels or {})
     out = ["# คำตอบทางกฎหมาย", "## คำตอบเบื้องต้น", "จากข้อเท็จจริงที่ปรากฏ", ""]
     out += [f"- {_b(p.headline)} {p.detail}{_chips(p.citations)}".rstrip() for p in a.preliminary]
+    if a.payments:
+        out += ["", "## สรุปจำนวนเงินที่นายจ้างต้องจ่าย",
+                "| ลูกจ้าง | ค่าชดเชย | สินจ้างแทนการบอกกล่าวล่วงหน้า | ค่าจ้างงวดสุดท้าย | รวม | หมายเหตุ |",
+                "|---|---:|---:|---:|---:|---|"]
+        out += [f"| {r.name} | {r.severance} | {r.notice_pay} | {r.final_wage} | **{r.total}** | {r.note} |"
+                for r in a.payments]
+        out += ["", f"**รวมทั้งสิ้น {a.payments_total} บาท**", "", "วิธีคำนวณ (ต่อลูกจ้างหนึ่งคน)"]
+        out += [f"- {s}" for s in a.payments_steps]
+        if a.payments_citations:
+            out += [f"- บทบัญญัติที่ใช้ในการคำนวณ:{_chips(a.payments_citations)}"]
     out += ["", "เพื่อให้ได้ข้อสรุปโดยละเอียด จำเป็นต้องพิจารณาข้อกฎหมายและข้อเท็จจริงเป็นรายประเด็น",
             "", "## ประเด็นทางกฎหมายที่ต้องพิจารณา"]
     out += [f"{n}. {i.question}" for n, i in enumerate(a.issues, 1)]

@@ -112,8 +112,21 @@ def _elements_block(state: AgentState) -> str:
 
 
 def _calcs_block(state: AgentState) -> str:
-    return "\n".join(f"[{c}] " + " ; ".join(r.steps) + f" (อ้าง {', '.join(r.citations)})"
-                     for c, r in state.calcs.items()) or "- (ไม่มีการคำนวณ)"
+    lines = [f"[{c}] " + " ; ".join(r.steps) + f" (อ้าง {', '.join(r.citations)})"
+             for c, r in state.calcs.items()]
+    t = state.termination
+    if t:
+        parts = [("ค่าชดเชย (ถ้ามีสิทธิ)", t.severance), ("สินจ้างแทนการบอกกล่าวล่วงหน้า (ถ้ามีสิทธิ)", t.notice_pay),
+                 ("ค่าจ้างงวดสุดท้าย", t.final_wage)]
+        lines.append("[เงินเมื่อเลิกจ้าง ต่อลูกจ้างหนึ่งคน] " + " ; ".join(
+            f"{n} {labor_baht(r.amount)} บาท" for n, r in parts if r)
+            + " — ระบบแสดงตารางจำนวนเงินรายคนและยอดรวมเอง")
+    return "\n".join(lines) or "- (ไม่มีการคำนวณ)"
+
+
+def labor_baht(x) -> str:
+    from src.calc.labor import baht
+    return baht(x)
 
 
 def _examples_block(state: AgentState) -> str:
@@ -242,24 +255,91 @@ def allowed_keys(state: AgentState) -> set[str]:
     keys = {k for ks in state.selected.values() for k in ks}
     keys |= {k for c in state.calcs.values() for k in c.citations}
     keys |= {h["key"] for hits in state.cases.values() for h in hits}
+    if state.termination:
+        from src.agent.nodes.decide import m119_keys
+        keys |= set(state.termination.citations) | set(m119_keys().values())
     return keys
+
+
+def payments(a: AnswerJSON, t, ok) -> None:
+    """Per-employee money table from the calculator. The LLM decides only whether ม.119
+    applies to each employee; every amount and the total come from `t` (labor.Termination)."""
+    from decimal import Decimal
+
+    from src.agent.answer import EmployeeOutcome, PaymentRow
+    from src.agent.nodes.decide import m119_keys
+    from src.calc import labor
+    people = a.employees or [EmployeeOutcome(name="ลูกจ้าง", m119_applies=None)]
+    sev = t.severance.amount if t.severance else None
+    rows, total, undecided, keys = [], Decimal(0), False, m119_keys()
+    for e in people:
+        got = labor.apply_m119(sev or Decimal(0), t.notice_pay.amount, t.final_wage.amount,
+                               bool(e.m119_applies), keys)
+        note = (f"เข้ามาตรา 119 {e.m119_ground}".strip() if e.m119_applies
+                else "ไม่เข้ามาตรา 119" if e.m119_applies is False
+                else "ยังไม่ชัดว่าเข้ามาตรา 119 หรือไม่ — แสดงจำนวนกรณีไม่เข้า")
+        if sev is None and not e.m119_applies:
+            note += " · อายุงานไม่ทราบ จึงยังไม่คำนวณค่าชดเชย"
+        undecided |= e.m119_applies is None
+        sub = got.severance + got.notice_pay + got.final_wage
+        total += sub
+        rows.append(PaymentRow(name=e.name, m119_applies=e.m119_applies,
+                               severance=labor.baht(got.severance), notice_pay=labor.baht(got.notice_pay),
+                               final_wage=labor.baht(got.final_wage), total=labor.baht(sub), note=note))
+    a.payments = rows
+    a.payments_total = labor.baht(total) + (" (กรณีที่ยังไม่ชัดคิดแบบไม่เข้ามาตรา 119)" if undecided else "")
+    a.payments_steps = (t.wage_steps + (["▶ ค่าชดเชย"] + t.severance.steps if t.severance else [])
+                        + ["▶ สินจ้างแทนการบอกกล่าวล่วงหน้า"] + t.notice_pay.steps
+                        + ["▶ ค่าจ้างงวดสุดท้าย"] + t.final_wage.steps)
+    if any(e.m119_applies for e in people):
+        a.payments_steps.append("ลูกจ้างที่เข้ามาตรา 119 ไม่มีสิทธิได้ค่าชดเชย และไม่ต้องบอกกล่าวล่วงหน้า "
+                                "จึงไม่มีสินจ้างแทนการบอกกล่าวล่วงหน้า แต่ยังได้ค่าจ้างงวดสุดท้าย")
+    used = t.citations + ([keys["m119"], keys["notice_exempt"]] if any(e.m119_applies for e in people) else [])
+    a.payments_citations = [k for k in dict.fromkeys(used) if ok(k)]
+
+
+# a connective that only makes sense with the reference after it ("เป็นนายจ้างตาม <key>")
+REF_LEAD = re.compile(r"(ตามที่บัญญัติไว้ใน|ตามบทบัญญัติ|ตาม|ใน|แห่ง|อ้างอิง|อ้าง|ดู)\s*$")
+
+
+def tidy_removed(text: str) -> str:
+    """Clean up after references were removed: no doubled spaces, no space before
+    punctuation, no empty brackets."""
+    text = re.sub(r"\(\s*[,;]?\s*\)|\[\s*\]", "", text)
+    text = re.sub(r"[ \t]{2,}", " ", text)
+    text = re.sub(r"\s+([,.;:)\]])", r"\1", text)
+    text = re.sub(r"\s*(?:และ|หรือ|,)\s*([.;:]?)\s*$", r"\1", text)   # conjunction left at the end
+    return text.strip()
 
 
 def humanize_keys(a: AnswerJSON, ok) -> None:
     """Replace internal citation keys the LLM copied into prose ("ตาม LPA2541:11:1") with the
-    DB label; keys that fail validation are dropped from the text."""
-    def sub(m: re.Match) -> str:
-        r = ok(m.group(1) + m.group(2))
-        return _label(r) if r else ""
+    DB label. A key that fails validation is dropped together with the connective that
+    introduced it ("…เป็นนายจ้างตาม <key> และ…" → "…เป็นนายจ้าง และ…"), so no dangling
+    "ตาม" is left; citation-list fields are never rewritten."""
+    def fix(text: str) -> str:
+        out, pos, removed = [], 0, False
+        for m in KEY_IN_TEXT.finditer(text):
+            before = text[pos:m.start()]
+            r = ok(m.group(1) + m.group(2))
+            if r:
+                out.append(before + _label(r))
+            else:
+                out.append(REF_LEAD.sub("", before.rstrip()) + " ")
+                removed = True
+            pos = m.end()
+        out.append(text[pos:])
+        joined = "".join(out)
+        return tidy_removed(joined) if removed else joined
 
     def walk(obj):
         for name, val in obj:
             if isinstance(val, str) and name not in ("citation_key", "code"):
-                setattr(obj, name, KEY_IN_TEXT.sub(sub, val))
+                setattr(obj, name, fix(val))
             elif isinstance(val, list):
                 for i, x in enumerate(val):
-                    if isinstance(x, str) and name not in ("citations", "calculation_citations"):
-                        val[i] = KEY_IN_TEXT.sub(sub, x)
+                    if isinstance(x, str) and not name.endswith("citations"):
+                        val[i] = fix(x)
                     elif hasattr(x, "model_fields"):
                         walk(x)
             elif hasattr(val, "model_fields"):
@@ -346,6 +426,10 @@ def validate_cites(state: AgentState) -> dict:
         for p in iss.conclusion:
             p.citations = keep(p.citations)
 
+    if state.termination:
+        payments(a, state.termination, ok)
+    else:
+        a.payments, a.payments_total, a.payments_steps, a.payments_citations = [], "", [], []
     a.version_notes = version_notes(a, ok, state.event_date)
     humanize_keys(a, ok)
 

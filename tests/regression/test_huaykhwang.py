@@ -155,3 +155,65 @@ def test_answer_shows_calc_provisions_and_no_internal_keys():
     assert {law.citation_key for law in notice.laws} >= set(st.calcs["advance_notice"].citations)
     assert md.count("บทบัญญัติที่ใช้ในการคำนวณ") == 2
     assert "ม.17/1" in md and "ม.70 วรรคสอง" in md and "ม.5 “ค่าจ้าง”" in md
+
+
+# Issue 1: dismissal money is computed from the facts even when no money issue was chosen --
+def _state_without_money_issues() -> AgentState:
+    from src.agent.nodes.decide import calculate
+    st = AgentState(question="reg-huaykhwang",
+                    facts=Facts(start_date=F["start_date"], end_date=END, pay_days=F["pay_days"],
+                                pay_items=ITEMS),
+                    issues=[IssueSel(code="definition_of_wages", reason="t")])   # no formula
+    out = calculate(st)
+    st.calcs, st.termination = out["calcs"], out["termination"]
+    return st
+
+
+def _answer(employees):
+    from src.agent.answer import AnswerJSON
+    return AnswerJSON.model_validate({
+        "preliminary": [{"headline": "h"}], "employees": employees,
+        "issues": [{"code": "definition_of_wages", "question": "q", "consider": "-", "laws": [],
+                    "application": [], "conclusion": [{"headline": "h"}], "opinion": "o", "basis": "b"}]})
+
+
+@needs_db
+def test_termination_money_without_money_issues():
+    st = _state_without_money_issues()
+    t, su = st.termination, X["employees"]["ซื่อบื้อ"]
+    assert not st.calcs                      # no issue had a formula
+    assert (t.severance.amount, t.notice_pay.amount, t.final_wage.amount) == (
+        su["severance"], su["notice_pay"], su["final_wage"])
+    assert t.effective == X["notice_effective_date"]
+
+
+@needs_db
+def test_per_employee_table_and_total():
+    from src.agent.nodes.draft import KEY_IN_TEXT, validate_cites
+    st = _state_without_money_issues()
+    st.answer = _answer([
+        {"name": "นายแพรวพราว", "m119_applies": True, "m119_ground": "(2) จงใจทำให้นายจ้างได้รับความเสียหาย"},
+        {"name": "นายซื่อบื้อ", "m119_applies": False}])
+    out = validate_cites(st)
+    a, md = out["answer"], out["markdown"]
+    rows = {r.name: r for r in a.payments}
+    pw, sb = rows["นายแพรวพราว"], rows["นายซื่อบื้อ"]
+    assert (pw.severance, pw.notice_pay, pw.final_wage, pw.total) == ("0", "0", "5,250", "5,250")
+    assert (sb.severance, sb.notice_pay, sb.final_wage, sb.total) == ("31,500", "5,250", "5,250", "42,000")
+    assert a.payments_total == f"{X['total']:,}" == "47,250"
+    assert "| นายแพรวพราว | 0 | 0 | 5,250 | **5,250** |" in md
+    assert "| นายซื่อบื้อ | 31,500 | 5,250 | 5,250 | **42,000** |" in md
+    assert "**รวมทั้งสิ้น 47,250 บาท**" in md
+    assert "ม.119" in md and "ม.17 วรรคสี่" in md          # exemption provisions shown
+    assert not KEY_IN_TEXT.search(md)
+
+
+@needs_db
+def test_undecided_m119_is_shown_as_conditional_not_guessed():
+    from src.agent.nodes.draft import validate_cites
+    st = _state_without_money_issues()
+    st.answer = _answer([])                  # LLM gave no per-employee decision
+    a = validate_cites(st)["answer"]
+    (row,) = a.payments
+    assert row.m119_applies is None and "ยังไม่ชัด" in row.note
+    assert row.total == "42,000" and "กรณีที่ยังไม่ชัด" in a.payments_total

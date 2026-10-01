@@ -158,10 +158,43 @@ def notice_keys() -> dict[str, str]:
             "final": key_by_text("ในกรณีที่นายจ้างเลิกจ้างลูกจ้าง ให้นายจ้างจ่ายค่าจ้าง")}
 
 
+def _wage(f, on, book) -> tuple[Decimal, str, list[str], list[str], labor.CalcResult]:
+    """(wage, period, steps, citations, daily) — every item that is ค่าจ้าง (ม.5) when pay
+    items are known, else the single stated wage. Raises ValueError when unknown."""
+    base = labor.wage_base(f.pay_items, wage_definition_key()) if f and f.pay_items else None
+    if base and base.monthly is not None:
+        wage, period, steps, cites = base.monthly, "month", base.steps, [wage_definition_key()]
+    elif f is None or f.wage_amount is None or f.wage_period in (None, "piece"):
+        raise ValueError("ค่าจ้างไม่ทราบหรือเป็นค่าจ้างตามผลงาน")
+    else:
+        wage, period, steps, cites = Decimal(str(f.wage_amount)), f.wage_period, [], []
+    return wage, period, steps, cites, labor.to_daily_wage(wage, period, on, book, exact=True)
+
+
+def termination_money(f, on, book) -> labor.Termination:
+    """Severance (if tenure is known), pay in lieu of notice and the final period's wage,
+    from the facts alone. Raises ValueError when a needed fact is missing."""
+    if not (f and f.end_date and f.pay_days):
+        raise ValueError("ไม่ทราบวันเลิกจ้างหรือกำหนดวันจ่ายค่าจ้าง")
+    wage, period, wsteps, wcites, daily = _wage(f, on, book)
+    if period != "month":
+        raise ValueError("ระบบคำนวณสินจ้างแทนการบอกกล่าวล่วงหน้าเฉพาะค่าจ้างรายเดือน")
+    n = labor.notice_and_final_pay(f.end_date, f.pay_days, wage, daily.amount, notice_keys())
+    tenure = tenure_from_facts(f)
+    sev = (labor.severance(daily.amount, tenure, on, book, wage_expr=f"{labor.baht(wage)} ÷ 30")
+           if tenure is not None else None)
+    cites = list(dict.fromkeys(wcites + daily.citations + (sev.citations if sev else [])
+                               + n.final_period.citations + n.notice_pay.citations))
+    return labor.Termination(severance=sev, notice_pay=n.notice_pay, final_wage=n.final_period,
+                             effective=n.effective, wage_steps=wsteps + daily.steps, citations=cites)
+
+
 @traced("calculate")
 def calculate(state: AgentState) -> dict:
     """Deterministic arithmetic (the LLM only extracted dates/amounts). Runs when the issue
-    has a formula, the needed facts are known and a rate is in force; otherwise records why."""
+    has a formula, the needed facts are known and a rate is in force; otherwise records why.
+    Dismissal money (severance, pay in lieu of notice, final wage) is also computed from the
+    facts alone, so it never depends on which issues were chosen."""
     f = state.facts
     rates_path = Path("data/processed/rates.yaml")
     book = labor.RateBook.load(rates_path) if rates_path.exists() else labor.RateBook(rates=[])
@@ -172,16 +205,7 @@ def calculate(state: AgentState) -> dict:
         if not fk:
             continue
         try:
-            pre_steps, pre_cites = [], []
-            base = labor.wage_base(f.pay_items, wage_definition_key()) if f and f.pay_items else None
-            if base and base.monthly is not None:      # wage = every item that is ค่าจ้าง (ม.5)
-                wage, period = base.monthly, "month"
-                pre_steps, pre_cites = base.steps, [wage_definition_key()]
-            elif f is None or f.wage_amount is None or f.wage_period in (None, "piece"):
-                raise ValueError("ค่าจ้างไม่ทราบหรือเป็นค่าจ้างตามผลงาน")
-            else:
-                wage, period = Decimal(str(f.wage_amount)), f.wage_period
-            daily = labor.to_daily_wage(wage, period, on, book, exact=True)
+            wage, period, pre_steps, pre_cites, daily = _wage(f, on, book)
             if fk == "severance":
                 tenure = tenure_from_facts(f)
                 if tenure is None:
@@ -192,19 +216,27 @@ def calculate(state: AgentState) -> dict:
                                                  steps=pre_steps + daily.steps + r.steps,
                                                  citations=pre_cites + daily.citations + r.citations)
             elif fk == "notice_pay":
-                if not (f.end_date and f.pay_days):
-                    raise ValueError("ไม่ทราบวันเลิกจ้างหรือกำหนดวันจ่ายค่าจ้าง")
-                if period != "month":
-                    raise ValueError("ระบบคำนวณสินจ้างแทนการบอกกล่าวล่วงหน้าเฉพาะค่าจ้างรายเดือน")
-                n = labor.notice_and_final_pay(f.end_date, f.pay_days, wage, daily.amount, notice_keys())
+                t = termination_money(f, on, book)
                 out[iss.code] = labor.CalcResult(
-                    amount=n.notice_pay.amount,
-                    steps=pre_steps + ["▶ ค่าจ้างงวดสุดท้าย"] + n.final_period.steps
-                    + ["▶ สินจ้างแทนการบอกกล่าวล่วงหน้า"] + daily.steps + n.notice_pay.steps,
-                    citations=pre_cites + n.final_period.citations + daily.citations
-                    + n.notice_pay.citations)
+                    amount=t.notice_pay.amount,
+                    steps=pre_steps + ["▶ ค่าจ้างงวดสุดท้าย"] + t.final_wage.steps
+                    + ["▶ สินจ้างแทนการบอกกล่าวล่วงหน้า"] + daily.steps + t.notice_pay.steps,
+                    citations=pre_cites + t.final_wage.citations + daily.citations
+                    + t.notice_pay.citations)
             else:
                 raise ValueError(f"ยังไม่รองรับสูตร {fk} อัตโนมัติ")
         except (ValueError, LookupError) as e:
             notes[iss.code] = str(e)
-    return {"calcs": out, "_summary": {"done": list(out), "skipped": notes}}
+    term = None
+    try:
+        term = termination_money(f, on, book)
+    except (ValueError, LookupError) as e:
+        notes["termination"] = str(e)
+    return {"calcs": out, "termination": term,
+            "_summary": {"done": list(out) + (["termination"] if term else []), "skipped": notes}}
+
+
+def m119_keys() -> dict[str, str]:
+    return {"m119": key_by_text("นายจ้างไม่ต้องจ่ายค่าชดเชยให้แก่ลูกจ้างซึ่งเลิกจ้างในกรณีหนึ่งกรณีใด"),
+            "notice_exempt": key_by_text("การบอกกล่าวล่วงหน้าตามมาตรานี้ไม่ใช้บังคับแก่การเลิกจ้างตามมาตรา 119"),
+            "final": notice_keys()["final"]}

@@ -298,6 +298,17 @@ def notice_and_final_pay(dismissed: date, pay_days: list[int], monthly: Decimal,
     return NoticeResult(effective=effective, final_period=final, notice_pay=lieu)
 
 
+class Termination(BaseModel):
+    """Money on dismissal, computed from the facts alone (whatever issues the LLM chose):
+    severance if tenure is known, pay in lieu of notice and the final period's wage."""
+    severance: CalcResult | None
+    notice_pay: CalcResult
+    final_wage: CalcResult
+    effective: date
+    wage_steps: list[str]
+    citations: list[str]
+
+
 class Entitlement(BaseModel):
     severance: Decimal
     notice_pay: Decimal

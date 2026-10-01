@@ -9,7 +9,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, Field
 
 from src.agent.answer import AnswerJSON
-from src.calc.labor import CalcResult
+from src.calc.labor import CalcResult, Termination
 
 
 class PayItem(BaseModel):
@@ -86,6 +86,7 @@ class AgentState(BaseModel):
     selected: dict[str, list[str]] = Field(default_factory=dict)      # issue → citation keys
     elements: dict[str, list[ElementCheck]] = Field(default_factory=dict)
     calcs: dict[str, CalcResult] = Field(default_factory=dict)
+    termination: Termination | None = None        # ⑦ deterministic dismissal money (any issues)
     drafts: list[AnswerJSON] = Field(default_factory=list)
     draft_scores: list[dict] = Field(default_factory=list)
     answer: AnswerJSON | None = None
