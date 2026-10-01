@@ -43,12 +43,12 @@ api.max_question_chars:
   rule: 3 × longest dev question, rounded up to 100 (room for longer real questions, bounded cost)
   evidence: longest dev question 1111 chars
   status: final
-cases.min_section_overlap:
-  value: 1
-  kind: design
-  source: logical relevance rule replacing the untuned CASE_BOOST
-  rule: a decision is offered only if it cites at least one section among the issue's candidates
-  evidence: no gold case labels exist to tune a score boost (dev100 cites 8 ฎีกา, none in the DB)
+cases.pool:
+  value: 1000
+  kind: measured
+  source: local timing 2026-10-02 (pgvector scan) + cases table size
+  rule: dense scan is cheap, so keep at least the coverage the original pool had (200 of 886 = 23%) on the grown table
+  evidence: 'SQL for 1,000 nearest headnotes 0.07 s; 1,000 / 3,591 = 28% coverage (the old 200 covered 5.6%)'
   status: final
 cases.per_issue:
   value: 1

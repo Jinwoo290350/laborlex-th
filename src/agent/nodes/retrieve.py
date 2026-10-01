@@ -93,13 +93,15 @@ def retrieve_law(state: AgentState) -> dict:
 
 @traced("retrieve_cases", fallback=lambda state, e: {"cases": {}})
 def retrieve_cases(state: AgentState) -> dict:
-    """Court decisions per issue: similar facts, boosted when they cite the issue's
-    candidate sections. Only these can be cited (checked at ⑩)."""
+    """Court decisions per issue: nearest headnotes to the question, reranked, relevant to the
+    issue's candidate sections. A decision offered for one issue is not offered again for the
+    next, so each issue's slot shows a different decision. Only these can be cited (⑩)."""
     out: dict[str, list[dict]] = {}
+    used: set[str] = set()
     for iss in state.issues:
         sections = {f"{r['law']}:{r['section_no']}" for r in state.candidates.get(iss.code, [])}
-        hits = tools.search_cases(state.question, sections, k=P("cases.per_issue"),
-                                  min_overlap=P("cases.min_section_overlap"))
+        hits = tools.search_cases(state.question, sections, k=P("cases.per_issue"), exclude=used)
+        used |= {h["key"] for h in hits}
         out[iss.code] = [{k: v for k, v in h.items() if k != "sections"} for h in hits]
     return {"cases": out,
             "_summary": {c: [h["label"] for h in v] for c, v in out.items()}}

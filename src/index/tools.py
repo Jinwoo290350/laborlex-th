@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import date
 from functools import lru_cache
 
@@ -163,14 +164,28 @@ def case_label(c: dict) -> str:
     return f"{kind}{c['court']}ที่ {no}"
 
 
-def search_cases(query: str, sections: set[str], k: int = 3, min_overlap: int = 1,
-                 pool: int = 200) -> list[dict]:
-    """Decisions that cite at least `min_overlap` of the candidate sections ("LPA2541:118"),
-    ordered by similarity of their headnote to the question. `pool` bounds the dense scan
-    (886 cases: the pool covers ~23% of them)."""
+def _mentions(holding: str, sections: set[str]) -> list[str]:
+    """Candidate sections ("LPA2541:119") whose number the headnote names ("มาตรา 119")."""
+    text = holding or ""
+    return sorted(k for k in sections
+                  if re.search(rf"มาตรา\s*{re.escape(k.split(':', 1)[1])}(?![\d/])", text))
+
+
+def search_cases(query: str, sections: set[str], k: int = 1, exclude: set[str] | None = None,
+                 pool: int | None = None) -> list[dict]:
+    """Court decisions for an issue, nearest headnote first (dense similarity to `query`):
+    1. scan the `pool` nearest headnotes (one SQL query)
+    2. drop decisions already offered for another issue and repeated headnotes
+       (a combined decision "N-M/YYYY" repeats each single one's headnote)
+    3. keep a decision only if it is linked to one of the issue's candidate sections or its
+       headnote names one ("มาตรา 119")
+    No reranking: with the whole question as query the cross-encoder scored every decision
+    ≈ 0 and added ~19 s per question (docs/decisions.md #11)."""
     from pgvector.psycopg import register_vector
 
     from src.index.embed import embed
+    pool = P("cases.pool") if pool is None else pool
+    exclude = exclude or set()
     q = embed([query])[0]
     with connect() as conn:
         register_vector(conn)
@@ -182,18 +197,25 @@ def search_cases(query: str, sections: set[str], k: int = 3, min_overlap: int = 
             "   WHERE cl.case_id = c.id) AS sections"
             " FROM cases c WHERE c.embedding IS NOT NULL ORDER BY c.embedding <=> %s LIMIT %s",
             (q, q, pool)).fetchall()
-    out = []
+    seen_heads, out = set(), []
     for r in rows:
         d = dict(zip(("id", "deka_no", "court", "doc_type", "year", "holding", "source_url",
                       "sim", "sections"), r))
+        d["key"] = case_key(d["deka_no"])
+        head = re.sub(r"\s+", "", d["holding"] or "")[:400]
+        if d["key"] in exclude or (head and head in seen_heads):
+            continue
+        seen_heads.add(head)
         d["overlap"] = sorted(set(d["sections"]) & sections)
-        if len(d["overlap"]) < min_overlap:
+        d["mentions"] = _mentions(d["holding"], sections)
+        if not (d["overlap"] or d["mentions"]):
             continue
         d["score"] = float(d["sim"])
-        d["key"] = case_key(d["deka_no"])
         d["label"] = case_label(d)
         out.append(d)
-    return sorted(out, key=lambda d: -d["score"])[:k]
+        if len(out) >= k:
+            break
+    return out
 
 
 def get_case(key: str) -> dict | None:
