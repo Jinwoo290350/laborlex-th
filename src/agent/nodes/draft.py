@@ -11,7 +11,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from src.agent.answer import AnswerJSON
+from src.agent.answer import AnswerJSON, LawRef
 from src.agent.nodes.common import fmt_facts, fmt_provision, prompt, taxonomy, traced
 from src.agent.render import render
 from src.agent.rules.hierarchy import pair_notes
@@ -217,6 +217,26 @@ def _label(r: dict) -> str:
     return f"{lab} {r['law_name']}"
 
 
+def short_label(r: dict) -> str:
+    """Compact inline reference: "ม.118 วรรคหนึ่ง", "ม.582 ประมวลกฎหมายแพ่งและพาณิชย์",
+    "ข้อ 2 (1) ประกาศ…", or the court decision label."""
+    if "section_no" not in r:
+        return r["label"]
+    if r["section_no"] == "0":
+        return r["law_name"]
+    unit = "ข้อ" if r["level"] >= 3 else "ม."
+    lab = f"{unit}{'' if unit == 'ม.' else ' '}{r['section_no']}"
+    para = r["paragraph_no"]
+    term = re.match(r"\s*“([^”]+)”\s*หมายความว่า", r.get("text") or "")
+    if term:
+        lab += f" “{term.group(1)}”"
+    elif para and para > 1:
+        lab += f" วรรค{THAI_ORD[para] if para < len(THAI_ORD) else para}"
+    if r.get("sub_no"):
+        lab += f" {r['sub_no']}"
+    return lab if r.get("law") == "LPA2541" else f"{lab} {r['law_name']}"
+
+
 def allowed_keys(state: AgentState) -> set[str]:
     """Citations the answer may use: provisions ⑤ selected, plus those a calculation used."""
     keys = {k for ks in state.selected.values() for k in ks}
@@ -298,6 +318,15 @@ def validate_cites(state: AgentState) -> dict:
     for p in a.preliminary:
         p.citations = keep(p.citations)
     for iss in a.issues:
+        # provisions a calculation used are part of the issue's law even if the draft omitted them
+        listed = {law.citation_key for law in iss.laws}
+        for k in (state.calcs[iss.code].citations if iss.code in state.calcs else []):
+            r = ok(k)
+            if r and k not in listed:
+                iss.laws.append(LawRef(citation_key=k, label=_label(r),
+                                       explanation="บทที่ระบบใช้ในการคำนวณของประเด็นนี้",
+                                       topic="ฐานการคำนวณ"))
+                listed.add(k)
         laws = []
         for law in iss.laws:
             r = ok(law.citation_key)
@@ -322,7 +351,7 @@ def validate_cites(state: AgentState) -> dict:
     prose = a.model_dump_json()
     uncited = sorted({m for m in SEC_MENTION.findall(prose) if m not in cited_sections})
 
-    md = render(a)
+    md = render(a, {k: short_label(ok(k)) for k in a.all_citations() if ok(k)})
     return {"answer": a, "markdown": md, "removed_citations": removed,
             "_summary": {"removed": removed, "uncited_sections_in_text": uncited,
                          "n_citations": len(a.all_citations())}}

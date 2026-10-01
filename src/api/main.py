@@ -80,7 +80,8 @@ def _public(r: dict) -> dict:
     if "key" in r and r["key"].startswith("CASE:"):        # court decision
         return {"citation_key": r["key"], "label": r["label"], "court": r["court"],
                 "year": r["year"], "source_url": r["source_url"], "kind": "case"}
-    return {k: (str(v) if isinstance(v, date) else v) for k, v in r.items()
+    from src.agent.nodes.draft import _label
+    return {"label": _label(r)} | {k: (str(v) if isinstance(v, date) else v) for k, v in r.items()
             if k in ("citation_key", "law", "law_name", "level", "section_no", "paragraph_no",
                      "sub_no", "chapter", "chapter_title", "text", "valid_from", "valid_to",
                      "amendment_notes")}

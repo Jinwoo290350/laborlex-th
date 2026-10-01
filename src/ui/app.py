@@ -59,7 +59,7 @@ with side:
                 with st.expander(f"⚖️ {c['label']}"):
                     st.markdown(f"[เปิดคำพิพากษาต้นฉบับ]({c['source_url']})")
                 continue
-            title = f"{c['citation_key']} · {LEVEL.get(c['level'], '')}"
+            title = f"📜 {c.get('label') or c['citation_key']} · {LEVEL.get(c['level'], '')}"
             with st.expander(title):
                 st.markdown(f"**{c['law_name']}**  \n{c.get('chapter') or ''} "
                             f"{c.get('chapter_title') or ''}")

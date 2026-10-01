@@ -8,11 +8,17 @@ def _b(s: str) -> str:
     return f"**{s.strip().strip('*').strip()}**"
 
 
+_LABELS: dict[str, str] = {}
+
+
 def _chips(keys: list[str]) -> str:
-    return " " + " ".join(f"`[{k}]`" for k in keys) if keys else ""
+    return " " + " ".join(f"`[{_LABELS.get(k, k)}]`" for k in keys) if keys else ""
 
 
-def render(a: AnswerJSON) -> str:
+def render(a: AnswerJSON, labels: dict[str, str] | None = None) -> str:
+    """labels: citation_key → short reader-facing reference (built from the DB at ⑩)."""
+    _LABELS.clear()
+    _LABELS.update(labels or {})
     out = ["# คำตอบทางกฎหมาย", "## คำตอบเบื้องต้น", "จากข้อเท็จจริงที่ปรากฏ", ""]
     out += [f"- {_b(p.headline)} {p.detail}{_chips(p.citations)}".rstrip() for p in a.preliminary]
     out += ["", "เพื่อให้ได้ข้อสรุปโดยละเอียด จำเป็นต้องพิจารณาข้อกฎหมายและข้อเท็จจริงเป็นรายประเด็น",
