@@ -1,0 +1,73 @@
+# Regression spec from the Ram LAW4004 pilot (C0/C1/C2, 2026-10-06). Written BEFORE any fix.
+# Expected behaviour comes from the source's model answer (manual adjudication, data/staging/exams/ram_pilot12_adjudication.csv).
+# Question text is not stored: tests fetch it from source_url at run time (tools/exam/run.py source_text).
+# Levels: unit = local, no Gemini (retrieval / taxonomy); e2e = full C2 run (Gemini, ~$0.20 per question).
+version: 1
+cases:
+  - exam_id: ram-law4004-2-2554-q4
+    sections_confirmed: [LRA2518:123]
+    c0: wrong
+    c1: partly right
+    c2: wrong
+    expected:
+      - element for the s.123(3) exception (disobeying a lawful order) is evaluated MET, not unknown
+      - facts used: the transfer follows the collective agreement and the employee's own stated preference
+      - conclusion: not protected (refused a lawful order), but cannot be dismissed at once — a written warning is required first (s.123(3))
+    must_not:
+      - conclude the transfer/dismissal is an unfair labour practice under s.121(1)
+  - exam_id: ram-law4004-2-2558-q4
+    sections_confirmed: [LRA2518:31, LRA2518:121]
+    c0: wrong
+    c1: wrong
+    c2: wrong
+    expected:
+      - ruling 10293/2546 retrieved and cited for the s.31 / s.121 issue
+      - s.31 breach → may sue in the Labour Court directly; s.121 → complaint to the Labour Relations Committee
+      - must choose one route; both at once is not allowed
+    must_not:
+      - "committee first" for a s.31 dismissal
+      - LCA s.8 para 2 used to bar the direct court route
+  - exam_id: ram-law4004-S-2563-q1
+    sections_confirmed: [LPA2541:118/1, LPA2541:118, LPA2541:67, LPA2541:30]
+    c0: partly right
+    c1: partly right
+    c2: partly right
+    expected:
+      - issues include annual-leave pay (s.67 + s.30) in addition to retirement / severance
+      - employee aged 62 → 800,000 baht severance (400 days) + annual-leave pay
+      - employee aged 58 → no severance, but annual-leave pay
+    must_not:
+      - "no rights at all" for the employee aged 58
+  - exam_id: ram-law4004-2-2560-q4
+    sections_confirmed: [LRA2518:22, LRA2518:31, LRA2518:34]
+    c0: partly right
+    c1: right
+    c2: partly right (regressed)
+    role: regression guard (C1 right)
+    expected:
+      - (a) no lockout during mediation (s.34(1) with s.22 para 3)
+      - (b) protected under s.31 and may sue at once
+    must_not:
+      - "must file with the committee first" for the s.31 dismissal
+      - 5061/2533 (mediation of disputes) cited for the s.31 point
+unit_tests:
+  retrieval:
+    - id: R1
+      test: 10293/2546 is rank 1 among rulings returned for the s.31 issue, on both 2558 Q4 and 2560 Q4
+      fail_first: current production search_cases ranks it 4–5 (whole-question query, sections {LRA:31, LRA:121})
+    - id: R2
+      test: 5061/2533 is not returned for the s.31 issue of 2560 Q4
+    - id: R3
+      test: tracked, not a gate — old targets 11096/2556 and 4554/2540 on the Huay Khwang question
+      current: 11096 rank 91; 4554 filtered out (not linked to s.119)
+      note: these need element-level queries (V2 track) and a reviewed link — not expected to move with this fix
+  taxonomy_elements:
+    - id: T1
+      test: the s.31 issue carries no committee-complaint element; the s.121/124 issue keeps it
+    - id: T2
+      test: an element 'lawful / agreed transfer order (s.123(3), s.31(3))' exists and is checked when the facts mention a transfer or order
+    - id: T3
+      test: for termination / retirement events, annual_leave (s.67 + s.30) is offered as a candidate issue alongside severance
+e2e:
+  - the 4 cases above with the C2 runner (≈ $0.80 total)
+  - make eval-dev — needs a budget decision first (see the report)

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -17,6 +18,10 @@ from pydantic import BaseModel
 from src.config import settings
 
 CACHE = Path("data/processed/llm_cache")
+
+
+class CacheMiss(RuntimeError):
+    """LLM_CACHE_ONLY=1 and the call is not cached."""
 T = TypeVar("T", bound=BaseModel)
 
 
@@ -69,6 +74,8 @@ def generate_json(prompt: str, schema: type[T], *, system: str = "", name: str =
         data = json.loads(path.read_text(encoding="utf-8"))
         USAGE.add(name, data["usage"]["in"], data["usage"]["out"], 0, True)
         return schema.model_validate(data["output"])
+    if os.environ.get("LLM_CACHE_ONLY") == "1":      # regression replays: never reach the API
+        raise CacheMiss(f"{name}: not in the LLM cache (LLM_CACHE_ONLY=1)")
 
     cfg = types.GenerateContentConfig(
         system_instruction=system or None,

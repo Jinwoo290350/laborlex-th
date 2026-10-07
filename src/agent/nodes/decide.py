@@ -7,10 +7,12 @@ from datetime import datetime
 from decimal import Decimal
 from functools import cache
 from pathlib import Path
+from typing import Any
 
 from pydantic import BaseModel, Field, create_model
 
 from src.agent.nodes.common import fmt_facts, fmt_provision, prompt, taxonomy, traced
+from src.agent.rules.elements import resolve_elements
 from src.agent.state import AgentState, ElementCheck
 from src.calc import labor
 from src.config import settings
@@ -110,15 +112,17 @@ def check_elements(state: AgentState) -> dict:
         by_key = {r["citation_key"]: r for r in state.candidates.get(code, [])}
         provs = [fmt_provision(by_key[k], P("select.provision_chars"))
                  for k in state.selected.get(code, []) if k in by_key]
-        listing = "\n".join(f"{e['id']}: {e['question']}" for e in els)
+        asked = [e for e in els if "derive" not in e]      # derived elements are the system's (#17)
+        listing = "\n".join(f"{e['id']}: {e['question']}" for e in asked)
         out = generate_json(body.format(issue_name=taxonomy()[code]["name"], facts=fmt_facts(state),
                                         provisions="\n".join(provs), elements=listing),
                             _Checks, name="check_elements", thinking="low")
-        ids = {e["id"] for e in els}
+        ids = {e["id"] for e in asked}
         return code, [c for c in out.checks if c.id in ids]
 
     with ThreadPoolExecutor(4) as ex:
-        res = dict(ex.map(one, [i.code for i in state.issues]))
+        raw = dict(ex.map(one, [i.code for i in state.issues]))
+    res = resolve_elements(raw, taxonomy())     # derived elements + cross-issue consistency (#17, #20)
     return {"elements": res,
             "_summary": {c: {s: sum(x.status == s for x in v) for s in ("met", "not_met", "unknown")}
                          for c, v in res.items()}}
@@ -189,49 +193,110 @@ def termination_money(f, on, book) -> labor.Termination:
                              effective=n.effective, wage_steps=wsteps + daily.steps, citations=cites)
 
 
+def worker_views(f) -> list[tuple[str | None, Any, str | None]]:
+    """(name, facts, problem) per employee. Only when the question states different wages / pay items / lengths of
+    service for two or more employees (Facts.workers): one view per employee, overriding just what that employee's
+    figures state. A worker's own pay items go through the same ม.5 classification as shared ones (`_wage`); a raw
+    worker wage is used only when no other pay item is listed (an item equal to a worker's stated wage is that wage
+    listed twice). Raw worker wages next to allowances listed once for everyone cannot be split per employee →
+    `problem`, no amount (#18). Employees on the same figures stay
+    one shared view (filled from their common figures where the shared facts are empty), so the shared pay items,
+    dates and termination table are kept."""
+    def figures(w):
+        items = tuple((i.name, i.amount, i.period) for i in w.pay_items)
+        return (w.wage_amount, w.wage_period, w.service_years, w.service_months, w.service_days, items)
+    ws = [w for w in (f.workers if f else []) if any(v not in (None, ()) for v in figures(w))]
+    if not ws:
+        return [(None, f, None)]
+    if len(ws) < 2 or len({figures(w) for w in ws}) < 2:
+        # one set of figures for everyone: the shared view, taking from the workers only what the shared facts lack
+        # (the extractor may have put the common pay items / wage / tenure on the workers instead)
+        w, fill = ws[0], {}
+        if not f.pay_items and w.pay_items:
+            fill["pay_items"] = list(w.pay_items)
+        if f.wage_amount is None and w.wage_amount is not None:
+            fill |= {"wage_amount": w.wage_amount, "wage_period": w.wage_period}
+        if (not (f.start_date and f.end_date) and all(v is None for v in (f.service_years, f.service_months,
+                                                                          f.service_days))):
+            fill |= {"service_years": w.service_years, "service_months": w.service_months,
+                     "service_days": w.service_days}
+        return [(None, f.model_copy(update=fill) if fill else f, None)]
+    # a shared item equal to some worker's stated wage (amount and period) is that wage listed twice, not an allowance
+    shared_other = [i for i in f.pay_items
+                    if not any(i.amount == w.wage_amount and i.period == w.wage_period for w in ws)]
+    views = []
+    for w in ws:
+        upd: dict[str, Any] = {}
+        problem = None
+        if w.pay_items:
+            upd |= {"pay_items": list(w.pay_items), "wage_amount": w.wage_amount, "wage_period": w.wage_period}
+        elif w.wage_amount is not None:
+            if shared_other:
+                problem = ("โจทย์ระบุรายการเงินรวมโดยไม่แยกรายคน จึงจัดประเภทค่าจ้างตามมาตรา 5 ของแต่ละคนไม่ได้ "
+                           "— ไม่คำนวณจากค่าจ้างดิบ")
+            upd |= {"wage_amount": w.wage_amount, "wage_period": w.wage_period, "pay_items": []}
+        if any(v is not None for v in (w.service_years, w.service_months, w.service_days)):
+            upd |= {"start_date": None, "service_years": w.service_years, "service_months": w.service_months,
+                    "service_days": w.service_days}
+        views.append((w.name, f.model_copy(update=upd), problem))
+    return views
+
+
+def _formula(fk: str, f, on, book) -> labor.CalcResult:
+    """One issue's formula for one employee's facts. Raises ValueError when a needed fact is missing."""
+    wage, period, pre_steps, pre_cites, daily = _wage(f, on, book)
+    if fk == "severance":
+        tenure = tenure_from_facts(f)
+        if tenure is None:
+            raise ValueError("อายุงานไม่ทราบ")
+        expr = (f"{labor.baht(wage)} ÷ 30" if period == "month" else "ค่าจ้างรายวัน")
+        r = labor.severance(daily.amount, tenure, on, book, wage_expr=expr)
+        return labor.CalcResult(amount=r.amount, steps=pre_steps + daily.steps + r.steps,
+                                citations=pre_cites + daily.citations + r.citations)
+    if fk == "notice_pay":
+        t = termination_money(f, on, book)
+        return labor.CalcResult(
+            amount=t.notice_pay.amount,
+            steps=pre_steps + ["▶ ค่าจ้างงวดสุดท้าย"] + t.final_wage.steps
+            + ["▶ สินจ้างแทนการบอกกล่าวล่วงหน้า"] + daily.steps + t.notice_pay.steps,
+            citations=pre_cites + t.final_wage.citations + daily.citations + t.notice_pay.citations)
+    raise ValueError(f"ยังไม่รองรับสูตร {fk} อัตโนมัติ")
+
+
 @traced("calculate")
 def calculate(state: AgentState) -> dict:
     """Deterministic arithmetic (the LLM only extracted dates/amounts). Runs when the issue
     has a formula, the needed facts are known and a rate is in force; otherwise records why.
     Dismissal money (severance, pay in lieu of notice, final wage) is also computed from the
-    facts alone, so it never depends on which issues were chosen."""
+    facts alone, so it never depends on which issues were chosen.
+    Several employees with their own figures (Facts.workers): one result per employee, key "<issue>@<name>"."""
     f = state.facts
     rates_path = Path("data/processed/rates.yaml")
     book = labor.RateBook.load(rates_path) if rates_path.exists() else labor.RateBook(rates=[])
     on = state.event_date or (f.end_date if f else None) or datetime.now().astimezone().date()
     out, notes = {}, {}
+    views = worker_views(f)
     for iss in state.issues:
         fk = taxonomy()[iss.code].get("formula_key")
         if not fk:
             continue
-        try:
-            wage, period, pre_steps, pre_cites, daily = _wage(f, on, book)
-            if fk == "severance":
-                tenure = tenure_from_facts(f)
-                if tenure is None:
-                    raise ValueError("อายุงานไม่ทราบ")
-                expr = (f"{labor.baht(wage)} ÷ 30" if period == "month" else "ค่าจ้างรายวัน")
-                r = labor.severance(daily.amount, tenure, on, book, wage_expr=expr)
-                out[iss.code] = labor.CalcResult(amount=r.amount,
-                                                 steps=pre_steps + daily.steps + r.steps,
-                                                 citations=pre_cites + daily.citations + r.citations)
-            elif fk == "notice_pay":
-                t = termination_money(f, on, book)
-                out[iss.code] = labor.CalcResult(
-                    amount=t.notice_pay.amount,
-                    steps=pre_steps + ["▶ ค่าจ้างงวดสุดท้าย"] + t.final_wage.steps
-                    + ["▶ สินจ้างแทนการบอกกล่าวล่วงหน้า"] + daily.steps + t.notice_pay.steps,
-                    citations=pre_cites + t.final_wage.citations + daily.citations
-                    + t.notice_pay.citations)
-            else:
-                raise ValueError(f"ยังไม่รองรับสูตร {fk} อัตโนมัติ")
-        except (ValueError, LookupError) as e:
-            notes[iss.code] = str(e)
+        for name, wf, problem in views:
+            key = iss.code if name is None else f"{iss.code}@{name}"
+            if problem:
+                notes[key] = problem
+                continue
+            try:
+                out[key] = _formula(fk, wf, on, book)
+            except (ValueError, LookupError) as e:
+                notes[key] = str(e)
     term = None
-    try:
-        term = termination_money(f, on, book)
-    except (ValueError, LookupError) as e:
-        notes["termination"] = str(e)
+    if len(views) > 1:       # the termination table assumes one wage for every employee
+        notes["termination"] = "ลูกจ้างแต่ละคนค่าจ้าง/อายุงานต่างกัน — คำนวณรายคนในแต่ละประเด็น"
+    else:
+        try:
+            term = termination_money(views[0][1], on, book)     # the shared view (filled from workers if needed)
+        except (ValueError, LookupError) as e:
+            notes["termination"] = str(e)
     return {"calcs": out, "termination": term,
             "_summary": {"done": list(out) + (["termination"] if term else []), "skipped": notes}}
 

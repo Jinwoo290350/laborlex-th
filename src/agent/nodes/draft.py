@@ -111,8 +111,11 @@ def _elements_block(state: AgentState) -> str:
     out = []
     for code, checks in state.elements.items():
         qs = {e["id"]: e["question"] for e in tax[code].get("elements", [])}
+        outcome = {e["id"] for e in tax[code].get("elements", []) if e.get("forbid_phrases")}
         out.append(f"[{code}]")
-        out += [f"- {c.status}: {qs.get(c.id, c.id)} — {c.evidence}" for c in checks]
+        # an outcome element states a conclusion; it is shown only when the system found it (#20)
+        out += [f"- {c.status}: {qs.get(c.id, c.id)} — {c.evidence}" for c in checks
+                if c.id not in outcome or c.status == "met"]
     return "\n".join(out) or "-"
 
 
@@ -127,6 +130,26 @@ def _calcs_block(state: AgentState) -> str:
             f"{n} {labor_baht(r.amount)} บาท" for n, r in parts if r)
             + " — ระบบแสดงตารางจำนวนเงินรายคนและยอดรวมเอง")
     return "\n".join(lines) or "- (ไม่มีการคำนวณ)"
+
+
+def issue_calc(state: AgentState, code: str) -> tuple[list[str], list[str]]:
+    """(steps, citations) of an issue's calculation: the issue's own result, or one block per employee
+    ("▶ <name>") when ⑦ computed per employee (keys "<issue>@<name>")."""
+    if code in state.calcs:
+        c = state.calcs[code]
+        return list(c.steps), list(c.citations)
+    steps: list[str] = []
+    cites: list[str] = []
+    for key, c in state.calcs.items():
+        if key.startswith(code + "@"):
+            steps += [f"▶ {key.split('@', 1)[1]}", *c.steps]
+            cites += c.citations
+    if steps:   # amounts for everyone; who is entitled is the issue's conclusion, not this table
+        steps.insert(0, PER_WORKER_NOTE)
+    return steps, list(dict.fromkeys(cites))
+
+
+PER_WORKER_NOTE = "จำนวนเงินด้านล่างคำนวณกรณีมีสิทธิของลูกจ้างแต่ละคน — ผู้ที่มีสิทธิได้รับจริงเป็นไปตามข้อสรุปของประเด็น"
 
 
 def labor_baht(x) -> str:
@@ -201,13 +224,30 @@ def verify_select(state: AgentState) -> dict:
     best = max(range(len(verdicts)), key=lambda i: verdicts[i].score())
     answer, v = state.drafts[best], verdicts[best]
     revised = False
-    if v.worst() < P("draft.revise_below") and v.feedback.strip():
-        answer = generate_json(draft_prompt(state, v.feedback), AnswerJSON, name="revise")
+    # the system's own findings first: a draft that contradicts them is always revised once (#20)
+    conflicts = system_conflicts(state, answer)
+    feedback = "\n".join([f"- [{c.issue}] {c.detail}" for c in conflicts]
+                          + ([v.feedback] if v.feedback.strip() else []))
+    if conflicts or (v.worst() < P("draft.revise_below") and v.feedback.strip()):
+        answer = generate_json(draft_prompt(state, feedback), AnswerJSON, name="revise")
         revised = True
+    left = system_conflicts(state, answer) if revised else conflicts
     scores = [v.model_dump() for v in verdicts]
     return {"answer": answer, "draft_scores": scores,
             "_summary": {"picked": best, "scores": [round(v.score(), 2) for v in verdicts],
-                         "revised": revised}}
+                         "revised": revised, "conflicts": [c.model_dump() for c in conflicts],
+                         "conflicts_left": [c.model_dump() for c in left]}}
+
+
+def _resolved(state: AgentState) -> dict:
+    return {code: {c.id: c for c in checks} for code, checks in state.elements.items()}
+
+
+def system_conflicts(state: AgentState, answer: AnswerJSON) -> list:
+    """Where a draft contradicts the system's element findings (cited a ground the system excluded, or says the
+    opposite of a derived outcome). Deterministic; see src/agent/rules/elements.py."""
+    from src.agent.rules.elements import answer_conflicts
+    return answer_conflicts(answer, _resolved(state), taxonomy())
 
 
 # ---------- ⑩ validate citations ----------
@@ -405,7 +445,9 @@ def validate_cites(state: AgentState) -> dict:
     if a is None:
         return {"markdown": "ไม่สามารถสร้างคำตอบได้", "_summary": "no answer"}
     a = a.model_copy(deep=True)
-    allowed = allowed_keys(state)
+    from src.agent.rules.elements import forbidden_citations
+    # grounds the system excluded (#20) are never cited, whatever the draft says
+    allowed = allowed_keys(state) - forbidden_citations(_resolved(state), taxonomy())
     removed: list[str] = []
     cache_: dict[str, dict | None] = {}
 
@@ -434,12 +476,12 @@ def validate_cites(state: AgentState) -> dict:
         p.citations = keep(p.citations)
     for iss in a.issues:
         # the calculation section is the calculator's own output, never the LLM's copy
-        calc = state.calcs.get(iss.code)
-        iss.calculation = list(calc.steps) if calc else []
-        iss.calculation_citations = [k for k in dict.fromkeys(calc.citations) if ok(k)] if calc else []
+        calc_steps, calc_cites = issue_calc(state, iss.code)
+        iss.calculation = calc_steps
+        iss.calculation_citations = [k for k in dict.fromkeys(calc_cites) if ok(k)]
         # provisions a calculation used are part of the issue's law even if the draft omitted them
         listed = {law.citation_key for law in iss.laws}
-        for k in (calc.citations if calc else []):
+        for k in calc_cites:
             r = ok(k)
             if r and k not in listed:
                 iss.laws.append(LawRef(citation_key=k, label=_label(r),

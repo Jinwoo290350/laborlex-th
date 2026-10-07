@@ -1,0 +1,28 @@
+{
+ "source": "C2 fix123 run of ram-law4004-2-2554-q4 (check_elements LLM output, statuses only; no exam text)",
+ "llm_status": {
+  "employee_committee_and_union_protection": {
+   "1": "unknown",
+   "2": "unknown",
+   "3": "met",
+   "4": "unknown",
+   "5": "unknown",
+   "6": "unknown",
+   "7": "unknown",
+   "8": "met",
+   "9": "not_met",
+   "9b_a": "met",
+   "9b_b": "met",
+   "9b_c": "met",
+   "9b_d": "not_met",
+   "9b_e": "not_met",
+   "10": "unknown"
+  },
+  "unfair_labor_practices_and_disputes": {
+   "1": "unknown",
+   "2": "unknown",
+   "7": "met",
+   "8": "unknown"
+  }
+ }
+}

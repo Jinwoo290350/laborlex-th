@@ -50,6 +50,13 @@ cases.pool:
   rule: dense scan is cheap, so keep at least the coverage the original pool had (200 of 886 = 23%) on the grown table
   evidence: 'SQL for 1,000 nearest headnotes 0.07 s; 1,000 / 3,591 = 28% coverage (the old 200 covered 5.6%)'
   status: final
+cases.prefer_linked:
+  value: [dispute_protection_s31]
+  kind: design
+  source: Ram LAW4004 pilot 2026-10-06 (docs/decisions.md #16)
+  rule: for the listed issues only, rank the decisions kept by the section filter by the summed leave-one-out dev support of the issue's taxonomy sections each decision is linked to, then similarity; other issues keep similarity order
+  evidence: 'local, no Gemini (tests/regression/test_case_ranking.py): s.31 issue on 2/2558 Q4 and 2/2560 Q4 → 10293/2546 (links LRA 31 + 121) instead of 2602-2603/2523 / 5061/2533. Applied to all issues it changed the offered decision on 127/165 dev100 issue slots (77%), unvalidated, so it is opt-in per issue'
+  status: provisional
 cases.per_issue:
   value: 1
   kind: design

@@ -302,3 +302,85 @@ def test_final_run_answer_renders_section_topic_headings():
     assert not KEY_IN_TEXT.search(md)
     assert "| นายซื่อบื้อ | 31,500 | 5,250 | 5,250 | **42,000** |" in md
     assert "**รวมทั้งสิ้น 47,250 บาท**" in md
+
+
+@needs_db
+def test_workers_with_the_same_figures_do_not_split_the_calculation():
+    """decisions #18 guard: if the extractor lists the employees as `workers` although they share one wage (it is told
+    not to), the calculation must stay the shared one — same pay items, same dates, same table (demo question)."""
+    from src.agent.nodes.decide import calculate
+    from src.agent.state import WorkerFacts
+    base = _state()
+    workers = [WorkerFacts(name=n, wage_amount=10500, wage_period="month") for n in X["employees"]]
+    st = AgentState(question="reg-huaykhwang",
+                    facts=Facts(start_date=F["start_date"], end_date=END, pay_days=F["pay_days"],
+                                pay_items=ITEMS, workers=workers),
+                    issues=base.issues)
+    out = calculate(st)
+    assert set(out["calcs"]) == set(base.calcs)
+    assert out["calcs"]["severance_pay"].amount == base.calcs["severance_pay"].amount
+    assert out["termination"] is not None
+
+
+def _two_workers_with_items():
+    """Worker A: the Huay Khwang pay items (ม.5 base 10,500). Worker B: the same kinds of items, salary 12,000.
+    B's expected base comes from the existing classifier (labor.wage_base), not from a hand-written rule."""
+    from src.agent.nodes.decide import wage_definition_key
+    from src.agent.state import WorkerFacts
+    items_b = [i.model_copy(update={"amount": 12000.0}) if i.name == "เงินเดือน" else i for i in ITEMS]
+    base_b = labor.wage_base(items_b, wage_definition_key()).monthly
+    workers = [WorkerFacts(name="ก", wage_amount=10000, wage_period="month", service_years=1, pay_items=ITEMS),
+               WorkerFacts(name="ข", wage_amount=12000, wage_period="month", service_years=3, pay_items=items_b)]
+    return workers, base_b
+
+
+@needs_db
+def test_workers_with_own_pay_items_use_the_m5_wage_base():
+    """decisions #18: a worker's own pay items go through the same ม.5 classification — the base is never the raw
+    worker wage (10,000) when an allowance is ค่าจ้าง (flat fuel → 10,500)."""
+    from src.agent.nodes.decide import calculate
+    workers, base_b = _two_workers_with_items()
+    assert base_b not in (None, D(12000))                          # sanity: B's items include a wage allowance
+    st = AgentState(question="reg-huaykhwang", facts=Facts(end_date=END, pay_days=F["pay_days"], workers=workers),
+                    issues=[IssueSel(code="severance_pay", reason="t")])
+    calcs = calculate(st)["calcs"]
+    a, b = calcs["severance_pay@ก"], calcs["severance_pay@ข"]
+    assert any(f"{labor.baht(BASE)} ÷ 30" in s for s in a.steps), a.steps
+    assert any(f"{labor.baht(base_b)} ÷ 30" in s for s in b.steps), b.steps
+    assert not any("10,000 ÷ 30" in s for s in a.steps)
+
+
+@needs_db
+def test_worker_wage_with_shared_allowances_is_not_guessed():
+    """Workers stated only as raw wages while the pay items are listed once for everyone: which items belong to whom
+    is unknown → no amount (with a reason), never the raw wage."""
+    from src.agent.nodes.decide import calculate
+    from src.agent.state import WorkerFacts
+    workers = [WorkerFacts(name="ก", wage_amount=10000, wage_period="month", service_years=1),
+               WorkerFacts(name="ข", wage_amount=12000, wage_period="month", service_years=3)]
+    st = AgentState(question="reg-huaykhwang", facts=Facts(end_date=END, pay_days=F["pay_days"], pay_items=ITEMS,
+                                                           workers=workers),
+                    issues=[IssueSel(code="severance_pay", reason="t")])
+    out = calculate(st)
+    assert not out["calcs"]
+    skipped = out["trace"][0]["summary"]["skipped"]
+    assert "รายการเงิน" in skipped["severance_pay@ก"]
+
+
+@needs_db
+def test_same_workers_holding_all_pay_items_still_give_the_shared_table():
+    """Staging v8 run of the demo question: the extractor put every pay item on each (identical) worker and left the
+    shared pay items empty. The collapsed shared view must take the common figures, so the ม.5 base, the dates and
+    the termination table are unchanged."""
+    from src.agent.nodes.decide import calculate
+    from src.agent.state import WorkerFacts
+    base = _state()
+    workers = [WorkerFacts(name=n, wage_amount=10000, wage_period="month", pay_items=ITEMS) for n in X["employees"]]
+    st = AgentState(question="reg-huaykhwang",
+                    facts=Facts(start_date=F["start_date"], end_date=END, pay_days=F["pay_days"], workers=workers),
+                    issues=base.issues)
+    out = calculate(st)
+    assert set(out["calcs"]) == set(base.calcs)
+    assert out["calcs"]["severance_pay"].amount == base.calcs["severance_pay"].amount
+    assert out["termination"] is not None
+    assert any(f"{labor.baht(BASE)} ÷ 30" in s for s in out["termination"].wage_steps)

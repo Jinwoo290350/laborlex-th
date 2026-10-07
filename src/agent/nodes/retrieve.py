@@ -29,6 +29,13 @@ def primary_sections(code: str, exclude: set[str], need: int | None = None) -> l
             if n >= need or (n >= 1 and sec in from_elements)][:P("retrieve.primary_max")]
 
 
+def section_support(code: str, exclude: set[str]) -> dict[str, float]:
+    """The issue's taxonomy sections weighted by leave-one-out dev support (at least 1 for a section that is
+    primary through an element). Orders court decisions by how well their linked sections match the issue (#16)."""
+    support = taxonomy()[code].get("provision_support") or {}
+    return {sec: float(max(1, len(set(support.get(sec, [])) - exclude))) for sec in primary_sections(code, exclude)}
+
+
 def _search(query: str, event_date, k: int) -> tuple[list[dict], str | None]:
     """Hybrid search; on failure BM25 only. Returns (rows, fallback reason or None)."""
     try:
@@ -100,7 +107,9 @@ def retrieve_cases(state: AgentState) -> dict:
     used: set[str] = set()
     for iss in state.issues:
         sections = {f"{r['law']}:{r['section_no']}" for r in state.candidates.get(iss.code, [])}
-        hits = tools.search_cases(state.question, sections, k=P("cases.per_issue"), exclude=used)
+        prefer = (section_support(iss.code, set(state.exclude_example_ids))
+                  if iss.code in P("cases.prefer_linked") else None)
+        hits = tools.search_cases(state.question, sections, k=P("cases.per_issue"), exclude=used, prefer=prefer)
         used |= {h["key"] for h in hits}
         out[iss.code] = [{k: v for k, v in h.items() if k != "sections"} for h in hits]
     return {"cases": out,

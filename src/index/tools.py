@@ -172,7 +172,8 @@ def _mentions(holding: str, sections: set[str]) -> list[str]:
 
 
 def search_cases(query: str, sections: set[str], k: int = 1, exclude: set[str] | None = None,
-                 pool: int | None = None) -> list[dict]:
+                 pool: int | None = None, query_vec=None,
+                 prefer: dict[str, float] | None = None) -> list[dict]:
     """Court decisions for an issue, nearest headnote first (dense similarity to `query`):
     1. scan the `pool` nearest headnotes (one SQL query)
     2. drop decisions already offered for another issue and repeated headnotes
@@ -180,13 +181,15 @@ def search_cases(query: str, sections: set[str], k: int = 1, exclude: set[str] |
     3. keep a decision only if it is linked to one of the issue's candidate sections or its
        headnote names one ("มาตรา 119")
     No reranking: with the whole question as query the cross-encoder scored every decision
-    ≈ 0 and added ~19 s per question (docs/decisions.md #11)."""
+    ≈ 0 and added ~19 s per question (docs/decisions.md #11).
+    `prefer` (the issue's taxonomy sections → dev support): among the kept decisions, the larger the summed support
+    of the issue sections a decision is linked to, the earlier it comes; ties by similarity (#16). `query_vec` skips embedding (tests use stored vectors)."""
     from pgvector.psycopg import register_vector
 
     from src.index.embed import embed
     pool = P("cases.pool") if pool is None else pool
     exclude = exclude or set()
-    q = embed([query])[0]
+    q = embed([query])[0] if query_vec is None else query_vec
     with connect() as conn:
         register_vector(conn)
         rows = conn.execute(
@@ -212,10 +215,13 @@ def search_cases(query: str, sections: set[str], k: int = 1, exclude: set[str] |
             continue
         d["score"] = float(d["sim"])
         d["label"] = case_label(d)
+        d["prefer_overlap"] = sum(prefer.get(sec, 0.0) for sec in set(d["sections"])) if prefer else 0.0
         out.append(d)
-        if len(out) >= k:
+        if not prefer and len(out) >= k:
             break
-    return out
+    if prefer:   # decisions #16: support-weighted link overlap with the issue's sections, then similarity
+        out.sort(key=lambda d: (-d["prefer_overlap"], -d["sim"]))
+    return out[:k]
 
 
 def get_case(key: str) -> dict | None:

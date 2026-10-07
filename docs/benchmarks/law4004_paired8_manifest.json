@@ -1,0 +1,81 @@
+{
+ "frozen_at": "2026-10-07T21:26:02+07:00",
+ "cases": [
+  "ram-law4004-2-2555-q4",
+  "ram-law4004-S-2565-q2",
+  "ram-law4004-S-2560-q2",
+  "ram-law4004-1-2554-q2",
+  "ram-law4004-1-2551-q3",
+  "ram-law4004-2-2553-q4",
+  "ram-law4004-S-2551-q2",
+  "ram-law4004-S-2558-q4"
+ ],
+ "selection": "first clean cases per mechanism in md5(exam_id) order (law4004_paired_candidates_2026-10-07.md)",
+ "production": {
+  "commit": "f50f467",
+  "worktree": "scratchpad/prod_f50f467",
+  "dev100_issues_sha": "a08baabc93a49cee",
+  "issues_yaml_sha": "9368265c1c59892a",
+  "prompts": {
+   "extract_facts": "6",
+   "spot_issues": "1",
+   "check_elements": "1",
+   "draft_answer": "6",
+   "verify_answer": "1",
+   "select_citations": "3"
+  }
+ },
+ "staging": {
+  "staging_label": "paired8",
+  "branch": "feat/taxonomy-s31-split",
+  "git_head": "be2a3e5",
+  "files": [
+   "config/params.yaml",
+   "data/processed/dev100_issues.json",
+   "data/processed/issues.yaml",
+   "src/agent/nodes/decide.py",
+   "src/agent/nodes/draft.py",
+   "src/agent/nodes/retrieve.py",
+   "src/agent/nodes/understand.py",
+   "src/agent/rules/elements.py",
+   "src/agent/rules/entitlements.py",
+   "src/agent/state.py",
+   "src/index/tools.py",
+   "src/llm.py"
+  ],
+  "files_sha256": "13fd7d6ae0a6e9f6",
+  "dev100_issues_sha": "3817ae8c2eb6d1e2",
+  "issues_yaml_sha": "3aa7e7e86d9dc3b8",
+  "prompts": {
+   "extract_facts": "8",
+   "spot_issues": "1",
+   "check_elements": "1",
+   "draft_answer": "6",
+   "verify_answer": "1",
+   "select_citations": "3"
+  }
+ },
+ "shared": {
+  "db_fingerprint(provisions,max_id,cases,laws)": "(1737, 1737, 3591, 22)",
+  "model": "gemini-3.5-flash",
+  ".env": "same file (symlink)",
+  "rates.yaml/laws.yaml": "identical",
+  "llm_cache": "shared directory (keys include the prompt, so versions cannot mix)"
+ },
+ "ab_seed": "sha256('paired8-2026-10-07|'+case_id)",
+ "cost_cap_usd": 8.0,
+ "scope": {
+  "testable": [
+   "#15 open entitlement",
+   "#18 per-worker split",
+   "#13/#16 s.31",
+   "#17/#20 guard (negative path)"
+  ],
+  "UNTESTED": [
+   "#17 lawful-order positive path",
+   "#20 s.121(1) suppression",
+   "#18 identical-worker collapse"
+  ]
+ },
+ "criteria": "acceptance_dev18_2026-10-07.md §8 (pre-registered)"
+}

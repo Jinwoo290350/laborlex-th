@@ -1,0 +1,32 @@
+{
+ "source": "C2 fix20 run of ram-law4004-2-2560-q4 (check_elements LLM output, statuses only; no exam text)",
+ "llm_status": {
+  "strikes_and_lockouts": {
+   "element_1": "not_met",
+   "element_2": "unknown",
+   "element_3": "unknown",
+   "element_4": "unknown",
+   "element_5": "unknown",
+   "element_6": "unknown"
+  },
+  "dispute_protection_s31": {
+   "1": "met",
+   "2": "met",
+   "3": "met",
+   "4": "unknown",
+   "5_a": "unknown",
+   "5_b": "unknown",
+   "5_c": "unknown",
+   "5_d": "unknown",
+   "5_e": "unknown",
+   "6": "unknown",
+   "7": "unknown"
+  },
+  "unfair_labor_practices_and_disputes": {
+   "1": "met",
+   "2": "unknown",
+   "7": "met",
+   "8": "unknown"
+  }
+ }
+}

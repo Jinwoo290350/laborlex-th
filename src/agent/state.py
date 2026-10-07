@@ -34,6 +34,18 @@ class PayItem(BaseModel):
                           "null ถ้าโจทย์ไม่บอก")
 
 
+class WorkerFacts(BaseModel):
+    """One employee whose own wage / length of service the question states (several employees, different figures)."""
+    name: str
+    wage_amount: float | None = Field(None, description="ค่าจ้างของลูกจ้างคนนี้ ตามที่โจทย์ระบุ")
+    wage_period: Literal["day", "month", "hour", "piece"] | None = None
+    service_years: int | None = Field(None, description="อายุงานส่วนปีของลูกจ้างคนนี้ ตามที่โจทย์เขียนไว้ตรง ๆ")
+    service_months: int | None = None
+    service_days: int | None = None
+    pay_items: list[PayItem] = Field(default_factory=list,
+                                     description="เงินแต่ละรายการของลูกจ้างคนนี้ (หลักเดียวกับ pay_items ของโจทย์)")
+
+
 class Facts(BaseModel):
     event_date: date | None = Field(None, description="วันเกิดเหตุ ถ้าโจทย์ระบุ")
     wage_amount: float | None = Field(None, description="ค่าจ้างเป็นตัวเลข ถ้าระบุ")
@@ -47,6 +59,8 @@ class Facts(BaseModel):
                                 description="วันที่จ่ายค่าจ้างในแต่ละเดือนตามโจทย์ สิ้นเดือน = 31")
     pay_items: list[PayItem] = Field(default_factory=list,
                                      description="เงินทุกรายการที่นายจ้างจ่าย รวมเงินเดือน/ค่าจ้างพื้นฐาน")
+    workers: list[WorkerFacts] = Field(default_factory=list,
+                                       description="ลูกจ้างแต่ละคน เมื่อโจทย์ให้ค่าจ้างหรืออายุงานของแต่ละคนต่างกัน")
     parties: list[str] = Field(default_factory=list)
     key_facts: list[str] = Field(default_factory=list,
                                  description="ข้อเท็จจริงสำคัญ ทีละข้อ ตามที่โจทย์ให้มา ไม่ตีความ")
