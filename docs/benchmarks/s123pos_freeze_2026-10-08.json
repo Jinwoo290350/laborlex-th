@@ -1,0 +1,474 @@
+{
+ "frozen_at": "2026-10-08T03:41:27+07:00",
+ "status": "FROZEN candidate set (questions + pre-registered expected states) — FROZEN v2 (spec re-freeze approved by Frank 2026-10-08): rule B + 9b_b R1 wording + 822 question revision",
+ "taxonomy": "issues.yaml at 3bd6b18 (#21)",
+ "independence": "none of these rulings was read in the L1 audit or used in p1720/dev100",
+ "construction_rules": "facts only from the judgment (court findings; party claims labelled อ้างว่า); no holding, no conclusion on lawfulness/seriousness/warning validity, no ruling number; names replaced; same two-part template as p1720",
+ "cases": {
+  "s123pos-1336-2527": {
+   "source": "คำพิพากษาศาลฎีกา 1336/2527",
+   "role": "POSITIVE PATH (main): valid written warning → OUTCOME_DISMISSAL_PERMITTED",
+   "source_facts": [
+    "นาย ก. เป็นลูกจ้างซึ่งเกี่ยวข้องกับข้อเรียกร้อง และนายจ้างเลิกจ้างนาย ก. ในระหว่างที่ข้อตกลงเกี่ยวกับสภาพการจ้างมีผลใช้บังคับ",
+    "นายจ้างมีแบบฟอร์มใบเตือนใช้อยู่ทั่วไป แต่ในคราวที่เตือนนาย ก. นายจ้างไม่ได้ใช้แบบฟอร์มนั้น โดยทำเป็นหนังสือซึ่งมีข้อความเตือนนาย ก. อย่างชัดแจ้ง และมีข้อความว่าต่อไปจะลงโทษหากนาย ก. ปฏิบัติทำนองเดิมอีก",
+    "หลังจากได้รับหนังสือดังกล่าว นาย ก. กระทำฝ่าฝืนข้อบังคับเกี่ยวกับการทำงานของนายจ้างซ้ำอีก",
+    "นายจ้างเลิกจ้างนาย ก. โดยอ้างว่านาย ก. กระทำผิดอาญาโดยเจตนาแก่นายจ้าง จงใจทำให้นายจ้างได้รับความเสียหาย และฝ่าฝืนข้อบังคับเกี่ยวกับการทำงานโดยได้รับการตักเตือนเป็นหนังสือแล้ว",
+    "ฝ่ายนาย ก. อ้างว่านาย ก. มิได้กระทำผิดตามข้อยกเว้นของพระราชบัญญัติแรงงานสัมพันธ์ พ.ศ. 2518 มาตรา 123"
+   ],
+   "question": "นาย ก. เป็นลูกจ้างซึ่งเกี่ยวข้องกับข้อเรียกร้อง และนายจ้างเลิกจ้างนาย ก. ในระหว่างที่ข้อตกลงเกี่ยวกับสภาพการจ้างมีผลใช้บังคับ นายจ้างมีแบบฟอร์มใบเตือนใช้อยู่ทั่วไป แต่ในคราวที่เตือนนาย ก. นายจ้างไม่ได้ใช้แบบฟอร์มนั้น โดยทำเป็นหนังสือซึ่งมีข้อความเตือนนาย ก. อย่างชัดแจ้ง และมีข้อความว่าต่อไปจะลงโทษหากนาย ก. ปฏิบัติทำนองเดิมอีก หลังจากได้รับหนังสือดังกล่าว นาย ก. กระทำฝ่าฝืนข้อบังคับเกี่ยวกับการทำงานของนายจ้างซ้ำอีก นายจ้างเลิกจ้างนาย ก. โดยอ้างว่านาย ก. กระทำผิดอาญาโดยเจตนาแก่นายจ้าง จงใจทำให้นายจ้างได้รับความเสียหาย และฝ่าฝืนข้อบังคับเกี่ยวกับการทำงานโดยได้รับการตักเตือนเป็นหนังสือแล้ว ฝ่ายนาย ก. อ้างว่านาย ก. มิได้กระทำผิดตามข้อยกเว้นของพระราชบัญญัติแรงงานสัมพันธ์ พ.ศ. 2518 มาตรา 123 ให้วินิจฉัยว่า (1) นายจ้างเลิกจ้างนาย ก.ได้หรือไม่ (2) นาย ก.ได้รับความคุ้มครองตามพระราชบัญญัติแรงงานสัมพันธ์ พ.ศ. 2518 หรือไม่ เพราะเหตุใด",
+   "question_sha256": "5c2043cad804d14190ec2f71c62fdb5bd53db945b752f8b272d4e34be679388d",
+   "provenance_note": "fact 1 = the LRC's finding, not disputed before the Supreme Court (the employer argued the exceptions only); facts 2–3 = the court's findings; fact 4 = the employer's stated grounds (labelled as its claim); the breach itself is not described in the judgment and is not invented",
+   "gold": "(1) เลิกจ้างได้: หนังสือที่มีข้อความเตือนชัดแจ้งและบอกว่าจะลงโทษหากทำอีก เป็นการว่ากล่าวและตักเตือนเป็นหนังสือตาม ม.123(3) แม้ไม่ใช้แบบฟอร์ม ลูกจ้างทำผิดซ้ำคำเตือน (ศาลยังวินิจฉัยว่าจงใจทำให้นายจ้างเสียหาย เป็นความผิดร้ายแรง) การเลิกจ้างเป็นธรรม (2) ไม่ได้รับความคุ้มครองตาม ม.123 ในการเลิกจ้างนี้ เพราะเข้าข้อยกเว้น",
+   "construction_check_forbidden_phrases_found": [],
+   "expected": {
+    "issues_expected": [
+     "employee_committee_and_union_protection"
+    ],
+    "leaves": {
+     "employee_committee_and_union_protection": {
+      "3": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": true,
+       "why": "no s.121(1) act alleged",
+       "decisive": false
+      },
+      "8": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "CBA in force and related to the demand (LRC finding, undisputed)",
+       "decisive": true
+      },
+      "9": {
+       "status": "unknown",
+       "accept": [
+        "met",
+        "not_met"
+       ],
+       "scored": false,
+       "why": "wilful damage is only the employer's claim in the question; non-decisive (9b decides)",
+       "decisive": false
+      },
+      "9b_a": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "repeated the breach of the work rules after the letter",
+       "decisive": true
+      },
+      "9b_b": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "the breach is of the employer's work rules",
+       "decisive": true
+      },
+      "9b_c": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": false,
+       "why": "",
+       "decisive": false
+      },
+      "9b_d": {
+       "status": "not_met",
+       "accept": [],
+       "scored": true,
+       "why": "no fact of an obstructive purpose",
+       "decisive": true
+      },
+      "9b_e": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "KEY: a clear written warning (form irrelevant) + repetition",
+       "decisive": true
+      },
+      "9b_dismissed": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "dismissed",
+       "decisive": true
+      },
+      "9b_ground_misconduct": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "ground = the repeated breach / misconduct",
+       "decisive": false
+      }
+     }
+    },
+    "derived": {
+     "employee_committee_and_union_protection": {
+      "9b_lawful": "met",
+      "9b": "met",
+      "9b_warning_required": "not_met",
+      "9b_dismissal_prohibited": "not_met",
+      "9b_dismissal_permitted": "met"
+     }
+    },
+    "defeated_by": {
+     "rule": "fires only if element 3 is called met and (9b_lawful ∧ ¬9b_d) is met",
+     "expected_element_3": "not_met"
+    },
+    "scored_derived": {
+     "employee_committee_and_union_protection": [
+      "9b_lawful",
+      "9b",
+      "9b_warning_required",
+      "9b_dismissal_prohibited",
+      "9b_dismissal_permitted"
+     ]
+    },
+    "spec_rule": "B: a leaf that can change a scored derived element has exactly one expected value; non-scored leaves cannot change scored derived elements"
+   },
+   "leakage": {
+    "source_ruling_rank": 2,
+    "of": 3591,
+    "top1_kept_if_issue_sections_were": {
+     "LRA2518:123": "2329/2532",
+     "LRA2518:52": "10907/2553",
+     "LRA2518:121": "5586/2539",
+     "LRA2518:31": "10293/2546",
+     "LPA2541:119": "1120/2544"
+    },
+    "source_ruling_in_state_cases": "from the run trace"
+   },
+   "near_duplicate": {
+    "dev100_max": [
+     0.701,
+     "dev150"
+    ],
+    "p1720_max": [
+     0.828,
+     "p1720-2911-2528"
+    ],
+    "other_candidate_max": [
+     0.787,
+     "s123pos-1159-2531"
+    ]
+   },
+   "label": "source ruling not retrieved / same-principle design ruling retrieved (2329/2532)",
+   "evidence_scope": "a good outcome counts as diagnostic evidence for the positive path (9b_e → OUTCOME_DISMISSAL_PERMITTED), not as clean independent retrieval evidence"
+  },
+  "s123pos-822-2536": {
+   "source": "คำพิพากษาศาลฎีกา 822/2536",
+   "role": "EXCEPTION PATH: 9 = met; no dismissal yet (s.52 permission request) → no dismissal outcome",
+   "source_facts": [
+    "ลูกจ้างคนที่ 1 ถึงคนที่ 9 เป็นลูกจ้างของนายจ้างและเป็นกรรมการลูกจ้าง โดยคนที่ 1 เป็นประธานสหภาพแรงงาน คนที่ 3 เป็นรองประธาน คนที่ 4 เป็นเลขาธิการ และคนที่ 2 คนที่ 5 ถึงคนที่ 9 เป็นกรรมการของสหภาพแรงงานดังกล่าว",
+    "ระหว่างวันที่ 1 ถึง 8 กุมภาพันธ์ 2535 ลูกจ้างคนที่ 1 และคนที่ 3 ถึงคนที่ 8 ร่วมกับลูกจ้างอื่นทำและแจกจ่ายแถลงการณ์แก่พนักงานและบุคคลทั่วไป แถลงการณ์มีข้อความว่านายจ้างโยกย้ายกรรมการสหภาพแรงงานโดยมีเจตนากลั่นแกล้งและแก้แค้น ให้เงินปลอบขวัญแก่พนักงานที่เข้าทำงานก่อน ต้องการให้พนักงานแตกแยกและพยายามล้มสหภาพแรงงาน และกล่าวว่าผู้บริหารของนายจ้างพูดกลับกลอก",
+    "ข้อบังคับเกี่ยวกับการทำงาน ซึ่งนายจ้างกับสหภาพแรงงานร่วมกันกำหนดขึ้น หมวดวินัยและโทษทางวินัย กำหนดให้การจงใจทำให้นายจ้างได้รับความเสียหายเป็นความผิดร้ายแรง",
+    "วันที่ 8 กุมภาพันธ์ 2535 ลูกจ้างคนที่ 1 ถึงคนที่ 3 และคนที่ 6 ถึงคนที่ 9 ร่วมกันหยุดงานและชักชวนลูกจ้างอื่นให้หยุดงาน ในระหว่างที่ข้อตกลงเกี่ยวกับสภาพการจ้างยังมีผลใช้บังคับ โดยไม่ได้ยื่นข้อเรียกร้องต่อนายจ้าง และไม่ได้แจ้งเป็นหนังสือให้พนักงานประนอมข้อพิพาทแรงงานและนายจ้างทราบล่วงหน้า",
+    "ลูกจ้างทั้งเก้าอ้างว่าการออกแถลงการณ์เป็นไปเพื่อประโยชน์ของสมาชิก และตนไม่ได้ชักชวนลูกจ้างอื่นให้หยุดงาน",
+    "นายจ้างยื่นคำร้องต่อศาลแรงงานขออนุญาตเลิกจ้างลูกจ้างทั้งเก้า"
+   ],
+   "question": "ลูกจ้างคนที่ 1 ถึงคนที่ 9 เป็นลูกจ้างของนายจ้างและเป็นกรรมการลูกจ้าง โดยคนที่ 1 เป็นประธานสหภาพแรงงาน คนที่ 3 เป็นรองประธาน คนที่ 4 เป็นเลขาธิการ และคนที่ 2 คนที่ 5 ถึงคนที่ 9 เป็นกรรมการของสหภาพแรงงานดังกล่าว ระหว่างวันที่ 1 ถึง 8 กุมภาพันธ์ 2535 ลูกจ้างคนที่ 1 และคนที่ 3 ถึงคนที่ 8 ร่วมกับลูกจ้างอื่นทำและแจกจ่ายแถลงการณ์แก่พนักงานและบุคคลทั่วไป แถลงการณ์มีข้อความว่านายจ้างโยกย้ายกรรมการสหภาพแรงงานโดยมีเจตนากลั่นแกล้งและแก้แค้น ให้เงินปลอบขวัญแก่พนักงานที่เข้าทำงานก่อน ต้องการให้พนักงานแตกแยกและพยายามล้มสหภาพแรงงาน และกล่าวว่าผู้บริหารของนายจ้างพูดกลับกลอก ข้อบังคับเกี่ยวกับการทำงาน ซึ่งนายจ้างกับสหภาพแรงงานร่วมกันกำหนดขึ้น หมวดวินัยและโทษทางวินัย กำหนดให้การจงใจทำให้นายจ้างได้รับความเสียหายเป็นความผิดร้ายแรง วันที่ 8 กุมภาพันธ์ 2535 ลูกจ้างคนที่ 1 ถึงคนที่ 3 และคนที่ 6 ถึงคนที่ 9 ร่วมกันหยุดงานและชักชวนลูกจ้างอื่นให้หยุดงาน ในระหว่างที่ข้อตกลงเกี่ยวกับสภาพการจ้างยังมีผลใช้บังคับ โดยไม่ได้ยื่นข้อเรียกร้องต่อนายจ้าง และไม่ได้แจ้งเป็นหนังสือให้พนักงานประนอมข้อพิพาทแรงงานและนายจ้างทราบล่วงหน้า ลูกจ้างทั้งเก้าอ้างว่าการออกแถลงการณ์เป็นไปเพื่อประโยชน์ของสมาชิก และตนไม่ได้ชักชวนลูกจ้างอื่นให้หยุดงาน นายจ้างยื่นคำร้องต่อศาลแรงงานขออนุญาตเลิกจ้างลูกจ้างทั้งเก้า ให้วินิจฉัยว่า (1) นายจ้างเลิกจ้างลูกจ้างทั้งเก้า (โดยขออนุญาตต่อศาลแรงงาน)ได้หรือไม่ (2) ลูกจ้างทั้งเก้าได้รับความคุ้มครองตามพระราชบัญญัติแรงงานสัมพันธ์ พ.ศ. 2518 หรือไม่ เพราะเหตุใด",
+   "question_sha256": "0661543c813b8edad9a8e9bbf06519cd7f1dbcf828b0f8cec23774ff5c1568b1",
+   "provenance_note": "facts 1–4 = findings of the Labour Court / Supreme Court (the stoppage facts are the Labour Court's findings; the Supreme Court decided on the statement = wilful damage, serious under the rules); fact 5 = the employees' allegation; REVISION (proposed): group membership follows the Labour Court's findings — statement = respondents 1, 3–8 (seven; the frozen 'eight' was the employer's pleading 1–8), stoppage = respondents 1–3, 6–9; together all nine",
+   "gold": "(1) เลิกจ้างได้ทั้งเก้าคนเมื่อได้รับอนุญาตจากศาล (ม.52) และมีเหตุอนุญาต: การทำและแจกจ่ายแถลงการณ์เป็นการจงใจทำให้นายจ้างเสียหาย (ม.123(2)) เป็นความผิดร้ายแรงตามข้อบังคับ (ศาลแรงงานกลางยังฟังว่าการชักชวนหยุดงานระหว่างข้อตกลงมีผลเข้า ม.123(5)) (2) ได้รับความคุ้มครองในฐานะกรรมการลูกจ้างเพียงว่าต้องขออนุญาตศาลก่อน ซึ่งมีเหตุอนุญาต; ไม่ได้รับความคุ้มครองตาม ม.123 เพราะเข้าข้อยกเว้น",
+   "construction_check_forbidden_phrases_found": [],
+   "expected": {
+    "issues_expected": [
+     "employee_committee_and_union_protection"
+    ],
+    "leaves": {
+     "employee_committee_and_union_protection": {
+      "3": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": false,
+       "why": "the statement attacks the employer; no s.121(1) act by the employer (a #20 temptation: union speech)"
+      },
+      "8": {
+       "status": "met",
+       "accept": [],
+       "scored": false,
+       "why": "CBA in force; employee-committee members and union officers"
+      },
+      "9": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "KEY: (2) wilful damage (SC) and (5) inciting a stoppage in breach of the CBA (LC)"
+      },
+      "9b_a": {
+       "status": "met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": false,
+       "why": "breach of the work rules; not the decisive path"
+      },
+      "9b_b": {
+       "status": "met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": false,
+       "why": ""
+      },
+      "9b_c": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": false,
+       "why": ""
+      },
+      "9b_d": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": false,
+       "why": ""
+      },
+      "9b_e": {
+       "status": "met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": false,
+       "why": "serious under the rules; non-decisive because 9 is met"
+      },
+      "9b_dismissed": {
+       "status": "not_met",
+       "accept": [],
+       "scored": true,
+       "why": "KEY: only a permission request — no dismissal yet"
+      },
+      "9b_ground_misconduct": {
+       "status": "met",
+       "accept": [],
+       "scored": false,
+       "why": "ground = the employees' conduct"
+      }
+     }
+    },
+    "derived": {
+     "employee_committee_and_union_protection": {
+      "9b_lawful": "met",
+      "9b": "met",
+      "9b_warning_required": "not_met",
+      "9b_dismissal_prohibited": "not_met",
+      "9b_dismissal_permitted": "not_met"
+     }
+    },
+    "defeated_by": {
+     "rule": "fires only if element 3 is called met and (9b_lawful ∧ ¬9b_d) is met",
+     "expected_element_3": "not_met"
+    },
+    "scored_derived": {
+     "employee_committee_and_union_protection": []
+    },
+    "spec_rule": "B: a leaf that can change a scored derived element has exactly one expected value; non-scored leaves cannot change scored derived elements"
+   },
+   "leakage": {
+    "source_ruling_rank": 5,
+    "of": 3591,
+    "top1_kept_if_issue_sections_were": {
+     "LRA2518:123": "1062/2525",
+     "LRA2518:52": "5211/2531",
+     "LRA2518:121": "3985-3987/2529",
+     "LRA2518:31": "4398/2536",
+     "LPA2541:119": "ร 2834/2563"
+    },
+    "source_ruling_in_state_cases": "from the run trace"
+   },
+   "near_duplicate": {
+    "dev100_max": [
+     0.726,
+     "dev087"
+    ],
+    "p1720_max": [
+     0.763,
+     "p1720-2911-2528"
+    ],
+    "other_candidate_max": [
+     0.726,
+     "s123pos-1159-2531"
+    ]
+   },
+   "evidence_scope": "#20 is measured at element level only: defeated_by counts as fired only under the pre-registered condition (element 3 called met AND 9b_lawful ∧ ¬9b_d met → element 3 set by the system, LRA2518:121:1:(1) forbidden). The final outcome is not evidence for #20 (9b_dismissed = not_met; the source ruling is retrieved for s.52)"
+  },
+  "s123pos-1159-2531": {
+   "source": "คำพิพากษาศาลฎีกา 1159/2531",
+   "role": "WARNING-REQUIRED CONTRAST: 9b_e = not_met → OUTCOME_WARNING_REQUIRED (needs 8 = met)",
+   "source_facts": [
+    "นาย ค. เป็นลูกจ้างตำแหน่งพนักงานทำความสะอาดและเป็นกรรมการลูกจ้าง",
+    "ระหว่างเดือนมกราคมถึงเดือนพฤศจิกายน 2530 นาย ค. ลาป่วยรวม 28 วัน โดยไม่ได้เจ็บป่วยจริง",
+    "คู่มือสำหรับพนักงานซึ่งเป็นข้อบังคับเกี่ยวกับการทำงานของนายจ้าง กำหนดให้การแจ้งอาการป่วยด้วยความเท็จเป็นความผิดประเภท \"ค\" และกำหนดขั้นตอนการลงโทษความผิดประเภท \"ค\" ว่า ความผิดครั้งที่หนึ่งออกหนังสือเตือนเป็นลายลักษณ์อักษรครั้งสุดท้าย ความผิดครั้งที่สองปลดออกจากงานโดยไม่จ่ายค่าชดเชย",
+    "ไม่ปรากฏว่านายจ้างเคยลงโทษนาย ค. ด้วยการเตือนเป็นหนังสือมาก่อน",
+    "นายจ้างยื่นคำร้องต่อศาลแรงงานขออนุญาตเลิกจ้างนาย ค. โดยยินยอมจ่ายค่าชดเชยและสินจ้างแทนการบอกกล่าวล่วงหน้า และอ้างว่านาย ค. จงใจทำให้นายจ้างได้รับความเสียหาย",
+    "นาย ค. อ้างว่าตนใช้สิทธิลาป่วยโดยสุจริตตามระเบียบ และอ้างว่าการขอเลิกจ้างเกิดขึ้นในระหว่างที่ข้อตกลงเกี่ยวกับสภาพการจ้างระหว่างนายจ้างกับสหภาพแรงงานซึ่งตนเป็นสมาชิกและกรรมการมีผลใช้บังคับ"
+   ],
+   "question": "นาย ค. เป็นลูกจ้างตำแหน่งพนักงานทำความสะอาดและเป็นกรรมการลูกจ้าง ระหว่างเดือนมกราคมถึงเดือนพฤศจิกายน 2530 นาย ค. ลาป่วยรวม 28 วัน โดยไม่ได้เจ็บป่วยจริง คู่มือสำหรับพนักงานซึ่งเป็นข้อบังคับเกี่ยวกับการทำงานของนายจ้าง กำหนดให้การแจ้งอาการป่วยด้วยความเท็จเป็นความผิดประเภท \"ค\" และกำหนดขั้นตอนการลงโทษความผิดประเภท \"ค\" ว่า ความผิดครั้งที่หนึ่งออกหนังสือเตือนเป็นลายลักษณ์อักษรครั้งสุดท้าย ความผิดครั้งที่สองปลดออกจากงานโดยไม่จ่ายค่าชดเชย ไม่ปรากฏว่านายจ้างเคยลงโทษนาย ค. ด้วยการเตือนเป็นหนังสือมาก่อน นายจ้างยื่นคำร้องต่อศาลแรงงานขออนุญาตเลิกจ้างนาย ค. โดยยินยอมจ่ายค่าชดเชยและสินจ้างแทนการบอกกล่าวล่วงหน้า และอ้างว่านาย ค. จงใจทำให้นายจ้างได้รับความเสียหาย นาย ค. อ้างว่าตนใช้สิทธิลาป่วยโดยสุจริตตามระเบียบ และอ้างว่าการขอเลิกจ้างเกิดขึ้นในระหว่างที่ข้อตกลงเกี่ยวกับสภาพการจ้างระหว่างนายจ้างกับสหภาพแรงงานซึ่งตนเป็นสมาชิกและกรรมการมีผลใช้บังคับ ให้วินิจฉัยว่า (1) นายจ้างเลิกจ้างนาย ค. (โดยขออนุญาตต่อศาลแรงงาน)ได้หรือไม่ (2) นาย ค.ได้รับความคุ้มครองตามพระราชบัญญัติแรงงานสัมพันธ์ พ.ศ. 2518 หรือไม่ เพราะเหตุใด",
+   "question_sha256": "e93919c98a9873cce410de2f6ff78697a7d1ab908d948bd6ddff014d8de7f20c",
+   "provenance_note": "facts 1–4 = the Supreme Court's findings; facts 5–6 = the parties' claims (labelled). The CBA in force is only the employee's claim in the judgment, so element 8 is expected unknown — this weakens the WARNING_REQUIRED route (derived 9b_warning_required = unknown unless the LLM accepts the claim)",
+   "gold": "(1) เลิกจ้างไม่ได้ (ศาลไม่อนุญาต): ข้อบังคับเกี่ยวกับการทำงาน (ข้อตกลงเกี่ยวกับสภาพการจ้าง) กำหนดให้ความผิดฐานแจ้งป่วยเท็จครั้งแรกต้องเตือนเป็นหนังสือก่อน เมื่อไม่ปรากฏว่าเคยเตือน การขอเลิกจ้างจึงผิดขั้นตอน แม้ยินยอมจ่ายค่าชดเชย (2) ในฐานะกรรมการลูกจ้าง การเลิกจ้างต้องได้รับอนุญาตจากศาล (ม.52) ซึ่งไม่มีเหตุอนุญาต; ประเด็น ม.123 ศาลไม่ได้วินิจฉัยโดยตรง (INCONCLUSIVE)",
+   "construction_check_forbidden_phrases_found": [],
+   "expected": {
+    "issues_expected": [
+     "employee_committee_and_union_protection"
+    ],
+    "leaves": {
+     "employee_committee_and_union_protection": {
+      "3": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": true,
+       "why": "no s.121(1) act",
+       "decisive": false
+      },
+      "8": {
+       "status": "unknown",
+       "accept": [],
+       "scored": true,
+       "why": "CBA in force = the employee's claim only",
+       "decisive": true
+      },
+      "9": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": true,
+       "why": "wilful damage = the employer's claim; the court treats it as a category-ค rule breach",
+       "decisive": false
+      },
+      "9b_a": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "false sick reports breach the work rules",
+       "decisive": true
+      },
+      "9b_b": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "the work rules",
+       "decisive": true
+      },
+      "9b_c": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": false,
+       "why": "",
+       "decisive": false
+      },
+      "9b_d": {
+       "status": "not_met",
+       "accept": [],
+       "scored": true,
+       "why": "",
+       "decisive": true
+      },
+      "9b_e": {
+       "status": "not_met",
+       "accept": [],
+       "scored": true,
+       "why": "KEY: no prior written warning; the rules make the first offence a warning (not serious)",
+       "decisive": true
+      },
+      "9b_dismissed": {
+       "status": "not_met",
+       "accept": [],
+       "scored": true,
+       "why": "permission request only",
+       "decisive": true
+      },
+      "9b_ground_misconduct": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "ground = false sick reports",
+       "decisive": false
+      }
+     }
+    },
+    "derived": {
+     "employee_committee_and_union_protection": {
+      "9b_lawful": "met",
+      "9b": "not_met",
+      "9b_warning_required": "unknown",
+      "9b_dismissal_prohibited": "not_met",
+      "9b_dismissal_permitted": "not_met"
+     }
+    },
+    "defeated_by": {
+     "rule": "fires only if element 3 is called met and (9b_lawful ∧ ¬9b_d) is met",
+     "expected_element_3": "not_met"
+    },
+    "scored_derived": {
+     "employee_committee_and_union_protection": [
+      "9b_lawful",
+      "9b",
+      "9b_warning_required",
+      "9b_dismissal_prohibited",
+      "9b_dismissal_permitted"
+     ]
+    },
+    "spec_rule": "B: a leaf that can change a scored derived element has exactly one expected value; non-scored leaves cannot change scored derived elements"
+   },
+   "leakage": {
+    "source_ruling_rank": 1,
+    "of": 3591,
+    "top1_kept_if_issue_sections_were": {
+     "LRA2518:123": "172/2533",
+     "LRA2518:52": "4700/2539",
+     "LRA2518:121": "1432/2531",
+     "LRA2518:31": "5209/2537",
+     "LPA2541:119": "3940/2558"
+    },
+    "source_ruling_in_state_cases": "from the run trace"
+   },
+   "near_duplicate": {
+    "dev100_max": [
+     0.713,
+     "dev069"
+    ],
+    "p1720_max": [
+     0.798,
+     "p1720-3211-2545"
+    ],
+    "other_candidate_max": [
+     0.787,
+     "s123pos-1336-2527"
+    ]
+   },
+   "run_status": "not_run",
+   "not_run_reason": "element 8 = unknown (CBA in force is only the employee's claim); not used as a benchmark result"
+  }
+ },
+ "metadata_update": {
+  "at": "2026-10-08T03:45:16+07:00",
+  "approved_by": "Frank 2026-10-08",
+  "change": "labels / evidence scope / run_status only; questions, expected states and taxonomy unchanged"
+ },
+ "refreeze_v2": {
+  "at": "2026-10-08T04:03:46+07:00",
+  "type": "spec re-freeze (benchmark specification), not a change of any Gemini result",
+  "taxonomy_commit": "b768725 (9b_b R1 wording on top of 3bd6b18)",
+  "previous_version": "docs/benchmarks/s123pos_freeze_2026-10-08_v1.json",
+  "previous_sha256": "1b34e96fa20f09a01563916021a00985555bac123b1fd68b225da66087d30b60",
+  "historical_runs_unchanged": [
+   "data/processed/runs/2026-10-08_p1720",
+   "data/processed/runs/2026-10-08_s123pos"
+  ],
+  "rule_B": "a leaf that can change a scored derived element has exactly one expected value and is scored; non-scored leaves cannot change scored derived elements; 822 scores leaves 9 and 9b_dismissed only"
+ }
+}

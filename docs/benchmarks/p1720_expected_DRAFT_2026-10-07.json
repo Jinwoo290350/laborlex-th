@@ -1,6 +1,6 @@
 {
  "frozen_at": "2026-10-07T22:47:35+07:00",
- "status": "FROZEN (approved by Frank 2026-10-08) — expected states re-frozen under decisions #21 (outcome elements v2 for s.123); s.31 unchanged (5_outcome legacy_outcome: pending_L2); not a benchmark manifest; no Gemini run",
+ "status": "FROZEN (approved by Frank 2026-10-08) — FROZEN v2 (spec re-freeze approved by Frank 2026-10-08): rule B + 9b_b R1 wording",
  "construction_rules": "facts only from the judgment (findings of fact and the parties' own allegations, labelled as allegations); no holding, no lawful/unlawful conclusion, no statement on whether a warning is required, no ruling number; names replaced (นาย ก./ข.); same question template; compensation not asked (not decided in 2911/2528)",
  "scoring": {
   "C1": "leaf statuses vs expected (status or accept list = match; scored=False not counted); derived statuses must equal derive(leaves actually produced) — deterministic",
@@ -44,27 +44,29 @@
        "status": "not_met",
        "accept": [],
        "scored": true,
-       "why": "no s.121(1) act alleged"
+       "why": "no s.121(1) act alleged",
+       "decisive": false
       },
       "8": {
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": "CBA effective 3 Apr 2531, no end date; dismissal Nov 2531; union committee member"
+       "why": "CBA effective 3 Apr 2531, no end date; dismissal Nov 2531; union committee member",
+       "decisive": true
       },
       "9b_a": {
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": "went to eat at 9.30 against the 10.00 assignment"
+       "why": "went to eat at 9.30 against the 10.00 assignment",
+       "decisive": true
       },
       "9b_b": {
        "status": "met",
-       "accept": [
-        "unknown"
-       ],
+       "accept": [],
        "scored": true,
-       "why": "order sets times inside the CBA window (court); unknown = predicate-narrow caveat realised, not a failure"
+       "why": "order sets times inside the CBA window (court); unknown = predicate-narrow caveat realised, not a failure",
+       "decisive": true
       },
       "9b_c": {
        "status": "not_met",
@@ -72,39 +74,43 @@
         "unknown"
        ],
        "scored": false,
-       "why": "no consent facts; non-decisive because 9b_b"
+       "why": "no consent facts; non-decisive because 9b_b",
+       "decisive": false
       },
       "9b_d": {
        "status": "not_met",
        "accept": [],
        "scored": true,
-       "why": "no fact that the order targeted demand activity"
+       "why": "no fact that the order targeted demand activity",
+       "decisive": true
       },
       "9b_e": {
        "status": "not_met",
        "accept": [],
        "scored": true,
-       "why": "no prior written warning; ordinary damage (court: not serious)"
+       "why": "no prior written warning; ordinary damage (court: not serious)",
+       "decisive": true
       },
       "9": {
        "status": "not_met",
-       "accept": [
-        "unknown"
-       ],
+       "accept": [],
        "scored": true,
-       "why": "no (1)(2)(4)(5) ground: half-hour early meal break, ordinary damage (court: not serious, not wilful)"
+       "why": "no (1)(2)(4)(5) ground: half-hour early meal break, ordinary damage (court: not serious, not wilful)",
+       "decisive": true
       },
       "9b_dismissed": {
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": "dismissed in Nov 2531"
+       "why": "dismissed in Nov 2531",
+       "decisive": true
       },
       "9b_ground_misconduct": {
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": "ground = leaving the machine for an early meal against the assigned time"
+       "why": "ground = leaving the machine for an early meal against the assigned time",
+       "decisive": true
       }
      }
     },
@@ -126,7 +132,17 @@
      "previous_freeze_said": [
       "LRA2518:121:1:(1)"
      ]
-    }
+    },
+    "scored_derived": {
+     "employee_committee_and_union_protection": [
+      "9b_lawful",
+      "9b",
+      "9b_warning_required",
+      "9b_dismissal_prohibited",
+      "9b_dismissal_permitted"
+     ]
+    },
+    "spec_rule": "B: a leaf that can change a scored derived element has exactly one expected value; non-scored leaves cannot change scored derived elements"
    },
    "leakage": {
     "source_ruling_rank": 1,
@@ -174,7 +190,8 @@
        "status": "not_met",
        "accept": [],
        "scored": true,
-       "why": "court: not harassment; dismissal for non-remittance, not for the lawsuit/LRC petition"
+       "why": "court: not harassment; dismissal for non-remittance, not for the lawsuit/LRC petition",
+       "decisive": false
       },
       "8": {
        "status": "unknown",
@@ -182,21 +199,22 @@
         "not_met"
        ],
        "scored": true,
-       "why": "CBA-in-force fact not stated"
+       "why": "CBA-in-force fact not stated",
+       "decisive": false
       },
       "9b_a": {
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": "kept the money despite 2 written notices"
+       "why": "kept the money despite 2 written notices",
+       "decisive": true
       },
       "9b_b": {
        "status": "met",
-       "accept": [
-        "unknown"
-       ],
+       "accept": [],
        "scored": true,
-       "why": "employer regulation (ระเบียบ) — the regulation is itself the order"
+       "why": "employer regulation (ระเบียบ) — the regulation is itself the order",
+       "decisive": true
       },
       "9b_c": {
        "status": "not_met",
@@ -204,21 +222,22 @@
         "unknown"
        ],
        "scored": false,
-       "why": "no consent; non-decisive"
+       "why": "no consent; non-decisive",
+       "decisive": false
       },
       "9b_d": {
        "status": "not_met",
-       "accept": [
-        "unknown"
-       ],
+       "accept": [],
        "scored": true,
-       "why": "no fact the order targeted demand activity; the earlier lawsuit/petition is a dispute, not a demand under s.13"
+       "why": "no fact the order targeted demand activity; the earlier lawsuit/petition is a dispute, not a demand under s.13",
+       "decisive": true
       },
       "9b_e": {
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": "two written notices"
+       "why": "two written notices",
+       "decisive": true
       },
       "9": {
        "status": "unknown",
@@ -227,19 +246,22 @@
         "met"
        ],
        "scored": false,
-       "why": "keeping the employer's money: (1)/(2) not decided by the court; not dismissed yet, so no outcome depends on it"
+       "why": "keeping the employer's money: (1)/(2) not decided by the court; not dismissed yet, so no outcome depends on it",
+       "decisive": false
       },
       "9b_dismissed": {
        "status": "not_met",
        "accept": [],
        "scored": true,
-       "why": "permission to dismiss requested from the Labour Court (s.52)"
+       "why": "permission to dismiss requested from the Labour Court (s.52)",
+       "decisive": true
       },
       "9b_ground_misconduct": {
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": "ground = not remitting the money despite written notices"
+       "why": "ground = not remitting the money despite written notices",
+       "decisive": false
       }
      }
     },
@@ -261,7 +283,17 @@
      "previous_freeze_said": [
       "LRA2518:121:1:(1)"
      ]
-    }
+    },
+    "scored_derived": {
+     "employee_committee_and_union_protection": [
+      "9b_lawful",
+      "9b",
+      "9b_warning_required",
+      "9b_dismissal_prohibited",
+      "9b_dismissal_permitted"
+     ]
+    },
+    "spec_rule": "B: a leaf that can change a scored derived element has exactly one expected value; non-scored leaves cannot change scored derived elements"
    },
    "leakage": {
     "source_ruling_rank": 2,
@@ -297,71 +329,71 @@
         "unknown"
        ],
        "scored": true,
-       "why": "not decided by the court; inference"
+       "why": "not decided by the court; inference",
+       "decisive": false
       },
       "8": {
        "status": "met",
-       "accept": [
-        "unknown"
-       ],
+       "accept": [],
        "scored": true,
-       "why": "CBA in force + union member; 'related to the demand' not stated"
+       "why": "CBA in force + union member; 'related to the demand' not stated",
+       "decisive": true
       },
       "9b_a": {
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": ""
+       "why": "",
+       "decisive": true
       },
       "9b_b": {
        "status": "unknown",
-       "accept": [
-        "not_met"
-       ],
+       "accept": [],
        "scored": true,
-       "why": "LIMITATION: order lawful because reasonable, no agreement/rule/consent fact"
+       "why": "LIMITATION: order lawful because reasonable, no agreement/rule/consent fact",
+       "decisive": true
       },
       "9b_c": {
        "status": "not_met",
-       "accept": [
-        "unknown"
-       ],
-       "scored": false,
-       "why": ""
+       "accept": [],
+       "scored": true,
+       "why": "",
+       "decisive": true
       },
       "9b_d": {
        "status": "not_met",
-       "accept": [
-        "unknown"
-       ],
+       "accept": [],
        "scored": true,
-       "why": ""
+       "why": "",
+       "decisive": true
       },
       "9b_e": {
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": "written warning, confirmation, suspension"
+       "why": "written warning, confirmation, suspension",
+       "decisive": true
       },
       "9": {
        "status": "not_met",
-       "accept": [
-        "unknown"
-       ],
+       "accept": [],
        "scored": true,
-       "why": "ground is disobedience after warning (court: Interior Ministry ann. 47(4) ≈ (3)), not (1)(2)(4)(5)"
+       "why": "ground is disobedience after warning (court: Interior Ministry ann. 47(4) ≈ (3)), not (1)(2)(4)(5)",
+       "decisive": true
       },
       "9b_dismissed": {
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": "dismissed without severance"
+       "why": "dismissed without severance",
+       "decisive": true
       },
       "9b_ground_misconduct": {
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": "ground = refusing the medical examination order"
+       "why": "ground = refusing the medical examination order",
+       "decisive": true
       }
      },
      "dispute_protection_s31": {
@@ -369,49 +401,50 @@
        "status": "unknown",
        "accept": [],
        "scored": true,
-       "why": "only the employee's allegation of a negotiation"
+       "why": "only the employee's allegation of a negotiation",
+       "decisive": false
       },
       "2": {
        "status": "unknown",
        "accept": [],
        "scored": true,
-       "why": ""
+       "why": "",
+       "decisive": false
       },
       "5_a": {
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": ""
+       "why": "",
+       "decisive": true
       },
       "5_b": {
        "status": "unknown",
-       "accept": [
-        "not_met"
-       ],
+       "accept": [],
        "scored": true,
-       "why": "LIMITATION as 9b_b"
+       "why": "LIMITATION as 9b_b",
+       "decisive": true
       },
       "5_c": {
        "status": "not_met",
-       "accept": [
-        "unknown"
-       ],
-       "scored": false,
-       "why": ""
+       "accept": [],
+       "scored": true,
+       "why": "",
+       "decisive": true
       },
       "5_d": {
        "status": "not_met",
-       "accept": [
-        "unknown"
-       ],
+       "accept": [],
        "scored": true,
-       "why": ""
+       "why": "",
+       "decisive": true
       },
       "5_e": {
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": ""
+       "why": "",
+       "decisive": true
       }
      }
     },
@@ -436,7 +469,22 @@
      "when_condition_expected": "unknown",
      "forbidden_key_if_it_fires": "LRA2518:121:1:(1)",
      "previous_freeze_said": []
-    }
+    },
+    "scored_derived": {
+     "employee_committee_and_union_protection": [
+      "9b_lawful",
+      "9b",
+      "9b_warning_required",
+      "9b_dismissal_prohibited",
+      "9b_dismissal_permitted"
+     ],
+     "dispute_protection_s31": [
+      "5_lawful",
+      "5",
+      "5_outcome"
+     ]
+    },
+    "spec_rule": "B: a leaf that can change a scored derived element has exactly one expected value; non-scored leaves cannot change scored derived elements"
    },
    "leakage": {
     "source_ruling_rank": 3,
@@ -473,15 +521,15 @@
         "unknown"
        ],
        "scored": true,
-       "why": "no s.121(1) act; harassment alleged against the committee role"
+       "why": "no s.121(1) act; harassment alleged against the committee role",
+       "decisive": false
       },
       "8": {
        "status": "unknown",
-       "accept": [
-        "not_met"
-       ],
+       "accept": [],
        "scored": true,
-       "why": "no CBA fact"
+       "why": "no CBA fact",
+       "decisive": true
       },
       "9": {
        "status": "met",
@@ -489,19 +537,22 @@
         "unknown"
        ],
        "scored": false,
-       "why": "3 consecutive working days at the wrong site (court: abandonment, (4)); not dismissed yet, so no outcome depends on it"
+       "why": "3 consecutive working days at the wrong site (court: abandonment, (4)); not dismissed yet, so no outcome depends on it",
+       "decisive": false
       },
       "9b_a": {
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": ""
+       "why": "",
+       "decisive": true
       },
       "9b_b": {
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": "work-rule clause quoted"
+       "why": "work-rule clause quoted",
+       "decisive": true
       },
       "9b_c": {
        "status": "not_met",
@@ -509,35 +560,36 @@
         "unknown"
        ],
        "scored": false,
-       "why": ""
+       "why": "",
+       "decisive": false
       },
       "9b_d": {
        "status": "unknown",
-       "accept": [
-        "not_met"
-       ],
+       "accept": [],
        "scored": true,
-       "why": "only the employee's harassment allegation; no demand at all"
+       "why": "only the employee's harassment allegation; no demand at all",
+       "decisive": true
       },
       "9b_e": {
        "status": "unknown",
-       "accept": [
-        "not_met"
-       ],
-       "scored": false,
-       "why": "no warning; ground is abandonment"
+       "accept": [],
+       "scored": true,
+       "why": "no warning; ground is abandonment",
+       "decisive": true
       },
       "9b_dismissed": {
        "status": "not_met",
        "accept": [],
        "scored": true,
-       "why": "permission to dismiss requested (s.52)"
+       "why": "permission to dismiss requested (s.52)",
+       "decisive": true
       },
       "9b_ground_misconduct": {
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": "ground = refusing the temporary transfer / absence"
+       "why": "ground = refusing the temporary transfer / absence",
+       "decisive": false
       }
      }
     },
@@ -557,7 +609,17 @@
      "when_condition_expected": "unknown (met if 9b_d = not_met)",
      "forbidden_key_if_it_fires": "LRA2518:121:1:(1)",
      "previous_freeze_said": "LRA2518:121:1:(1) only if 9b_d = not_met"
-    }
+    },
+    "scored_derived": {
+     "employee_committee_and_union_protection": [
+      "9b_lawful",
+      "9b",
+      "9b_warning_required",
+      "9b_dismissal_prohibited",
+      "9b_dismissal_permitted"
+     ]
+    },
+    "spec_rule": "B: a leaf that can change a scored derived element has exactly one expected value; non-scored leaves cannot change scored derived elements"
    },
    "leakage": {
     "source_ruling_rank": 1,
@@ -606,49 +668,50 @@
         "unknown"
        ],
        "scored": true,
-       "why": "transfer predates the demand; court allowed dismissal"
+       "why": "transfer predates the demand; court allowed dismissal",
+       "decisive": false
       },
       "8": {
        "status": "unknown",
        "accept": [],
        "scored": true,
-       "why": "settled 13 Oct; CBA terms/registration not stated; court did not apply s.123"
+       "why": "settled 13 Oct; CBA terms/registration not stated; court did not apply s.123",
+       "decisive": false
       },
       "9b_a": {
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": ""
+       "why": "",
+       "decisive": true
       },
       "9b_b": {
        "status": "unknown",
-       "accept": [
-        "not_met"
-       ],
+       "accept": [],
        "scored": true,
-       "why": "LIMITATION: management power, no agreement/rule/consent fact"
+       "why": "LIMITATION: management power, no agreement/rule/consent fact",
+       "decisive": true
       },
       "9b_c": {
        "status": "not_met",
-       "accept": [
-        "unknown"
-       ],
-       "scored": false,
-       "why": ""
+       "accept": [],
+       "scored": true,
+       "why": "",
+       "decisive": true
       },
       "9b_d": {
        "status": "not_met",
-       "accept": [
-        "unknown"
-       ],
+       "accept": [],
        "scored": true,
-       "why": ""
+       "why": "",
+       "decisive": true
       },
       "9b_e": {
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": "two written warnings"
+       "why": "two written warnings",
+       "decisive": true
       },
       "9": {
        "status": "met",
@@ -656,19 +719,22 @@
         "unknown"
        ],
        "scored": false,
-       "why": "not at the new post 14 Sep–7 Nov (Labour Court: abandonment); not dismissed yet, so no outcome depends on it"
+       "why": "not at the new post 14 Sep–7 Nov (Labour Court: abandonment); not dismissed yet, so no outcome depends on it",
+       "decisive": false
       },
       "9b_dismissed": {
        "status": "not_met",
        "accept": [],
        "scored": true,
-       "why": "permission to dismiss requested (s.52)"
+       "why": "permission to dismiss requested (s.52)",
+       "decisive": true
       },
       "9b_ground_misconduct": {
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": "ground = refusing the transfer"
+       "why": "ground = refusing the transfer",
+       "decisive": false
       }
      },
      "dispute_protection_s31": {
@@ -676,7 +742,8 @@
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": "demand filed 10 Sep"
+       "why": "demand filed 10 Sep",
+       "decisive": false
       },
       "2": {
        "status": "met",
@@ -684,7 +751,8 @@
         "unknown"
        ],
        "scored": true,
-       "why": "under negotiation until 13 Oct"
+       "why": "under negotiation until 13 Oct",
+       "decisive": false
       },
       "3": {
        "status": "not_met",
@@ -692,43 +760,43 @@
         "unknown"
        ],
        "scored": true,
-       "why": "transfer order 5 Sep, before the demand"
+       "why": "transfer order 5 Sep, before the demand",
+       "decisive": false
       },
       "5_a": {
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": ""
+       "why": "",
+       "decisive": true
       },
       "5_b": {
        "status": "unknown",
-       "accept": [
-        "not_met"
-       ],
+       "accept": [],
        "scored": true,
-       "why": "LIMITATION as 9b_b"
+       "why": "LIMITATION as 9b_b",
+       "decisive": true
       },
       "5_c": {
        "status": "not_met",
-       "accept": [
-        "unknown"
-       ],
-       "scored": false,
-       "why": ""
+       "accept": [],
+       "scored": true,
+       "why": "",
+       "decisive": true
       },
       "5_d": {
        "status": "not_met",
-       "accept": [
-        "unknown"
-       ],
+       "accept": [],
        "scored": true,
-       "why": ""
+       "why": "",
+       "decisive": true
       },
       "5_e": {
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": ""
+       "why": "",
+       "decisive": true
       }
      }
     },
@@ -753,7 +821,22 @@
      "when_condition_expected": "unknown",
      "forbidden_key_if_it_fires": "LRA2518:121:1:(1)",
      "previous_freeze_said": []
-    }
+    },
+    "scored_derived": {
+     "employee_committee_and_union_protection": [
+      "9b_lawful",
+      "9b",
+      "9b_warning_required",
+      "9b_dismissal_prohibited",
+      "9b_dismissal_permitted"
+     ],
+     "dispute_protection_s31": [
+      "5_lawful",
+      "5",
+      "5_outcome"
+     ]
+    },
+    "spec_rule": "B: a leaf that can change a scored derived element has exactly one expected value; non-scored leaves cannot change scored derived elements"
    },
    "leakage": {
     "source_ruling_rank": 1,
@@ -799,29 +882,29 @@
        "status": "unknown",
        "accept": [],
        "scored": true,
-       "why": "earlier lawsuit (s.121(1) act) + alleged pressure; purpose undecided"
+       "why": "earlier lawsuit (s.121(1) act) + alleged pressure; purpose undecided",
+       "decisive": false
       },
       "8": {
        "status": "met",
-       "accept": [
-        "unknown"
-       ],
+       "accept": [],
        "scored": true,
-       "why": "CBA from a union demand; dismissal date not stated"
+       "why": "CBA from a union demand; dismissal date not stated",
+       "decisive": true
       },
       "9b_a": {
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": ""
+       "why": "",
+       "decisive": true
       },
       "9b_b": {
        "status": "met",
-       "accept": [
-        "unknown"
-       ],
+       "accept": [],
        "scored": true,
-       "why": "CBA silent on location; court: employer may designate (borderline)"
+       "why": "CBA silent on location; court: employer may designate (borderline)",
+       "decisive": true
       },
       "9b_c": {
        "status": "not_met",
@@ -829,39 +912,43 @@
         "unknown"
        ],
        "scored": false,
-       "why": "they refused to waive"
+       "why": "they refused to waive",
+       "decisive": false
       },
       "9b_d": {
        "status": "unknown",
        "accept": [],
        "scored": true,
-       "why": "EXPLICIT UNKNOWN: alleged pressure to give up a CBA right; Labour Court found it, Supreme Court did not decide"
+       "why": "EXPLICIT UNKNOWN: alleged pressure to give up a CBA right; Labour Court found it, Supreme Court did not decide",
+       "decisive": true
       },
       "9b_e": {
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": "written warnings, suspension"
+       "why": "written warnings, suspension",
+       "decisive": true
       },
       "9": {
        "status": "not_met",
-       "accept": [
-        "unknown"
-       ],
+       "accept": [],
        "scored": true,
-       "why": "ground is repeated breach of the rest-location order after warnings, not (1)(2)(4)(5)"
+       "why": "ground is repeated breach of the rest-location order after warnings, not (1)(2)(4)(5)",
+       "decisive": true
       },
       "9b_dismissed": {
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": "dismissed without severance"
+       "why": "dismissed without severance",
+       "decisive": true
       },
       "9b_ground_misconduct": {
        "status": "met",
        "accept": [],
        "scored": true,
-       "why": "ground = repeatedly taking the break outside the designated area"
+       "why": "ground = repeatedly taking the break outside the designated area",
+       "decisive": true
       }
      }
     },
@@ -881,7 +968,17 @@
      "when_condition_expected": "unknown",
      "forbidden_key_if_it_fires": "LRA2518:121:1:(1)",
      "previous_freeze_said": []
-    }
+    },
+    "scored_derived": {
+     "employee_committee_and_union_protection": [
+      "9b_lawful",
+      "9b",
+      "9b_warning_required",
+      "9b_dismissal_prohibited",
+      "9b_dismissal_permitted"
+     ]
+    },
+    "spec_rule": "B: a leaf that can change a scored derived element has exactly one expected value; non-scored leaves cannot change scored derived elements"
    },
    "leakage": {
     "source_ruling_rank": 1,
@@ -897,5 +994,17 @@
    }
   }
  },
- "refrozen_at": "2026-10-08T02:55:15+07:00"
+ "refrozen_at": "2026-10-08T02:55:15+07:00",
+ "refreeze_v2": {
+  "at": "2026-10-08T04:03:46+07:00",
+  "type": "spec re-freeze (benchmark specification), not a change of any Gemini result",
+  "taxonomy_commit": "b768725 (9b_b R1 wording on top of 3bd6b18)",
+  "previous_version": "git 3bd6b18:docs/benchmarks/p1720_expected_DRAFT_2026-10-07.json",
+  "previous_sha256": "178b29d7c1f25caad6df9d947fb5edb0ca98114bd7eeee591fd27e22047cc560",
+  "historical_runs_unchanged": [
+   "data/processed/runs/2026-10-08_p1720",
+   "data/processed/runs/2026-10-08_s123pos"
+  ],
+  "rule_B": "a leaf that can change a scored derived element has exactly one expected value and is scored; non-scored leaves cannot change scored derived elements; 822 scores leaves 9 and 9b_dismissed only"
+ }
 }
