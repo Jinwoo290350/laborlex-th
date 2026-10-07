@@ -2,9 +2,12 @@
 
 Reproduces the C2 fix123 failure from the run's own element statuses (fixtures/ram_2554_fix123_elements.json, ids and
 statuses only): the lawful-order elements are right, but the same "conflict" fact still made the s.121(1) causation
-elements met and the answer concluded "ได้รับความคุ้มครอง" + s.121(1). Expected after #20: the s.121(1) ground is
-excluded by the system, the outcome element states the model answer's result, and an answer that still says
-"protected" or cites s.121(1) is flagged and its s.121(1) citations are removed. Local, no Gemini."""
+elements met and the answer concluded s.121(1). Expected after #20: the s.121(1) ground is excluded by the system and
+an answer that still cites s.121(1) is flagged and its s.121(1) citations are removed.
+Outcome (decisions #21, docs/design/2026-10-07_legal_audit_L1_L2.md): the employee was dismissed at once for the
+refusal without a written warning → dismissal prohibited by s.123, employee protected (768/2533, ร 1559/2563). The
+answer key's label "ไม่ได้รับการคุ้มครอง" is a recorded source discrepancy and is not encoded. The two facts the
+fix123 run did not have as elements (dismissed, ground = misconduct) come from the question. Local, no Gemini."""
 
 import json
 from pathlib import Path
@@ -21,6 +24,14 @@ S123, ULP, S31 = "employee_committee_and_union_protection", "unfair_labor_practi
 K121_1 = "LRA2518:121:1:(1)"
 
 
+# facts from the question (not in the fix123 run): dismissed at once; the ground is the refusal itself
+OUTCOME_FACTS = {"9b_dismissed": "met", "9b_ground_misconduct": "met"}
+
+
+def _with_facts() -> dict:
+    return {c: ({**v, **OUTCOME_FACTS} if c == S123 else dict(v)) for c, v in FIX["llm_status"].items()}
+
+
 def _resolved(llm=FIX["llm_status"]):
     raw = {c: [ElementCheck(id=i, status=s, evidence="e") for i, s in st.items()] for c, st in llm.items()}
     return {c: {x.id: x for x in v} for c, v in resolve_elements(raw, TAX).items()}
@@ -34,11 +45,12 @@ def test_s121_1_ground_excluded_when_the_order_was_lawful_and_not_obstructive():
     assert K121_1 in forbidden_citations(_resolved(), TAX)
 
 
-def test_outcome_element_states_not_protected_but_warning_required():
-    out = _resolved()[S123]["9b_outcome"]
-    q = next(e["question"] for e in TAX[S123]["elements"] if e["id"] == "9b_outcome")
-    assert out.status == "met"
-    assert "ไม่ได้รับความคุ้มครอง" in q and "ตักเตือนเป็นหนังสือ" in q
+def test_outcome_follows_the_case_law_not_the_key_label():
+    r = _resolved(_with_facts())[S123]
+    assert r["9b_warning_required"].status == "met"
+    assert r["9b_dismissal_prohibited"].status == "met" and r["9b_dismissal_permitted"].status == "not_met"
+    statement = next(e["outcome"]["statement"] for e in TAX[S123]["elements"] if e["id"] == "9b_dismissal_prohibited")
+    assert "ได้รับความคุ้มครอง" in statement and "ไม่ได้รับความคุ้มครอง" not in statement
 
 
 def test_no_exclusion_when_obstruction_unknown_or_order_not_lawful():
@@ -48,7 +60,7 @@ def test_no_exclusion_when_obstruction_unknown_or_order_not_lawful():
         r = _resolved(llm)
         assert r[S123]["3"].status == "met" and r[ULP]["7"].status == "met", change
         assert K121_1 not in forbidden_citations(r, TAX)
-        assert r[S123]["9b_outcome"].status != "met"
+        assert r[S123]["9b_warning_required"].status != "met"
 
 
 def _answer(prelim: str, concl: dict[str, tuple[str, list[str]]]) -> AnswerJSON:
@@ -60,26 +72,28 @@ def _answer(prelim: str, concl: dict[str, tuple[str, list[str]]]) -> AnswerJSON:
 
 
 def test_guard_flags_the_fix123_answer_shape():
-    # same shape as the fix123 output: "protected" in the s.123 conclusion, s.121(1) in preliminary + ULP conclusion
+    # same shape as the fix123 output: s.121(1) in preliminary + ULP conclusion. "Protected" is no longer a conflict
+    # (#21: no phrase guard; the case law calls this dismissal prohibited / the employee protected)
     a = _answer("ลูกจ้างได้รับความคุ้มครอง เลิกจ้างทันทีไม่ได้ และเป็นการกระทำอันไม่เป็นธรรม",
                 {S123: ("ลูกจ้างได้รับความคุ้มครอง และนายจ้างเลิกจ้างทันทีไม่ได้", ["LRA2518:123:1"]),
                  ULP: ("การเลิกจ้างเป็นการกระทำอันไม่เป็นธรรม", [K121_1, "LRA2518:124:1"])})
-    kinds = sorted({c.kind for c in answer_conflicts(a, _resolved(), TAX)})
-    assert kinds == ["forbidden_citation", "outcome_contradicted"]
+    kinds = sorted({c.kind for c in answer_conflicts(a, _resolved(_with_facts()), TAX)})
+    assert kinds == ["forbidden_citation"]
 
 
-def test_guard_accepts_the_expected_answer():
-    a = _answer("ลูกจ้างไม่ได้รับความคุ้มครองเพราะฝ่าฝืนคำสั่งอันชอบด้วยกฎหมาย แต่นายจ้างต้องตักเตือนเป็นหนังสือก่อน",
-                {S123: ("ไม่ได้รับความคุ้มครอง แต่เลิกจ้างทันทีไม่ได้", ["LRA2518:123:1:(3)"])})
+def test_guard_accepts_the_case_law_answer():
+    a = _answer("ลูกจ้างฝ่าฝืนคำสั่งอันชอบด้วยกฎหมาย แต่นายจ้างไม่ได้ตักเตือนเป็นหนังสือ การเลิกจ้างทันทีจึงต้องห้ามตามมาตรา 123 "
+                "ลูกจ้างได้รับความคุ้มครอง",
+                {S123: ("การเลิกจ้างต้องห้ามตามมาตรา 123 เป็นการกระทำอันไม่เป็นธรรม", ["LRA2518:123:1:(3)"])})
     a.preliminary[0].citations = ["LRA2518:123:1:(3)"]
-    assert answer_conflicts(a, _resolved(), TAX) == []
+    assert answer_conflicts(a, _resolved(_with_facts()), TAX) == []
 
 
 # ---------- pipeline wiring (⑨ revise, ⑩ strip) — no Gemini: verifier and LLM are stubbed ----------
 
 def _state(answer):
     from src.agent.state import AgentState
-    raw = {c: [ElementCheck(id=i, status=s, evidence="e") for i, s in st.items()] for c, st in FIX["llm_status"].items()}
+    raw = {c: [ElementCheck(id=i, status=s, evidence="e") for i, s in st.items()] for c, st in _with_facts().items()}
     return AgentState(question="q", elements=resolve_elements(raw, TAX), drafts=[answer],
                       selected={S123: ["LRA2518:123:1"], ULP: ["LRA2518:121:1", "LRA2518:124:1"]})
 
@@ -97,8 +111,8 @@ def test_verify_revises_a_draft_that_contradicts_the_system(monkeypatch):
 
     def fake_llm(prompt, schema, **kw):
         seen["prompt"] = prompt
-        fixed = _answer("ลูกจ้างไม่ได้รับความคุ้มครอง แต่ต้องตักเตือนเป็นหนังสือก่อน",
-                        {S123: ("ไม่ได้รับความคุ้มครอง", ["LRA2518:123:1"])})
+        fixed = _answer("การเลิกจ้างทันทีโดยไม่ตักเตือนเป็นหนังสือต้องห้ามตามมาตรา 123",
+                        {S123: ("ลูกจ้างได้รับความคุ้มครอง", ["LRA2518:123:1"])})
         fixed.preliminary[0].citations = ["LRA2518:123:1:(3)"]
         return fixed
     monkeypatch.setattr(D, "generate_json", fake_llm)
@@ -106,7 +120,8 @@ def test_verify_revises_a_draft_that_contradicts_the_system(monkeypatch):
     out = D.verify_select(_state(_bad()))
     summary = out["trace"][0]["summary"]
     assert summary["revised"] and summary["conflicts"] and not summary["conflicts_left"]
-    assert K121_1 in seen["prompt"] and "ได้รับความคุ้มครอง" in seen["prompt"]
+    assert K121_1 in seen["prompt"]
+    assert {c["kind"] for c in summary["conflicts"]} == {"forbidden_citation"}
 
 
 def _db_ok():
@@ -137,7 +152,7 @@ def test_outcome_shown_to_the_draft_only_when_met():
     from src.agent.nodes.draft import _elements_block
     from src.agent.state import AgentState
     st = _state(_bad())
-    assert "ผลตาม LRA2518:123:1:(3)" in _elements_block(st)
-    st.elements[S123] = [c if c.id != "9b_outcome" else c.model_copy(update={"status": "unknown"})
+    assert "OUTCOME_DISMISSAL_PROHIBITED" in _elements_block(st)
+    st.elements[S123] = [c if c.id != "9b_dismissal_prohibited" else c.model_copy(update={"status": "unknown"})
                          for c in st.elements[S123]]
-    assert "ผลตาม LRA2518:123:1:(3)" not in _elements_block(AgentState(question="q", elements=st.elements))
+    assert "OUTCOME_DISMISSAL_PROHIBITED" not in _elements_block(AgentState(question="q", elements=st.elements))

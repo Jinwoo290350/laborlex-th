@@ -22,11 +22,8 @@ def _derived(code: str, **status) -> dict[str, str]:
 
 
 def _ids(code: str) -> tuple[str, str]:
-    """(lawful-order element id, exception (3) element id) — the derived elements of the issue."""
-    der = [e for e in ISSUES[code]["elements"] if "derive" in e]
-    lawful = next(e["id"] for e in der if "ตักเตือน" not in e["question"])
-    exc = next(e["id"] for e in der if "ตักเตือน" in e["question"])
-    return lawful, exc
+    """(lawful-order element id, exception (3) element id) of the issue."""
+    return {S123: ("9b_lawful", "9b"), S31: ("5_lawful", "5")}[code]
 
 
 def _sub(code: str) -> dict[str, str]:

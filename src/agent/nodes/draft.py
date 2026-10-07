@@ -111,11 +111,21 @@ def _elements_block(state: AgentState) -> str:
     out = []
     for code, checks in state.elements.items():
         qs = {e["id"]: e["question"] for e in tax[code].get("elements", [])}
-        outcome = {e["id"] for e in tax[code].get("elements", []) if e.get("forbid_phrases")}
+        outcome = {e["id"]: e["outcome"] for e in tax[code].get("elements", []) if "outcome" in e}
+        legacy = {e["id"] for e in tax[code].get("elements", []) if e.get("legacy_outcome")}
         out.append(f"[{code}]")
-        # an outcome element states a conclusion; it is shown only when the system found it (#20)
-        out += [f"- {c.status}: {qs.get(c.id, c.id)} — {c.evidence}" for c in checks
-                if c.id not in outcome or c.status == "met"]
+        # an outcome element states the system's conclusion, selected by its marker; shown only when met (#21).
+        # A legacy outcome (5_outcome, pending L2) keeps its pre-#21 display: its question, only when met.
+        for c in checks:
+            o = outcome.get(c.id)
+            if c.id in legacy:
+                if c.status == "met":
+                    out.append(f"- {c.status}: {qs.get(c.id, c.id)} — {c.evidence}")
+            elif o is None:
+                out.append(f"- {c.status}: {qs.get(c.id, c.id)} — {c.evidence}")
+            elif c.status == "met":
+                cond = "".join(f" | ถ้า {x}" for x in o.get("unmodelled_prerequisites") or [])
+                out.append(f"- [{o['marker']} | {o['certainty']}{cond}] {o['statement']}")
     return "\n".join(out) or "-"
 
 

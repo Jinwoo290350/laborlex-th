@@ -9,7 +9,6 @@ question hid which condition failed — the lawful-order exception of LRA s.123(
 
 from __future__ import annotations
 
-import re
 from collections.abc import Mapping
 from typing import Any, Literal
 
@@ -62,8 +61,12 @@ def derive_checks(elements: list[dict], llm: list[ElementCheck]) -> list[Element
 # An element may carry
 #   defeated_by: {when: <expr over "issue/id">, status: not_met|unknown, reason: str, forbid_citations: [keys]}
 # When `when` is met, the element takes `status` with the system's reason, and `forbid_citations` may not be cited by
-# the answer's preliminary points or conclusions. An element may carry `forbid_phrases` (outcome elements): when it is
-# met, the issue's conclusions and the preliminary points must not contain those phrases (unless negated by "ไม่").
+# the answer's preliminary points or conclusions.
+# An element may carry `outcome: {marker, certainty, unmodelled_prerequisites, statement, guard}` (decisions #21): a
+# conclusion the system states to the draft when the element is met. Outcomes are selected by marker, never by
+# matching Thai phrases in the answer; no outcome has a guard yet (guard: none).
+OUTCOME_MARKERS = frozenset({"OUTCOME_WARNING_REQUIRED", "OUTCOME_DISMISSAL_PROHIBITED", "OUTCOME_DISMISSAL_PERMITTED",
+                             "OUTCOME_ACT_PROHIBITED", "OUTCOME_ACT_PERMITTED"})
 
 
 def _qualified(resolved: Mapping[str, Mapping[str, ElementCheck]]) -> dict[str, Status]:
@@ -97,25 +100,17 @@ def _fired(resolved: Mapping[str, Mapping[str, ElementCheck]], tax: Mapping[str,
                 continue
             rule = e.get("defeated_by")
             if rule and c.evidence.startswith("ระบบ:") and combine(rule["when"], status) == MET:
-                yield code, e, "defeat"
-            if e.get("forbid_phrases") and c.status == MET:
-                yield code, e, "outcome"
+                yield code, e
 
 
 def forbidden_citations(resolved: Mapping[str, Mapping[str, ElementCheck]], tax: Mapping[str, dict]) -> set[str]:
-    return {k for _, e, kind in _fired(resolved, tax) if kind == "defeat"
-            for k in e["defeated_by"].get("forbid_citations", [])}
+    return {k for _, e in _fired(resolved, tax) for k in e["defeated_by"].get("forbid_citations", [])}
 
 
 class Conflict(BaseModel):
-    kind: str          # forbidden_citation | outcome_contradicted
+    kind: str          # forbidden_citation
     issue: str
     detail: str
-
-
-def _says(text: str, phrase: str) -> bool:
-    """`phrase` asserted somewhere in `text`, i.e. at least once not directly negated by "ไม่"."""
-    return any(not text[:m.start()].rstrip().endswith("ไม่") for m in re.finditer(re.escape(phrase), text))
 
 
 def answer_conflicts(answer: Any, resolved: Mapping[str, Mapping[str, ElementCheck]],
@@ -128,17 +123,6 @@ def answer_conflicts(answer: Any, resolved: Mapping[str, Mapping[str, ElementChe
         for k in sorted(set(p.citations) & banned):
             out.append(Conflict(kind="forbidden_citation", issue=where,
                                 detail=f"อ้าง {k} ทั้งที่ระบบตัดเหตุนี้แล้ว: " + next(
-                                    e["defeated_by"]["reason"] for _, e, kind in _fired(resolved, tax)
-                                    if kind == "defeat" and k in e["defeated_by"].get("forbid_citations", []))))
-    for code, e, kind in _fired(resolved, tax):
-        if kind != "outcome":
-            continue
-        for where, p in points:
-            if where not in ("preliminary", code):
-                continue
-            text = f"{p.headline} {p.detail}"
-            hit = [ph for ph in e["forbid_phrases"] if _says(text, ph)]
-            if hit:
-                out.append(Conflict(kind="outcome_contradicted", issue=where,
-                                    detail=f"เขียนว่า \"{hit[0]}\" ขัดกับผลที่ระบบสรุป: {e['question']}"))
+                                    e["defeated_by"]["reason"] for _, e in _fired(resolved, tax)
+                                    if k in e["defeated_by"].get("forbid_citations", []))))
     return out
