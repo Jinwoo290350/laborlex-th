@@ -1,0 +1,84 @@
+{
+ "frozen_at": "2026-10-07T22:21:51+07:00",
+ "md5_order": [
+  "p1720-2911-2528",
+  "p1720-3211-2545"
+ ],
+ "leakage_note": "Both source rulings are in the Legal Index; the question is built from the same facts, so retrieval may surface the source ruling and its holding — same for production and staging. Results test #17/#20 logic under these fact patterns only; absolute scores and generalisation must not be read broadly. 2 cases do not prove generalisation.",
+ "construction_rules": "facts only from the judgment (findings of fact and the parties' own allegations, labelled as allegations); no holding, no lawful/unlawful conclusion, no statement on whether a warning is required, no ruling number; names replaced (นาย ก./ข.); same question template; compensation not asked (not decided in 2911/2528)",
+ "development_cases_excluded": [
+  "ram-law4004-2-2554-q4",
+  "ram-law4004-2-2558-q4",
+  "Huay Khwang"
+ ],
+ "status": "FROZEN candidate set — awaiting approval for benchmark construction; no Gemini run",
+ "cases": {
+  "p1720-2911-2528": {
+   "source": "คำพิพากษาศาลฎีกา 2911/2528 (Legal Index; deka.supremecourt.or.th)",
+   "source_facts": [
+    "นาย ก. เป็นลูกจ้างของโรงงานแห่งหนึ่งและเป็นกรรมการลูกจ้าง",
+    "ระเบียบข้อบังคับในการทำงานของนายจ้างมีข้อความว่า ในกรณีจำเป็นฝ่ายบริหารโรงงานมีสิทธิที่จะทำการสับเปลี่ยนกะการทำงาน หรือโยกย้าย หรือมอบหมายงานเพิ่มเติมให้แก่พนักงานตามความเหมาะสมและตามสภาพการทำงานของพนักงาน",
+    "นายจ้างสั่งให้นาย ก. ไปทำงานที่โรงงานเก่าเพื่อช่วยซ่อมเครื่องเป็นการชั่วคราว",
+    "นาย ก. ไม่ไปทำงานที่โรงงานเก่า แต่มาที่โรงงานใหม่ซึ่งเป็นที่ทำงานเดิมของตนเพื่อจะเข้าทำงานที่นั่น เป็นเวลาสามวันทำงานติดต่อกัน",
+    "นาย ก. อ้างว่าตนไปทำงานตามปกติทุกวัน แต่นายจ้างไม่ยอมให้เข้าทำงาน และกลั่นแกล้งเพื่อบีบบังคับให้ตนลาออกจากกรรมการลูกจ้างหรือลาออกจากการเป็นลูกจ้าง",
+    "นายจ้างยื่นคำร้องต่อศาลแรงงานขออนุญาตเลิกจ้างนาย ก."
+   ],
+   "worker": "นาย ก.",
+   "dismissal_word": "นาย ก. (โดยขออนุญาตต่อศาลแรงงาน)",
+   "legal_issues": [
+    "employee committee protection: dismissal needs Labour Court permission (LRA s.52)",
+    "order within the employer's power under the work rules; refusal",
+    "abandonment of duty for three consecutive working days without reasonable cause",
+    "alleged harassment / anti-union motive"
+   ],
+   "expected_outcome": "(1) permission to dismiss may be granted: the temporary transfer was within the employer's power under the work rules; not going for three consecutive working days is abandonment without reasonable cause; the employee's belief of harassment does not excuse it. (2) as an employee-committee member he is protected only in that dismissal needs Labour Court permission (s.52); that permission is warranted here. Compensation was not decided by the court (not asked).",
+   "relevant_provisions": [
+    "LRA2518:52",
+    "LRA2518:123 (linked; agreement-in-force not established by the facts)",
+    "LPA2541:119 (5) (abandonment — today's equivalent, not asked)"
+   ],
+   "expected_17_trigger": "POSITIVE: refusal of an order permitted by the work rules (5/9b sub-element b) and no obstructive purpose shown → lawful-order element expected met",
+   "expected_20_trigger": "POSITIVE candidate: harassment/anti-union allegation may tempt a s.121(1) finding; expected: no s.121(1) finding (court found no harassment)",
+   "expected_warning_requirement": "NOT decisive: the ground is abandonment (separate exception); an answer must not make 'written warning first' the reason the dismissal fails or succeeds",
+   "class": "POSITIVE #17 + POSITIVE #20 candidate + ADVERSARIAL on outcome (separate dismissal ground)",
+   "question": "นาย ก. เป็นลูกจ้างของโรงงานแห่งหนึ่งและเป็นกรรมการลูกจ้าง ระเบียบข้อบังคับในการทำงานของนายจ้างมีข้อความว่า ในกรณีจำเป็นฝ่ายบริหารโรงงานมีสิทธิที่จะทำการสับเปลี่ยนกะการทำงาน หรือโยกย้าย หรือมอบหมายงานเพิ่มเติมให้แก่พนักงานตามความเหมาะสมและตามสภาพการทำงานของพนักงาน นายจ้างสั่งให้นาย ก. ไปทำงานที่โรงงานเก่าเพื่อช่วยซ่อมเครื่องเป็นการชั่วคราว นาย ก. ไม่ไปทำงานที่โรงงานเก่า แต่มาที่โรงงานใหม่ซึ่งเป็นที่ทำงานเดิมของตนเพื่อจะเข้าทำงานที่นั่น เป็นเวลาสามวันทำงานติดต่อกัน นาย ก. อ้างว่าตนไปทำงานตามปกติทุกวัน แต่นายจ้างไม่ยอมให้เข้าทำงาน และกลั่นแกล้งเพื่อบีบบังคับให้ตนลาออกจากกรรมการลูกจ้างหรือลาออกจากการเป็นลูกจ้าง นายจ้างยื่นคำร้องต่อศาลแรงงานขออนุญาตเลิกจ้างนาย ก. ให้วินิจฉัยว่า (1) นายจ้างเลิกจ้างนาย ก. (โดยขออนุญาตต่อศาลแรงงาน)ได้หรือไม่ (2) นาย ก.ได้รับความคุ้มครองตามพระราชบัญญัติแรงงานสัมพันธ์ พ.ศ. 2518 หรือไม่ เพราะเหตุใด",
+   "question_sha256": "24d59a391d099847e9fc156f8ca6eb2c667eaec3ccaf07b0662070068adc2435",
+   "md5": "4a860249e68bf3726b94dc49a9a99ea5",
+   "construction_check_forbidden_phrases_found": []
+  },
+  "p1720-3211-2545": {
+   "source": "คำพิพากษาศาลฎีกา 3211/2545 (Legal Index; deka.supremecourt.or.th)",
+   "source_facts": [
+    "นาย ข. เป็นลูกจ้างของนายจ้างซึ่งประกอบกิจการทอผ้าและปั่นด้าย และเป็นสมาชิกสหภาพแรงงาน นายจ้างมีข้อตกลงเกี่ยวกับสภาพการจ้างที่ใช้บังคับอยู่",
+    "นาย ข. ยื่นใบลาป่วยพร้อมใบรับรองแพทย์ซึ่งระบุว่าป่วยเป็นโรคปอดอักเสบเรื้อรัง และได้รับอนุญาตให้ลาจนครบกำหนดแล้วกลับมาทำงาน",
+    "นายจ้างมีหนังสือสั่งให้นาย ข. ไปตรวจร่างกายกับแพทย์ที่โรงพยาบาลซึ่งนายจ้างกำหนด นาย ข. รับทราบคำสั่ง แล้วมีหนังสือแจ้งนายจ้างว่าจะไม่ไปตรวจกับแพทย์อื่นเพราะมีแพทย์รักษาอยู่แล้ว",
+    "นายจ้างมีหนังสือตักเตือนนาย ข. กรณีไม่ปฏิบัติตามคำสั่ง และมีหนังสือยืนยันคำสั่งให้ไปตรวจร่างกาย นาย ข. ยังไม่ไป",
+    "นายจ้างมีหนังสือลงโทษพักงานนาย ข. 11 วันโดยไม่ได้รับค่าจ้าง ต่อมามีหนังสือยืนยันคำสั่งให้ไปตรวจร่างกายอีก นาย ข. ก็ไม่ปฏิบัติตาม",
+    "นายจ้างมีหนังสือเลิกจ้างนาย ข. โดยไม่จ่ายค่าชดเชย",
+    "นาย ข. อ้างว่าการเลิกจ้างเกิดขึ้นในระหว่างมีการเจรจาข้อเรียกร้อง และเป็นการเลิกจ้างที่ไม่เป็นธรรม"
+   ],
+   "worker": "นาย ข.",
+   "dismissal_word": "นาย ข.",
+   "legal_issues": [
+    "order to be examined by the employer's doctor; refusal after a written warning, suspension and confirmation",
+    "dismissal for disobeying an order after a written warning (today: LPA s.119(4))",
+    "alleged s.31 protection (negotiation of a demand) — allegation only",
+    "alleged unfair dismissal"
+   ],
+   "expected_outcome": "(1) the employer may dismiss without severance: the order was a reasonable work-related order, the employee refused, was warned in writing and refused again; not an unfair dismissal. (2) the s.31 allegation was NOT decided by the court; our expectation (inference from the statute, not the holding): even if s.31 applied, its exception (3) — disobeying a lawful order after a written warning — permits the dismissal → this sub-point is scored INCONCLUSIVE if answers differ only on it.",
+   "relevant_provisions": [
+    "LPA2541:119 (4) (today's equivalent of the Interior Ministry announcement ข้อ 47(4) applied by the court)",
+    "LPA2541:118",
+    "LRA2518:31 (alleged)"
+   ],
+   "expected_17_trigger": "UNCLEAR: the order is lawful because it is reasonable (court), not because an agreement/rule/consent authorises it → under staging's derive rule (refused ∧ (per agreement/rules ∨ consent) ∧ ¬obstruction) the lawful-order element may stay unknown → tests a possible false negative of #17's narrow 'lawful' definition",
+   "expected_20_trigger": "POSITIVE candidate: 'dismissed during negotiation of a demand' may tempt a s.121(1) / s.31 breach finding; expected: no ULP and no s.31 breach finding — but suppression fires only if the lawful-order element is met (see #17)",
+   "expected_warning_requirement": "SATISFIED: written warning given, then repeated refusal (the complete warning path)",
+   "class": "ADVERSARIAL / LIMITATION for #17 (lawful by reasonableness, not by agreement/consent) + #20 candidate; complete warning path",
+   "question": "นาย ข. เป็นลูกจ้างของนายจ้างซึ่งประกอบกิจการทอผ้าและปั่นด้าย และเป็นสมาชิกสหภาพแรงงาน นายจ้างมีข้อตกลงเกี่ยวกับสภาพการจ้างที่ใช้บังคับอยู่ นาย ข. ยื่นใบลาป่วยพร้อมใบรับรองแพทย์ซึ่งระบุว่าป่วยเป็นโรคปอดอักเสบเรื้อรัง และได้รับอนุญาตให้ลาจนครบกำหนดแล้วกลับมาทำงาน นายจ้างมีหนังสือสั่งให้นาย ข. ไปตรวจร่างกายกับแพทย์ที่โรงพยาบาลซึ่งนายจ้างกำหนด นาย ข. รับทราบคำสั่ง แล้วมีหนังสือแจ้งนายจ้างว่าจะไม่ไปตรวจกับแพทย์อื่นเพราะมีแพทย์รักษาอยู่แล้ว นายจ้างมีหนังสือตักเตือนนาย ข. กรณีไม่ปฏิบัติตามคำสั่ง และมีหนังสือยืนยันคำสั่งให้ไปตรวจร่างกาย นาย ข. ยังไม่ไป นายจ้างมีหนังสือลงโทษพักงานนาย ข. 11 วันโดยไม่ได้รับค่าจ้าง ต่อมามีหนังสือยืนยันคำสั่งให้ไปตรวจร่างกายอีก นาย ข. ก็ไม่ปฏิบัติตาม นายจ้างมีหนังสือเลิกจ้างนาย ข. โดยไม่จ่ายค่าชดเชย นาย ข. อ้างว่าการเลิกจ้างเกิดขึ้นในระหว่างมีการเจรจาข้อเรียกร้อง และเป็นการเลิกจ้างที่ไม่เป็นธรรม ให้วินิจฉัยว่า (1) นายจ้างเลิกจ้างนาย ข.ได้หรือไม่ (2) นาย ข.ได้รับความคุ้มครองตามพระราชบัญญัติแรงงานสัมพันธ์ พ.ศ. 2518 หรือไม่ เพราะเหตุใด",
+   "question_sha256": "ce0cb925ed3bc8b358edd5b4fccd4758ad5164bcdefbcb8ec0ae4011f4d8ed4f",
+   "md5": "c626286cc1add9db8c1dda30e8dfaf6a",
+   "construction_check_forbidden_phrases_found": []
+  }
+ }
+}

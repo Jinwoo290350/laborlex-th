@@ -1,0 +1,901 @@
+{
+ "frozen_at": "2026-10-07T22:47:35+07:00",
+ "status": "FROZEN (approved by Frank 2026-10-08) — expected states re-frozen under decisions #21 (outcome elements v2 for s.123); s.31 unchanged (5_outcome legacy_outcome: pending_L2); not a benchmark manifest; no Gemini run",
+ "construction_rules": "facts only from the judgment (findings of fact and the parties' own allegations, labelled as allegations); no holding, no lawful/unlawful conclusion, no statement on whether a warning is required, no ruling number; names replaced (นาย ก./ข.); same question template; compensation not asked (not decided in 2911/2528)",
+ "scoring": {
+  "C1": "leaf statuses vs expected (status or accept list = match; scored=False not counted); derived statuses must equal derive(leaves actually produced) — deterministic",
+  "C2": "production vs staging final answers vs gold (paired, A/B-blinded files)",
+  "diagnostic": "holding vs element conflict; no diagnostic case in a PASS denominator",
+  "PASS_denominator": [
+   "p1720-768-2533"
+  ],
+  "PASS_denominator_note": "Denominator definition only, not a result: 768/2533 is the only case counted. No run has been made against these expected states."
+ },
+ "cases": {
+  "p1720-768-2533": {
+   "source": "คำพิพากษาศาลฎีกา 768/2533",
+   "source_facts": [
+    "นางสาว ค. เป็นลูกจ้างของโรงงานปั่นทอแห่งหนึ่ง ทำงานคุมเครื่องจักรในกะเช้า และเป็นสมาชิกสหภาพแรงงานตั้งแต่วันที่ 21 มีนาคม 2531 โดยเป็นกรรมการสหภาพแรงงานฝ่ายรับเรื่องราวร้องทุกข์ด้วย",
+    "สหภาพแรงงานยื่นข้อเรียกร้องต่อนายจ้างเมื่อวันที่ 1 เมษายน 2531 และได้ทำข้อตกลงเกี่ยวกับสภาพการจ้างกับนายจ้าง มีผลใช้บังคับตั้งแต่วันที่ 3 เมษายน 2531 โดยไม่ได้กำหนดวันสิ้นสุด",
+    "ข้อตกลงเกี่ยวกับสภาพการจ้างกำหนดให้ลูกจ้างกะเช้าหยุดพักรับประทานอาหารในช่วงเวลา 9.00 ถึง 10.30 นาฬิกา โดยไม่ได้กำหนดว่าลูกจ้างคนใดต้องหยุดพักในเวลาใด",
+    "วันที่ 23 พฤศจิกายน 2531 นายจ้างกำหนดเวลารับประทานอาหารของลูกจ้างกะเช้าเป็นกลุ่ม กลุ่มละ 30 นาที และกำหนดให้นางสาว ค. ไปรับประทานอาหารเวลา 10.00 นาฬิกา นางสาว ค. ทราบคำสั่งนี้แล้ว",
+    "นางสาว ค. ออกไปรับประทานอาหารเวลา 9.30 นาฬิกา โดยทิ้งเครื่องจักรที่ตนคุมไว้โดยไม่มีผู้อื่นคุมแทน ทำให้ด้ายขาดไปพันลูกหนังและเพลา ต้องหยุดเครื่องและแกะด้ายออก ใช้เวลาแก้ไขประมาณครึ่งชั่วโมง",
+    "นายจ้างไม่เคยตักเตือนนางสาว ค. เป็นหนังสือมาก่อน และเลิกจ้างนางสาว ค. ในเดือนพฤศจิกายน 2531",
+    "ฝ่ายนางสาว ค. อ้างว่าการกำหนดเวลารับประทานอาหารใหม่เป็นการเปลี่ยนแปลงข้อตกลงเกี่ยวกับสภาพการจ้างโดยไม่ได้แจ้งข้อเรียกร้อง"
+   ],
+   "worker": "นางสาว ค.",
+   "dismissal_word": "นางสาว ค.",
+   "question": "นางสาว ค. เป็นลูกจ้างของโรงงานปั่นทอแห่งหนึ่ง ทำงานคุมเครื่องจักรในกะเช้า และเป็นสมาชิกสหภาพแรงงานตั้งแต่วันที่ 21 มีนาคม 2531 โดยเป็นกรรมการสหภาพแรงงานฝ่ายรับเรื่องราวร้องทุกข์ด้วย สหภาพแรงงานยื่นข้อเรียกร้องต่อนายจ้างเมื่อวันที่ 1 เมษายน 2531 และได้ทำข้อตกลงเกี่ยวกับสภาพการจ้างกับนายจ้าง มีผลใช้บังคับตั้งแต่วันที่ 3 เมษายน 2531 โดยไม่ได้กำหนดวันสิ้นสุด ข้อตกลงเกี่ยวกับสภาพการจ้างกำหนดให้ลูกจ้างกะเช้าหยุดพักรับประทานอาหารในช่วงเวลา 9.00 ถึง 10.30 นาฬิกา โดยไม่ได้กำหนดว่าลูกจ้างคนใดต้องหยุดพักในเวลาใด วันที่ 23 พฤศจิกายน 2531 นายจ้างกำหนดเวลารับประทานอาหารของลูกจ้างกะเช้าเป็นกลุ่ม กลุ่มละ 30 นาที และกำหนดให้นางสาว ค. ไปรับประทานอาหารเวลา 10.00 นาฬิกา นางสาว ค. ทราบคำสั่งนี้แล้ว นางสาว ค. ออกไปรับประทานอาหารเวลา 9.30 นาฬิกา โดยทิ้งเครื่องจักรที่ตนคุมไว้โดยไม่มีผู้อื่นคุมแทน ทำให้ด้ายขาดไปพันลูกหนังและเพลา ต้องหยุดเครื่องและแกะด้ายออก ใช้เวลาแก้ไขประมาณครึ่งชั่วโมง นายจ้างไม่เคยตักเตือนนางสาว ค. เป็นหนังสือมาก่อน และเลิกจ้างนางสาว ค. ในเดือนพฤศจิกายน 2531 ฝ่ายนางสาว ค. อ้างว่าการกำหนดเวลารับประทานอาหารใหม่เป็นการเปลี่ยนแปลงข้อตกลงเกี่ยวกับสภาพการจ้างโดยไม่ได้แจ้งข้อเรียกร้อง ให้วินิจฉัยว่า (1) นายจ้างเลิกจ้างนางสาว ค.ได้หรือไม่ (2) นางสาว ค.ได้รับความคุ้มครองตามพระราชบัญญัติแรงงานสัมพันธ์ พ.ศ. 2518 หรือไม่ เพราะเหตุใด",
+   "gold": "(1) เลิกจ้างไม่ได้: คำสั่งกำหนดเวลาพักเป็นคำสั่งอันชอบด้วยกฎหมาย (กำหนดตามเวลาในข้อตกลงเดิม ไม่ใช่การเปลี่ยนแปลงข้อตกลง) และนางสาว ค. จงใจฝ่าฝืน แต่ความเสียหายเป็นความเสียหายปกติ ไม่ใช่กรณีร้ายแรง และนายจ้างไม่เคยตักเตือนเป็นหนังสือ จึงไม่เข้าข้อยกเว้น ม.123(3) (2) ได้รับความคุ้มครองตาม ม.123: เลิกจ้างในระหว่างข้อตกลงมีผลใช้บังคับ เป็นการกระทำอันไม่เป็นธรรม คณะกรรมการแรงงานสัมพันธ์สั่งรับกลับและชดใช้ค่าเสียหายได้",
+   "role": "QUALIFIED CLEAN POSITIVE (counted)",
+   "caveat": "lawful basis borderline: court says the order follows the CBA's meal window AND calls it management power; facts not altered to fit the predicate",
+   "construction_check_forbidden_phrases_found": [],
+   "question_sha256": "bb0f87a3cca418f53611bc835a018b0c981f8824bd32545f911760241930172d",
+   "expected": {
+    "issues_expected": [
+     "employee_committee_and_union_protection"
+    ],
+    "issues_not_expected": [
+     "dispute_protection_s31"
+    ],
+    "leaves": {
+     "employee_committee_and_union_protection": {
+      "3": {
+       "status": "not_met",
+       "accept": [],
+       "scored": true,
+       "why": "no s.121(1) act alleged"
+      },
+      "8": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "CBA effective 3 Apr 2531, no end date; dismissal Nov 2531; union committee member"
+      },
+      "9b_a": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "went to eat at 9.30 against the 10.00 assignment"
+      },
+      "9b_b": {
+       "status": "met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": true,
+       "why": "order sets times inside the CBA window (court); unknown = predicate-narrow caveat realised, not a failure"
+      },
+      "9b_c": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": false,
+       "why": "no consent facts; non-decisive because 9b_b"
+      },
+      "9b_d": {
+       "status": "not_met",
+       "accept": [],
+       "scored": true,
+       "why": "no fact that the order targeted demand activity"
+      },
+      "9b_e": {
+       "status": "not_met",
+       "accept": [],
+       "scored": true,
+       "why": "no prior written warning; ordinary damage (court: not serious)"
+      },
+      "9": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": true,
+       "why": "no (1)(2)(4)(5) ground: half-hour early meal break, ordinary damage (court: not serious, not wilful)"
+      },
+      "9b_dismissed": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "dismissed in Nov 2531"
+      },
+      "9b_ground_misconduct": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "ground = leaving the machine for an early meal against the assigned time"
+      }
+     }
+    },
+    "risk": "RESOLVED by #21: the old 9b_outcome ('ไม่ได้รับความคุ้มครอง') is gone; 9b_dismissal_prohibited states the court's result (protected, ULP) and holds even if 9b_b = U. Remaining risk: LLM leaves 9b_ground_misconduct or 9 unknown → outcome unknown, not wrong.",
+    "derived": {
+     "employee_committee_and_union_protection": {
+      "9b_lawful": "met",
+      "9b": "not_met",
+      "9b_warning_required": "met",
+      "9b_dismissal_prohibited": "met",
+      "9b_dismissal_permitted": "not_met"
+     }
+    },
+    "defeated_by": {
+     "rule": "S123/3 → not_met and ULP/7 → unknown, only if the LLM calls that element met AND (9b_lawful ∧ ¬9b_d) or (5_lawful ∧ ¬5_d) is met",
+     "expected_element_3": "not_met",
+     "when_condition_expected": "met (unknown if 9b_b = U)",
+     "forbidden_key_if_it_fires": "LRA2518:121:1:(1)",
+     "previous_freeze_said": [
+      "LRA2518:121:1:(1)"
+     ]
+    }
+   },
+   "leakage": {
+    "source_ruling_rank": 1,
+    "of": 3591,
+    "top1_kept_if_issue_sections_were": {
+     "LRA2518:52": "3254/2531",
+     "LRA2518:123": "768/2533",
+     "LRA2518:31": "2490/2526",
+     "LRA2518:121": "3808/2547",
+     "LPA2541:119": "3645/2557"
+    },
+    "source_ruling_in_state_cases": "measured from the run trace (depends on the issues/sections the run produces)"
+   }
+  },
+  "p1720-10251-2551": {
+   "source": "คำพิพากษาศาลฎีกา 10251/2551",
+   "source_facts": [
+    "นาย ง. เป็นพนักงานขับรถของนายจ้างซึ่งให้บริษัทนำเที่ยวเช่ารถโดยสารปรับอากาศ และเป็นกรรมการลูกจ้างและสมาชิกสหภาพแรงงาน",
+    "สัญญาเช่ารถระหว่างนายจ้างกับบริษัทนำเที่ยวระบุว่า บริษัทนำเที่ยวเป็นผู้จ่ายค่าล่วงเวลาและเบี้ยเลี้ยงให้แก่พนักงานขับรถแทนนายจ้าง",
+    "เดิมนาย ง. รับค่าล่วงเวลาหรือเบี้ยเลี้ยงวันละ 300 บาทจากมัคคุเทศก์หลังเสร็จการปฏิบัติงานแต่ละครั้ง",
+    "นาย ง. กับพวกเคยฟ้องนายจ้างเรียกค่าล่วงเวลาย้อนหลัง 2 ปี และศาลพิพากษาว่าเบี้ยเลี้ยง 300 บาทรวมอยู่ในค่าล่วงเวลาแล้ว",
+    "ต่อมานายจ้างออกระเบียบให้พนักงานขับรถนำค่าล่วงเวลาหรือเบี้ยเลี้ยงที่ได้รับจากมัคคุเทศก์มามอบให้นายจ้าง แล้วนายจ้างจะคำนวณจ่ายให้พนักงานขับรถเองตามรายงานการทำงาน",
+    "นาย ง. คัดค้านว่าเป็นการเปลี่ยนแปลงสภาพการจ้าง และยื่นคำร้องต่อคณะกรรมการแรงงานสัมพันธ์ให้ไกล่เกลี่ย พนักงานเจ้าหน้าที่แรงงานสัมพันธ์แนะนำให้นาย ง. ปฏิบัติตามคำสั่งของนายจ้าง",
+    "นายจ้างออกประกาศลงวันที่ 22 ตุลาคม 2547 และวันที่ 23 พฤศจิกายน 2547 เตือนให้พนักงานขับรถนำส่งเงินดังกล่าว แต่นาย ง. ยังคงรับเงินจากบริษัทนำเที่ยวแล้วเก็บไว้เอง ไม่นำส่งนายจ้าง",
+    "นายจ้างยื่นคำร้องต่อศาลแรงงานขออนุญาตเลิกจ้างนาย ง."
+   ],
+   "worker": "นาย ง.",
+   "dismissal_word": "นาย ง. (โดยขออนุญาตต่อศาลแรงงาน)",
+   "question": "นาย ง. เป็นพนักงานขับรถของนายจ้างซึ่งให้บริษัทนำเที่ยวเช่ารถโดยสารปรับอากาศ และเป็นกรรมการลูกจ้างและสมาชิกสหภาพแรงงาน สัญญาเช่ารถระหว่างนายจ้างกับบริษัทนำเที่ยวระบุว่า บริษัทนำเที่ยวเป็นผู้จ่ายค่าล่วงเวลาและเบี้ยเลี้ยงให้แก่พนักงานขับรถแทนนายจ้าง เดิมนาย ง. รับค่าล่วงเวลาหรือเบี้ยเลี้ยงวันละ 300 บาทจากมัคคุเทศก์หลังเสร็จการปฏิบัติงานแต่ละครั้ง นาย ง. กับพวกเคยฟ้องนายจ้างเรียกค่าล่วงเวลาย้อนหลัง 2 ปี และศาลพิพากษาว่าเบี้ยเลี้ยง 300 บาทรวมอยู่ในค่าล่วงเวลาแล้ว ต่อมานายจ้างออกระเบียบให้พนักงานขับรถนำค่าล่วงเวลาหรือเบี้ยเลี้ยงที่ได้รับจากมัคคุเทศก์มามอบให้นายจ้าง แล้วนายจ้างจะคำนวณจ่ายให้พนักงานขับรถเองตามรายงานการทำงาน นาย ง. คัดค้านว่าเป็นการเปลี่ยนแปลงสภาพการจ้าง และยื่นคำร้องต่อคณะกรรมการแรงงานสัมพันธ์ให้ไกล่เกลี่ย พนักงานเจ้าหน้าที่แรงงานสัมพันธ์แนะนำให้นาย ง. ปฏิบัติตามคำสั่งของนายจ้าง นายจ้างออกประกาศลงวันที่ 22 ตุลาคม 2547 และวันที่ 23 พฤศจิกายน 2547 เตือนให้พนักงานขับรถนำส่งเงินดังกล่าว แต่นาย ง. ยังคงรับเงินจากบริษัทนำเที่ยวแล้วเก็บไว้เอง ไม่นำส่งนายจ้าง นายจ้างยื่นคำร้องต่อศาลแรงงานขออนุญาตเลิกจ้างนาย ง. ให้วินิจฉัยว่า (1) นายจ้างเลิกจ้างนาย ง. (โดยขออนุญาตต่อศาลแรงงาน)ได้หรือไม่ (2) นาย ง.ได้รับความคุ้มครองตามพระราชบัญญัติแรงงานสัมพันธ์ พ.ศ. 2518 หรือไม่ เพราะเหตุใด",
+   "gold": "(1) อนุญาตให้เลิกจ้างได้ (ม.52): การเปลี่ยนผู้จ่ายจากบริษัทนำเที่ยวเป็นนายจ้างไม่ใช่การเปลี่ยนแปลงสภาพการจ้าง เงินเป็นของนายจ้าง นาย ง. ไม่นำส่งแม้มีประกาศเตือน 2 ครั้ง ไม่ใช่กรณีนายจ้างกลั่นแกล้ง (2) ในฐานะกรรมการลูกจ้าง ได้รับความคุ้มครองเพียงว่าต้องขออนุญาตศาลก่อน (ม.52) ซึ่งมีเหตุอนุญาต; ในฐานะสมาชิกสหภาพ กรณีตาม ม.123 (1)-(5) นายจ้างเลิกจ้างได้โดยไม่ต้องขออนุญาตศาล (ศาลแก้ส่วนนี้); การฟ้องคดีค่าล่วงเวลา/ยื่นคำร้องต่อ คร. ไม่ใช่เหตุของการเลิกจ้าง — ยกขึ้นแล้วปฏิเสธได้ (ศาลไม่ได้วินิจฉัย ม.121 โดยตรง)",
+   "role": "STRONG PARTIAL / #20 DIAGNOSTIC (not in PASS denominator)",
+   "caveat": "CBA-in-force fact absent (element 8); staging forbids citing LRA2518:121:1:(1) though a good answer may raise and reject it — design-vs-defect review needed before any use as evidence",
+   "construction_check_forbidden_phrases_found": [],
+   "question_sha256": "c71345cacaf2ba4e9132dcda3101761f1f41d449b4a99bcd965069c00378bef7",
+   "expected": {
+    "issues_expected": [
+     "employee_committee_and_union_protection"
+    ],
+    "issues_not_expected": [
+     "dispute_protection_s31"
+    ],
+    "leaves": {
+     "employee_committee_and_union_protection": {
+      "3": {
+       "status": "not_met",
+       "accept": [],
+       "scored": true,
+       "why": "court: not harassment; dismissal for non-remittance, not for the lawsuit/LRC petition"
+      },
+      "8": {
+       "status": "unknown",
+       "accept": [
+        "not_met"
+       ],
+       "scored": true,
+       "why": "CBA-in-force fact not stated"
+      },
+      "9b_a": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "kept the money despite 2 written notices"
+      },
+      "9b_b": {
+       "status": "met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": true,
+       "why": "employer regulation (ระเบียบ) — the regulation is itself the order"
+      },
+      "9b_c": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": false,
+       "why": "no consent; non-decisive"
+      },
+      "9b_d": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": true,
+       "why": "no fact the order targeted demand activity; the earlier lawsuit/petition is a dispute, not a demand under s.13"
+      },
+      "9b_e": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "two written notices"
+      },
+      "9": {
+       "status": "unknown",
+       "accept": [
+        "not_met",
+        "met"
+       ],
+       "scored": false,
+       "why": "keeping the employer's money: (1)/(2) not decided by the court; not dismissed yet, so no outcome depends on it"
+      },
+      "9b_dismissed": {
+       "status": "not_met",
+       "accept": [],
+       "scored": true,
+       "why": "permission to dismiss requested from the Labour Court (s.52)"
+      },
+      "9b_ground_misconduct": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "ground = not remitting the money despite written notices"
+      }
+     }
+    },
+    "risk": "#20 strips/blocks LRA2518:121:1:(1) although the lawsuit and LRC petition are s.121(1) acts a good answer may raise and reject → diagnostic: does the answer address that point at all?",
+    "derived": {
+     "employee_committee_and_union_protection": {
+      "9b_lawful": "met",
+      "9b": "met",
+      "9b_warning_required": "not_met",
+      "9b_dismissal_prohibited": "not_met",
+      "9b_dismissal_permitted": "not_met"
+     }
+    },
+    "defeated_by": {
+     "rule": "S123/3 → not_met and ULP/7 → unknown, only if the LLM calls that element met AND (9b_lawful ∧ ¬9b_d) or (5_lawful ∧ ¬5_d) is met",
+     "expected_element_3": "not_met",
+     "when_condition_expected": "met (unknown if 9b_d = U)",
+     "forbidden_key_if_it_fires": "LRA2518:121:1:(1)",
+     "previous_freeze_said": [
+      "LRA2518:121:1:(1)"
+     ]
+    }
+   },
+   "leakage": {
+    "source_ruling_rank": 2,
+    "of": 3591,
+    "top1_kept_if_issue_sections_were": {
+     "LRA2518:52": "10251/2551",
+     "LRA2518:123": "10251/2551",
+     "LRA2518:31": "ร 2594/2563",
+     "LRA2518:121": "3808/2547",
+     "LPA2541:119": "6067/2545"
+    },
+    "source_ruling_in_state_cases": "measured from the run trace (depends on the issues/sections the run produces)"
+   }
+  },
+  "p1720-3211-2545": {
+   "source": "คำพิพากษาศาลฎีกา 3211/2545 (Legal Index; deka.supremecourt.or.th)",
+   "question": "นาย ข. เป็นลูกจ้างของนายจ้างซึ่งประกอบกิจการทอผ้าและปั่นด้าย และเป็นสมาชิกสหภาพแรงงาน นายจ้างมีข้อตกลงเกี่ยวกับสภาพการจ้างที่ใช้บังคับอยู่ นาย ข. ยื่นใบลาป่วยพร้อมใบรับรองแพทย์ซึ่งระบุว่าป่วยเป็นโรคปอดอักเสบเรื้อรัง และได้รับอนุญาตให้ลาจนครบกำหนดแล้วกลับมาทำงาน นายจ้างมีหนังสือสั่งให้นาย ข. ไปตรวจร่างกายกับแพทย์ที่โรงพยาบาลซึ่งนายจ้างกำหนด นาย ข. รับทราบคำสั่ง แล้วมีหนังสือแจ้งนายจ้างว่าจะไม่ไปตรวจกับแพทย์อื่นเพราะมีแพทย์รักษาอยู่แล้ว นายจ้างมีหนังสือตักเตือนนาย ข. กรณีไม่ปฏิบัติตามคำสั่ง และมีหนังสือยืนยันคำสั่งให้ไปตรวจร่างกาย นาย ข. ยังไม่ไป นายจ้างมีหนังสือลงโทษพักงานนาย ข. 11 วันโดยไม่ได้รับค่าจ้าง ต่อมามีหนังสือยืนยันคำสั่งให้ไปตรวจร่างกายอีก นาย ข. ก็ไม่ปฏิบัติตาม นายจ้างมีหนังสือเลิกจ้างนาย ข. โดยไม่จ่ายค่าชดเชย นาย ข. อ้างว่าการเลิกจ้างเกิดขึ้นในระหว่างมีการเจรจาข้อเรียกร้อง และเป็นการเลิกจ้างที่ไม่เป็นธรรม ให้วินิจฉัยว่า (1) นายจ้างเลิกจ้างนาย ข.ได้หรือไม่ (2) นาย ข.ได้รับความคุ้มครองตามพระราชบัญญัติแรงงานสัมพันธ์ พ.ศ. 2518 หรือไม่ เพราะเหตุใด",
+   "question_sha256_unchanged": "ce0cb925ed3bc8b358edd5b4fccd4758ad5164bcdefbcb8ec0ae4011f4d8ed4f",
+   "gold": "(1) the employer may dismiss without severance: the order was a reasonable work-related order, the employee refused, was warned in writing and refused again; not an unfair dismissal. (2) the s.31 allegation was NOT decided by the court; our expectation (inference from the statute, not the holding): even if s.31 applied, its exception (3) — disobeying a lawful order after a written warning — permits the dismissal → this sub-point is scored INCONCLUSIVE if answers differ only on it.",
+   "role": "LIMITATION probe (not in PASS denominator)",
+   "question_sha256": "ce0cb925ed3bc8b358edd5b4fccd4758ad5164bcdefbcb8ec0ae4011f4d8ed4f",
+   "expected": {
+    "issues_expected": [
+     "employee_committee_and_union_protection",
+     "dispute_protection_s31"
+    ],
+    "issues_not_expected": [],
+    "leaves": {
+     "employee_committee_and_union_protection": {
+      "3": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": true,
+       "why": "not decided by the court; inference"
+      },
+      "8": {
+       "status": "met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": true,
+       "why": "CBA in force + union member; 'related to the demand' not stated"
+      },
+      "9b_a": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": ""
+      },
+      "9b_b": {
+       "status": "unknown",
+       "accept": [
+        "not_met"
+       ],
+       "scored": true,
+       "why": "LIMITATION: order lawful because reasonable, no agreement/rule/consent fact"
+      },
+      "9b_c": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": false,
+       "why": ""
+      },
+      "9b_d": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": true,
+       "why": ""
+      },
+      "9b_e": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "written warning, confirmation, suspension"
+      },
+      "9": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": true,
+       "why": "ground is disobedience after warning (court: Interior Ministry ann. 47(4) ≈ (3)), not (1)(2)(4)(5)"
+      },
+      "9b_dismissed": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "dismissed without severance"
+      },
+      "9b_ground_misconduct": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "ground = refusing the medical examination order"
+      }
+     },
+     "dispute_protection_s31": {
+      "1": {
+       "status": "unknown",
+       "accept": [],
+       "scored": true,
+       "why": "only the employee's allegation of a negotiation"
+      },
+      "2": {
+       "status": "unknown",
+       "accept": [],
+       "scored": true,
+       "why": ""
+      },
+      "5_a": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": ""
+      },
+      "5_b": {
+       "status": "unknown",
+       "accept": [
+        "not_met"
+       ],
+       "scored": true,
+       "why": "LIMITATION as 9b_b"
+      },
+      "5_c": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": false,
+       "why": ""
+      },
+      "5_d": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": true,
+       "why": ""
+      },
+      "5_e": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": ""
+      }
+     }
+    },
+    "risk": "holding (order lawful → dismissal lawful) vs elements (lawful = unknown) — the C2 natural experiment: does the draft follow the holding or the elements?",
+    "derived": {
+     "employee_committee_and_union_protection": {
+      "9b_lawful": "unknown",
+      "9b": "unknown",
+      "9b_warning_required": "not_met",
+      "9b_dismissal_prohibited": "unknown",
+      "9b_dismissal_permitted": "unknown"
+     },
+     "dispute_protection_s31": {
+      "5_lawful": "unknown",
+      "5": "unknown",
+      "5_outcome": "not_met"
+     }
+    },
+    "defeated_by": {
+     "rule": "S123/3 → not_met and ULP/7 → unknown, only if the LLM calls that element met AND (9b_lawful ∧ ¬9b_d) or (5_lawful ∧ ¬5_d) is met",
+     "expected_element_3": "not_met",
+     "when_condition_expected": "unknown",
+     "forbidden_key_if_it_fires": "LRA2518:121:1:(1)",
+     "previous_freeze_said": []
+    }
+   },
+   "leakage": {
+    "source_ruling_rank": 3,
+    "of": 3591,
+    "top1_kept_if_issue_sections_were": {
+     "LRA2518:52": "7136/2561",
+     "LRA2518:123": "1062/2525",
+     "LRA2518:31": "1005/2526",
+     "LRA2518:121": "1432/2531",
+     "LPA2541:119": "8789/2550"
+    },
+    "source_ruling_in_state_cases": "measured from the run trace (depends on the issues/sections the run produces)"
+   }
+  },
+  "p1720-2911-2528": {
+   "source": "คำพิพากษาศาลฎีกา 2911/2528 (Legal Index; deka.supremecourt.or.th)",
+   "question": "นาย ก. เป็นลูกจ้างของโรงงานแห่งหนึ่งและเป็นกรรมการลูกจ้าง ระเบียบข้อบังคับในการทำงานของนายจ้างมีข้อความว่า ในกรณีจำเป็นฝ่ายบริหารโรงงานมีสิทธิที่จะทำการสับเปลี่ยนกะการทำงาน หรือโยกย้าย หรือมอบหมายงานเพิ่มเติมให้แก่พนักงานตามความเหมาะสมและตามสภาพการทำงานของพนักงาน นายจ้างสั่งให้นาย ก. ไปทำงานที่โรงงานเก่าเพื่อช่วยซ่อมเครื่องเป็นการชั่วคราว นาย ก. ไม่ไปทำงานที่โรงงานเก่า แต่มาที่โรงงานใหม่ซึ่งเป็นที่ทำงานเดิมของตนเพื่อจะเข้าทำงานที่นั่น เป็นเวลาสามวันทำงานติดต่อกัน นาย ก. อ้างว่าตนไปทำงานตามปกติทุกวัน แต่นายจ้างไม่ยอมให้เข้าทำงาน และกลั่นแกล้งเพื่อบีบบังคับให้ตนลาออกจากกรรมการลูกจ้างหรือลาออกจากการเป็นลูกจ้าง นายจ้างยื่นคำร้องต่อศาลแรงงานขออนุญาตเลิกจ้างนาย ก. ให้วินิจฉัยว่า (1) นายจ้างเลิกจ้างนาย ก. (โดยขออนุญาตต่อศาลแรงงาน)ได้หรือไม่ (2) นาย ก.ได้รับความคุ้มครองตามพระราชบัญญัติแรงงานสัมพันธ์ พ.ศ. 2518 หรือไม่ เพราะเหตุใด",
+   "question_sha256_unchanged": "24d59a391d099847e9fc156f8ca6eb2c667eaec3ccaf07b0662070068adc2435",
+   "gold": "(1) permission to dismiss may be granted: the temporary transfer was within the employer's power under the work rules; not going for three consecutive working days is abandonment without reasonable cause; the employee's belief of harassment does not excuse it. (2) as an employee-committee member he is protected only in that dismissal needs Labour Court permission (s.52); that permission is warranted here. Compensation was not decided by the court (not asked).",
+   "role": "PARTIAL / DIAGNOSTIC (not in PASS denominator) — reclassified from POSITIVE",
+   "question_sha256": "24d59a391d099847e9fc156f8ca6eb2c667eaec3ccaf07b0662070068adc2435",
+   "expected": {
+    "issues_expected": [
+     "employee_committee_and_union_protection"
+    ],
+    "issues_not_expected": [
+     "dispute_protection_s31"
+    ],
+    "leaves": {
+     "employee_committee_and_union_protection": {
+      "3": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": true,
+       "why": "no s.121(1) act; harassment alleged against the committee role"
+      },
+      "8": {
+       "status": "unknown",
+       "accept": [
+        "not_met"
+       ],
+       "scored": true,
+       "why": "no CBA fact"
+      },
+      "9": {
+       "status": "met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": false,
+       "why": "3 consecutive working days at the wrong site (court: abandonment, (4)); not dismissed yet, so no outcome depends on it"
+      },
+      "9b_a": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": ""
+      },
+      "9b_b": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "work-rule clause quoted"
+      },
+      "9b_c": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": false,
+       "why": ""
+      },
+      "9b_d": {
+       "status": "unknown",
+       "accept": [
+        "not_met"
+       ],
+       "scored": true,
+       "why": "only the employee's harassment allegation; no demand at all"
+      },
+      "9b_e": {
+       "status": "unknown",
+       "accept": [
+        "not_met"
+       ],
+       "scored": false,
+       "why": "no warning; ground is abandonment"
+      },
+      "9b_dismissed": {
+       "status": "not_met",
+       "accept": [],
+       "scored": true,
+       "why": "permission to dismiss requested (s.52)"
+      },
+      "9b_ground_misconduct": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "ground = refusing the temporary transfer / absence"
+      }
+     }
+    },
+    "risk": "answer must not turn 'written warning first' into the reason (ground = abandonment + s.52 permission)",
+    "derived": {
+     "employee_committee_and_union_protection": {
+      "9b_lawful": "unknown",
+      "9b": "unknown",
+      "9b_warning_required": "unknown",
+      "9b_dismissal_prohibited": "not_met",
+      "9b_dismissal_permitted": "not_met"
+     }
+    },
+    "defeated_by": {
+     "rule": "S123/3 → not_met and ULP/7 → unknown, only if the LLM calls that element met AND (9b_lawful ∧ ¬9b_d) or (5_lawful ∧ ¬5_d) is met",
+     "expected_element_3": "not_met",
+     "when_condition_expected": "unknown (met if 9b_d = not_met)",
+     "forbidden_key_if_it_fires": "LRA2518:121:1:(1)",
+     "previous_freeze_said": "LRA2518:121:1:(1) only if 9b_d = not_met"
+    }
+   },
+   "leakage": {
+    "source_ruling_rank": 1,
+    "of": 3591,
+    "top1_kept_if_issue_sections_were": {
+     "LRA2518:52": "2911/2528",
+     "LRA2518:123": "2911/2528",
+     "LRA2518:31": "5209/2537",
+     "LRA2518:121": "5586/2539",
+     "LPA2541:119": "7045/2546"
+    },
+    "source_ruling_in_state_cases": "measured from the run trace (depends on the issues/sections the run produces)"
+   }
+  },
+  "p1720-2222-2538": {
+   "source": "คำพิพากษาศาลฎีกา 2222/2538",
+   "source_facts": [
+    "นาย จ. เป็นลูกจ้างตำแหน่งพนักงานฝ่ายผลิตรายวันของนายจ้าง และเป็นกรรมการลูกจ้าง",
+    "วันที่ 5 กันยายน 2537 นายจ้างมีคำสั่งโยกย้ายนาย จ. ไปเป็นเสมียนในตำแหน่งเสมียนผู้จัดการทั่วไป โดยปรับจากลูกจ้างรายวันเป็นลูกจ้างรายเดือน งานใหม่เป็นการจัดทำเอกสาร ตรวจเช็ครายชื่อ และทำรายงาน นาย จ. จบมัธยมศึกษาปีที่ 6 อ่านและเขียนภาษาไทยได้",
+    "นาย จ. ไม่ไปทำงานในตำแหน่งใหม่ โดยอ้างว่าตนไม่มีความรู้ความสามารถที่จะทำงานในตำแหน่งใหม่ได้",
+    "วันที่ 10 กันยายน 2537 นาย จ. กับพวกในนามสหภาพแรงงานยื่นข้อเรียกร้องต่อนายจ้าง และข้อเรียกร้องอยู่ในระหว่างการเจรจา",
+    "วันที่ 14 กันยายน 2537 นายจ้างมีหนังสือเตือนนาย จ. ให้ไปทำงานในตำแหน่งใหม่ รวมแล้วนายจ้างมีหนังสือเตือน 2 ครั้ง นาย จ. ก็ยังไม่ไป",
+    "ข้อพิพาทแรงงานตกลงกันได้เมื่อวันที่ 13 ตุลาคม 2537 แต่จนถึงวันที่ 7 พฤศจิกายน 2537 นาย จ. ก็ยังไม่ไปทำงานในตำแหน่งใหม่",
+    "นาย จ. อ้างว่านายจ้างหาสาเหตุเลิกจ้างตนเพราะตนกับพวกยื่นข้อเรียกร้อง",
+    "นายจ้างยื่นคำร้องต่อศาลแรงงานขออนุญาตเลิกจ้างนาย จ."
+   ],
+   "worker": "นาย จ.",
+   "dismissal_word": "นาย จ. (โดยขออนุญาตต่อศาลแรงงาน)",
+   "question": "นาย จ. เป็นลูกจ้างตำแหน่งพนักงานฝ่ายผลิตรายวันของนายจ้าง และเป็นกรรมการลูกจ้าง วันที่ 5 กันยายน 2537 นายจ้างมีคำสั่งโยกย้ายนาย จ. ไปเป็นเสมียนในตำแหน่งเสมียนผู้จัดการทั่วไป โดยปรับจากลูกจ้างรายวันเป็นลูกจ้างรายเดือน งานใหม่เป็นการจัดทำเอกสาร ตรวจเช็ครายชื่อ และทำรายงาน นาย จ. จบมัธยมศึกษาปีที่ 6 อ่านและเขียนภาษาไทยได้ นาย จ. ไม่ไปทำงานในตำแหน่งใหม่ โดยอ้างว่าตนไม่มีความรู้ความสามารถที่จะทำงานในตำแหน่งใหม่ได้ วันที่ 10 กันยายน 2537 นาย จ. กับพวกในนามสหภาพแรงงานยื่นข้อเรียกร้องต่อนายจ้าง และข้อเรียกร้องอยู่ในระหว่างการเจรจา วันที่ 14 กันยายน 2537 นายจ้างมีหนังสือเตือนนาย จ. ให้ไปทำงานในตำแหน่งใหม่ รวมแล้วนายจ้างมีหนังสือเตือน 2 ครั้ง นาย จ. ก็ยังไม่ไป ข้อพิพาทแรงงานตกลงกันได้เมื่อวันที่ 13 ตุลาคม 2537 แต่จนถึงวันที่ 7 พฤศจิกายน 2537 นาย จ. ก็ยังไม่ไปทำงานในตำแหน่งใหม่ นาย จ. อ้างว่านายจ้างหาสาเหตุเลิกจ้างตนเพราะตนกับพวกยื่นข้อเรียกร้อง นายจ้างยื่นคำร้องต่อศาลแรงงานขออนุญาตเลิกจ้างนาย จ. ให้วินิจฉัยว่า (1) นายจ้างเลิกจ้างนาย จ. (โดยขออนุญาตต่อศาลแรงงาน)ได้หรือไม่ (2) นาย จ.ได้รับความคุ้มครองตามพระราชบัญญัติแรงงานสัมพันธ์ พ.ศ. 2518 หรือไม่ เพราะเหตุใด",
+   "gold": "(1) อนุญาตให้เลิกจ้างได้: คำสั่งย้ายออกก่อนแจ้งข้อเรียกร้อง จึงไม่ต้องห้ามตาม ม.31 และหนังสือเตือนระหว่างเจรจาเป็นการเตือนถึงคำสั่งที่ออกก่อนแจ้งข้อเรียกร้อง จึงไม่ต้องห้ามเช่นกัน; การโยกย้ายเป็นอำนาจบริหารของนายจ้าง เป็นคุณแก่ลูกจ้างและทำได้ไม่ยาก การไม่ไปทำงานเป็นการฝ่าฝืนคำสั่งอันชอบด้วยกฎหมายและละทิ้งหน้าที่ (2) ในฐานะกรรมการลูกจ้าง ได้รับความคุ้มครองเพียงว่าต้องขออนุญาตศาล (ม.52) ซึ่งมีเหตุอนุญาต; ไม่ได้รับความคุ้มครองตาม ม.31 เพราะย้ายก่อนแจ้งข้อเรียกร้อง; ม.123 หลังตกลงกันได้ — ศาลไม่ได้วินิจฉัย (INCONCLUSIVE)",
+   "role": "LIMITATION probe (not in PASS denominator)",
+   "caveat": "order lawful as management power — outside staging's agreement/rules/consent predicate; s.31 path stops earlier (transfer predates the demand)",
+   "construction_check_forbidden_phrases_found": [],
+   "question_sha256": "b3724d3a1af98228a0e2ef42c69bc2040f0fff4637240d2c87bad611b55c4383",
+   "expected": {
+    "issues_expected": [
+     "employee_committee_and_union_protection",
+     "dispute_protection_s31"
+    ],
+    "issues_not_expected": [],
+    "leaves": {
+     "employee_committee_and_union_protection": {
+      "3": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": true,
+       "why": "transfer predates the demand; court allowed dismissal"
+      },
+      "8": {
+       "status": "unknown",
+       "accept": [],
+       "scored": true,
+       "why": "settled 13 Oct; CBA terms/registration not stated; court did not apply s.123"
+      },
+      "9b_a": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": ""
+      },
+      "9b_b": {
+       "status": "unknown",
+       "accept": [
+        "not_met"
+       ],
+       "scored": true,
+       "why": "LIMITATION: management power, no agreement/rule/consent fact"
+      },
+      "9b_c": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": false,
+       "why": ""
+      },
+      "9b_d": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": true,
+       "why": ""
+      },
+      "9b_e": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "two written warnings"
+      },
+      "9": {
+       "status": "met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": false,
+       "why": "not at the new post 14 Sep–7 Nov (Labour Court: abandonment); not dismissed yet, so no outcome depends on it"
+      },
+      "9b_dismissed": {
+       "status": "not_met",
+       "accept": [],
+       "scored": true,
+       "why": "permission to dismiss requested (s.52)"
+      },
+      "9b_ground_misconduct": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "ground = refusing the transfer"
+      }
+     },
+     "dispute_protection_s31": {
+      "1": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "demand filed 10 Sep"
+      },
+      "2": {
+       "status": "met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": true,
+       "why": "under negotiation until 13 Oct"
+      },
+      "3": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": true,
+       "why": "transfer order 5 Sep, before the demand"
+      },
+      "5_a": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": ""
+      },
+      "5_b": {
+       "status": "unknown",
+       "accept": [
+        "not_met"
+       ],
+       "scored": true,
+       "why": "LIMITATION as 9b_b"
+      },
+      "5_c": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": false,
+       "why": ""
+      },
+      "5_d": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": true,
+       "why": ""
+      },
+      "5_e": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": ""
+      }
+     }
+    },
+    "risk": "the decisive point (transfer before the demand) is outside #17; holding vs elements diagnostic",
+    "derived": {
+     "employee_committee_and_union_protection": {
+      "9b_lawful": "unknown",
+      "9b": "unknown",
+      "9b_warning_required": "not_met",
+      "9b_dismissal_prohibited": "not_met",
+      "9b_dismissal_permitted": "not_met"
+     },
+     "dispute_protection_s31": {
+      "5_lawful": "unknown",
+      "5": "unknown",
+      "5_outcome": "not_met"
+     }
+    },
+    "defeated_by": {
+     "rule": "S123/3 → not_met and ULP/7 → unknown, only if the LLM calls that element met AND (9b_lawful ∧ ¬9b_d) or (5_lawful ∧ ¬5_d) is met",
+     "expected_element_3": "not_met",
+     "when_condition_expected": "unknown",
+     "forbidden_key_if_it_fires": "LRA2518:121:1:(1)",
+     "previous_freeze_said": []
+    }
+   },
+   "leakage": {
+    "source_ruling_rank": 1,
+    "of": 3591,
+    "top1_kept_if_issue_sections_were": {
+     "LRA2518:52": "13889/2555",
+     "LRA2518:123": "3943/2557",
+     "LRA2518:31": "2222/2538",
+     "LRA2518:121": "3808/2547",
+     "LPA2541:119": "868/2548"
+    },
+    "source_ruling_in_state_cases": "measured from the run trace (depends on the issues/sections the run produces)"
+   }
+  },
+  "p1720-2563-2565-2552": {
+   "source": "คำพิพากษาศาลฎีกา 2563-2565/2552",
+   "source_facts": [
+    "นายจ้างประกอบกิจการเจียระไนเพชรเพื่อการส่งออก มีลูกจ้างประมาณ 340 คน นาย ฉ. นาย ช. และนาย ซ. (ลูกจ้างทั้งสาม) ทำหน้าที่เจียระไนเพชร และเป็นสมาชิกและกรรมการสหภาพแรงงาน",
+    "ข้อตกลงเกี่ยวกับสภาพการจ้างฉบับลงวันที่ 20 มกราคม 2546 ซึ่งเกิดจากการที่สหภาพแรงงานยื่นข้อเรียกร้อง ข้อ 1 ระบุว่า \"บริษัทฯ ตกลงจัดให้มีการพักย่อย 15 นาที เพิ่มเติมจากการหยุดพักปกติ โดยให้หยุดช่วงแรกเวลา 9.45-10.00 น. และช่วงที่สองเวลา 15.00-15.15 น.\" ในทางปฏิบัติลูกจ้างไปพักย่อยที่โรงอาหาร",
+    "นายจ้างขอปรึกษาหารือกับสหภาพแรงงานเรื่องการพักแต่ตกลงกันไม่ได้ ลูกจ้างประมาณ 300 คนยอมสละสิทธิพักย่อยโดยรับเงินเพิ่มเดือนละ 60 บาท แต่ลูกจ้างทั้งสามไม่ยอม",
+    "นายจ้างเคยลงโทษลูกจ้างทั้งสามเรื่องการพักย่อย ลูกจ้างทั้งสามฟ้องนายจ้างต่อศาลแรงงาน คดีตกลงกันได้โดยนายจ้างเพิกถอนคำสั่งลงโทษทั้งหมดและให้ลูกจ้างทั้งสามใช้สิทธิพักย่อยได้ตามข้อตกลงเกี่ยวกับสภาพการจ้าง โดยไม่ได้ระบุสถานที่พัก",
+    "ต่อมานายจ้างสั่งให้ลูกจ้างทั้งสามพักย่อยในบริเวณที่นั่งทำงาน ห้ามออกนอกอาคารโรงงาน และให้พนักงานรักษาความปลอดภัยปิดประตูระหว่างอาคารโรงงานกับโรงอาหาร นายจ้างอ้างว่าเพชรและอัญมณีมีราคาสูงและมีขนาดเล็ก ต้องเข้มงวดในการดูแลทรัพย์สิน",
+    "ลูกจ้างทั้งสามยังคงออกไปพักย่อยนอกบริเวณที่กำหนด นายจ้างตักเตือนเป็นหนังสือหลายครั้งและสั่งพักงานโดยไม่จ่ายค่าจ้าง ลูกจ้างทั้งสามร้องต่อพนักงานตรวจแรงงาน ซึ่งมีคำสั่งว่านายจ้างลงโทษพักงานได้ และคำสั่งนั้นถึงที่สุด ลูกจ้างทั้งสามก็ยังคงออกไปพักย่อยนอกบริเวณที่กำหนด",
+    "นายจ้างมีหนังสือเลิกจ้างลูกจ้างทั้งสามโดยไม่จ่ายค่าชดเชย",
+    "ลูกจ้างทั้งสามอ้างว่าคำสั่งดังกล่าวเป็นการเปลี่ยนแปลงสภาพการจ้างที่ไม่เป็นคุณ และนายจ้างมีจุดประสงค์บีบบังคับให้ลูกจ้างทั้งสามสละสิทธิพักย่อยที่ได้มาจากการเรียกร้องและทำลายสหภาพแรงงาน"
+   ],
+   "worker": "ลูกจ้างทั้งสาม",
+   "dismissal_word": "ลูกจ้างทั้งสาม",
+   "question": "นายจ้างประกอบกิจการเจียระไนเพชรเพื่อการส่งออก มีลูกจ้างประมาณ 340 คน นาย ฉ. นาย ช. และนาย ซ. (ลูกจ้างทั้งสาม) ทำหน้าที่เจียระไนเพชร และเป็นสมาชิกและกรรมการสหภาพแรงงาน ข้อตกลงเกี่ยวกับสภาพการจ้างฉบับลงวันที่ 20 มกราคม 2546 ซึ่งเกิดจากการที่สหภาพแรงงานยื่นข้อเรียกร้อง ข้อ 1 ระบุว่า \"บริษัทฯ ตกลงจัดให้มีการพักย่อย 15 นาที เพิ่มเติมจากการหยุดพักปกติ โดยให้หยุดช่วงแรกเวลา 9.45-10.00 น. และช่วงที่สองเวลา 15.00-15.15 น.\" ในทางปฏิบัติลูกจ้างไปพักย่อยที่โรงอาหาร นายจ้างขอปรึกษาหารือกับสหภาพแรงงานเรื่องการพักแต่ตกลงกันไม่ได้ ลูกจ้างประมาณ 300 คนยอมสละสิทธิพักย่อยโดยรับเงินเพิ่มเดือนละ 60 บาท แต่ลูกจ้างทั้งสามไม่ยอม นายจ้างเคยลงโทษลูกจ้างทั้งสามเรื่องการพักย่อย ลูกจ้างทั้งสามฟ้องนายจ้างต่อศาลแรงงาน คดีตกลงกันได้โดยนายจ้างเพิกถอนคำสั่งลงโทษทั้งหมดและให้ลูกจ้างทั้งสามใช้สิทธิพักย่อยได้ตามข้อตกลงเกี่ยวกับสภาพการจ้าง โดยไม่ได้ระบุสถานที่พัก ต่อมานายจ้างสั่งให้ลูกจ้างทั้งสามพักย่อยในบริเวณที่นั่งทำงาน ห้ามออกนอกอาคารโรงงาน และให้พนักงานรักษาความปลอดภัยปิดประตูระหว่างอาคารโรงงานกับโรงอาหาร นายจ้างอ้างว่าเพชรและอัญมณีมีราคาสูงและมีขนาดเล็ก ต้องเข้มงวดในการดูแลทรัพย์สิน ลูกจ้างทั้งสามยังคงออกไปพักย่อยนอกบริเวณที่กำหนด นายจ้างตักเตือนเป็นหนังสือหลายครั้งและสั่งพักงานโดยไม่จ่ายค่าจ้าง ลูกจ้างทั้งสามร้องต่อพนักงานตรวจแรงงาน ซึ่งมีคำสั่งว่านายจ้างลงโทษพักงานได้ และคำสั่งนั้นถึงที่สุด ลูกจ้างทั้งสามก็ยังคงออกไปพักย่อยนอกบริเวณที่กำหนด นายจ้างมีหนังสือเลิกจ้างลูกจ้างทั้งสามโดยไม่จ่ายค่าชดเชย ลูกจ้างทั้งสามอ้างว่าคำสั่งดังกล่าวเป็นการเปลี่ยนแปลงสภาพการจ้างที่ไม่เป็นคุณ และนายจ้างมีจุดประสงค์บีบบังคับให้ลูกจ้างทั้งสามสละสิทธิพักย่อยที่ได้มาจากการเรียกร้องและทำลายสหภาพแรงงาน ให้วินิจฉัยว่า (1) นายจ้างเลิกจ้างลูกจ้างทั้งสามได้หรือไม่ (2) ลูกจ้างทั้งสามได้รับความคุ้มครองตามพระราชบัญญัติแรงงานสัมพันธ์ พ.ศ. 2518 หรือไม่ เพราะเหตุใด",
+   "gold": "(1) เลิกจ้างได้ ไม่เป็นการเลิกจ้างที่ไม่เป็นธรรม: ข้อตกลงไม่ได้จำกัดสถานที่พักย่อย นายจ้างจัดสถานที่ได้ตามความจำเป็นและความเหมาะสม จึงไม่ใช่การเปลี่ยนแปลงสภาพการจ้าง ลูกจ้างทั้งสามฝ่าฝืนคำสั่งอันชอบด้วยกฎหมายซ้ำหลังถูกตักเตือนเป็นหนังสือ (2) ประเด็นจุดประสงค์บีบบังคับ/ทำลายสหภาพ และความคุ้มครองตาม ม.123 — ศาลฎีกาไม่วินิจฉัย (ศาลแรงงานกลางเคยฟังว่ามีจุดประสงค์บีบบังคับ) → INCONCLUSIVE; คำตอบที่ระบุเงื่อนไขเรื่องจุดประสงค์ถือว่ารับได้",
+   "role": "PARTIAL / adversarial diagnostic (not in PASS denominator)",
+   "caveat": "non-obstructive purpose unresolved (lower court found pressure; Supreme Court did not decide) → expected UNKNOWN",
+   "construction_check_forbidden_phrases_found": [],
+   "question_sha256": "ff656841b527330e684249d7dadb918f3b8c8769476e557475fb97cbd094d9b8",
+   "expected": {
+    "issues_expected": [
+     "employee_committee_and_union_protection"
+    ],
+    "issues_not_expected": [],
+    "leaves": {
+     "employee_committee_and_union_protection": {
+      "3": {
+       "status": "unknown",
+       "accept": [],
+       "scored": true,
+       "why": "earlier lawsuit (s.121(1) act) + alleged pressure; purpose undecided"
+      },
+      "8": {
+       "status": "met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": true,
+       "why": "CBA from a union demand; dismissal date not stated"
+      },
+      "9b_a": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": ""
+      },
+      "9b_b": {
+       "status": "met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": true,
+       "why": "CBA silent on location; court: employer may designate (borderline)"
+      },
+      "9b_c": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": false,
+       "why": "they refused to waive"
+      },
+      "9b_d": {
+       "status": "unknown",
+       "accept": [],
+       "scored": true,
+       "why": "EXPLICIT UNKNOWN: alleged pressure to give up a CBA right; Labour Court found it, Supreme Court did not decide"
+      },
+      "9b_e": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "written warnings, suspension"
+      },
+      "9": {
+       "status": "not_met",
+       "accept": [
+        "unknown"
+       ],
+       "scored": true,
+       "why": "ground is repeated breach of the rest-location order after warnings, not (1)(2)(4)(5)"
+      },
+      "9b_dismissed": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "dismissed without severance"
+      },
+      "9b_ground_misconduct": {
+       "status": "met",
+       "accept": [],
+       "scored": true,
+       "why": "ground = repeatedly taking the break outside the designated area"
+      }
+     }
+    },
+    "risk": "if 9b_d is called not_met, #20 suppresses s.121(1) on an unresolved purpose question → over-suppression signal",
+    "derived": {
+     "employee_committee_and_union_protection": {
+      "9b_lawful": "unknown",
+      "9b": "unknown",
+      "9b_warning_required": "not_met",
+      "9b_dismissal_prohibited": "unknown",
+      "9b_dismissal_permitted": "unknown"
+     }
+    },
+    "defeated_by": {
+     "rule": "S123/3 → not_met and ULP/7 → unknown, only if the LLM calls that element met AND (9b_lawful ∧ ¬9b_d) or (5_lawful ∧ ¬5_d) is met",
+     "expected_element_3": "unknown",
+     "when_condition_expected": "unknown",
+     "forbidden_key_if_it_fires": "LRA2518:121:1:(1)",
+     "previous_freeze_said": []
+    }
+   },
+   "leakage": {
+    "source_ruling_rank": 1,
+    "of": 3591,
+    "top1_kept_if_issue_sections_were": {
+     "LRA2518:52": "5587-5599/2546",
+     "LRA2518:123": "3631/2529",
+     "LRA2518:31": "2607-2608/2527",
+     "LRA2518:121": "571/2531",
+     "LPA2541:119": "15918/2553"
+    },
+    "source_ruling_in_state_cases": "measured from the run trace (depends on the issues/sections the run produces)"
+   }
+  }
+ },
+ "refrozen_at": "2026-10-08T02:55:15+07:00"
+}
