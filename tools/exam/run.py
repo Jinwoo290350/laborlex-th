@@ -244,10 +244,10 @@ def cmd_run(a) -> None:
                 if cond == "C2":
                     from src.agent.graph import answer
                     s = answer(question)
-                    keys = sorted({k for t in [s.answer.model_dump()] if s.answer for k in _keys(t)})
+                    keys = sorted({k for t in ([s.answer.model_dump()] if s.answer else []) for k in _keys(t)})
                     from src.agent.status import effective_status
                     ans = {"markdown": s.markdown, "cited_keys": keys, "c2_state": _c2_state(s),
-                           "status": effective_status(s)}
+                           "status": effective_status(s), "review_reasons": s.degraded}
                     if ans["status"] != "ok":      # #22: never scored as a normal answer
                         err = f"INVALID_{ans['status'].upper()}"
                 else:

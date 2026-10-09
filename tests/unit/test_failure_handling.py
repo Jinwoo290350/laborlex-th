@@ -334,3 +334,130 @@ def test_api_needs_review_has_reasons(monkeypatch):
     assert j["follow_up_questions"] == []
     assert j["review_reasons"] == [{"node": "check_elements", "issue": B, "error": "E", "kind": "exception"}]
     assert "NEEDS_REVIEW" in status_banner(j)
+
+
+# ---------- exam runner (tools/exam/run.py::cmd_run, C2) ----------
+
+def _exam_run(monkeypatch, tmp_path, answer_fn) -> dict:
+    """Real cmd_run on one in-memory question; output under tmp_path. Gemini stays blocked (LLM_CACHE_ONLY=1)."""
+    import argparse
+    import json
+
+    from tools.exam import run as X
+    monkeypatch.setattr(X, "ROOT", tmp_path)
+    monkeypatch.setattr(X, "load", lambda ds: ([{"exam_id": "e1", "question": "q", "model_answer": "-"}],
+                                               {"e1": {"exam_id": "e1", "in_scope": "", "sections_confirmed": "LPA2541:119"}}))
+    monkeypatch.setattr(X, "_sections_for", lambda tag: ["LPA2541:119"])
+    monkeypatch.setattr(X, "_env_record", lambda: {"git_head": "t", "src_modified_vs_head": False, "model": "m"})
+    monkeypatch.setenv("EXAM_ALLOW_GEMINI", "1")       # passes the runner's budget gate in-test only
+    monkeypatch.setattr(G, "answer", answer_fn)
+    X.cmd_run(argparse.Namespace(dataset="t", cond="C2", ids="e1", live=True, dry_run=False, allow_src_diff=""))
+    return json.loads((tmp_path / "t" / "answers" / "e1_C2.json").read_text(encoding="utf-8"))
+
+
+def test_exam_runner_needs_review_without_answer(monkeypatch, tmp_path):
+    """Regression: answer=None used to raise AttributeError in cmd_run, so the status was lost."""
+    rec = _exam_run(monkeypatch, tmp_path, lambda q, **k: _review_state())
+    assert rec["failure"] == "INVALID_NEEDS_REVIEW"
+    assert rec["answer"]["status"] == "needs_review" and rec["answer"]["cited_keys"] == []
+    assert rec["answer"]["review_reasons"][0]["node"] == "check_elements"
+    assert rec["answer"]["c2_state"]["status"] == "needs_review"
+
+
+def test_exam_runner_degraded_is_invalid(monkeypatch, tmp_path):
+    st = AgentState(question="q", answer=_cited_answer(), markdown="NORMAL ANSWER", status="degraded",
+                    degraded=[{"node": "retrieve_cases", "error": "E", "kind": "exception"}],
+                    trace=[{"node": "retrieve_cases", "error": "E"}])
+    rec = _exam_run(monkeypatch, tmp_path, lambda q, **k: st)
+    assert rec["failure"] == "INVALID_DEGRADED" and rec["answer"]["status"] == "degraded"
+    assert rec["answer"]["markdown"] == "NORMAL ANSWER"          # the degraded answer is kept, but flagged invalid
+
+
+def test_exam_runner_ok_is_unchanged(monkeypatch, tmp_path):
+    st = AgentState(question="q", answer=_cited_answer(), markdown="NORMAL ANSWER")
+    rec = _exam_run(monkeypatch, tmp_path, lambda q, **k: st)
+    assert rec["failure"] is None and rec["answer"]["status"] == "ok"
+
+
+# ---------- degraded, deterministic: a real fallback node + a local fault, through graph → API / UI / eval / exam ----------
+
+INJECTED = "smoke: injected connection reset"
+
+
+def _inject(*a, **k):
+    raise ConnectionResetError(INJECTED)
+
+
+def _wire_degraded(monkeypatch, which: str) -> None:
+    """Real `which` node (retrieve_cases or select_citations) with its dependency failing locally; other steps
+    stubbed. No DB, LLM or external service is reached by the fault path."""
+    def law(state):
+        CALLS.append("retrieve_law")
+        return {"candidates": {A: [{"citation_key": f"LPA2541:{n}:1", "law": "LPA2541", "section_no": str(n)}
+                                   for n in (118, 119)], B: []}}
+    real = {"retrieve_law": law}
+    if which == "retrieve_cases":
+        monkeypatch.setattr(retrieve, "section_support", _inject, raising=False)
+        monkeypatch.setattr(retrieve.tools, "search_cases", _inject)
+        real["retrieve_cases"] = retrieve.retrieve_cases
+    else:
+        monkeypatch.setattr(decide, "_p_gemini_batch", _inject)
+        monkeypatch.setattr(decide, "_p_decider", _inject)
+        real["select_citations"] = decide.select_citations
+    CALLS.clear()
+    monkeypatch.setattr(G, "STEPS", [(n, real.get(n, STUBS[n])) for n, _ in G.STEPS])
+    G.build.cache_clear()
+
+
+@pytest.fixture
+def _fresh_graph():
+    yield
+    G.build.cache_clear()
+
+
+@pytest.mark.parametrize("which", ["retrieve_cases", "select_citations"])
+def test_degraded_fallback_really_happens_in_graph(monkeypatch, _fresh_graph, which):
+    _wire_degraded(monkeypatch, which)
+    s = G.answer("คำถามทดสอบ")
+    err = next(t["error"] for t in s.trace if t["node"] == which)
+    assert INJECTED in err                                           # the fallback came from our fault
+    assert s.status == "degraded" and [d["node"] for d in s.degraded] == [which]
+    if which == "retrieve_cases":
+        assert s.cases == {}                                         # fallback value, unchanged
+    else:
+        assert s.selected == {A: ["LPA2541:118:1", "LPA2541:119:1"], B: []}   # top-5 fallback, unchanged
+    assert s.answer is not None and s.markdown == "NORMAL ANSWER" and CALLS[-1] == "validate_cites"
+
+
+@pytest.mark.parametrize("which", ["retrieve_cases", "select_citations"])
+def test_degraded_through_api_and_ui(monkeypatch, _fresh_graph, which):
+    from fastapi.testclient import TestClient
+
+    from src.api import main
+    from src.ui.status import status_banner
+    _wire_degraded(monkeypatch, which)                  # /ask runs the real graph answer()
+    main.app.dependency_overrides[main.auth] = lambda: None
+    try:
+        r = TestClient(main.app).post("/ask", json={"question": "คำถามทดสอบยาวพอ"})
+    finally:
+        main.app.dependency_overrides.clear()
+    j = r.json()
+    assert r.status_code == 200 and j["status"] == "degraded"
+    assert j["answer"] is not None and j["markdown"] == "NORMAL ANSWER"
+    assert j["review_reasons"][0]["node"] == which and INJECTED in j["review_reasons"][0]["error"]
+    banner = status_banner(j)
+    assert "degraded" in banner and which in banner
+
+
+@pytest.mark.parametrize("which", ["retrieve_cases", "select_citations"])
+def test_degraded_is_invalid_in_eval_and_exam(monkeypatch, tmp_path, _fresh_graph, which):
+    from src.eval import run_eval
+    _wire_degraded(monkeypatch, which)
+    judged = []
+    monkeypatch.setattr(run_eval, "judge", lambda *a, **k: judged.append(1))
+    row = {"id": "d1", "question": "q", "gold_answer": "g", "gold_citations": "", "difficulty": "easy", "category": "c"}
+    rec = run_eval.run_one(row, False, tmp_path)
+    assert rec["status"] == "degraded" and rec["invalid"] is True and rec["pass"] is False and judged == []
+    assert "d1 (degraded)" in run_eval.report([rec], {"model": "m"}, "t", tmp_path)
+    exam = _exam_run(monkeypatch, tmp_path / "exam", G.answer)       # the same real graph answer()
+    assert exam["failure"] == "INVALID_DEGRADED" and exam["answer"]["review_reasons"][0]["node"] == which
