@@ -188,6 +188,8 @@ def draft_prompt(state: AgentState, feedback: str = "") -> str:
 
 @traced("draft_answers")
 def draft_answers(state: AgentState) -> dict:
+    if state.status == "needs_review":       # never draft after a critical failure (#22); the graph stops earlier
+        raise RuntimeError("needs_review: draft refused after a critical node failure")
     p = draft_prompt(state)
     n = P("draft.n_drafts")
     with ThreadPoolExecutor(n) as ex:
@@ -223,11 +225,7 @@ def _verify(state: AgentState, draft: AnswerJSON) -> Verdict:
                          Verdict, name="verify", thinking="low")
 
 
-def _verify_fallback(state: AgentState, e: Exception) -> dict:
-    return {"answer": state.drafts[0] if state.drafts else None}
-
-
-@traced("verify_select", fallback=_verify_fallback)
+@traced("verify_select", on_fail="review")
 def verify_select(state: AgentState) -> dict:
     with ThreadPoolExecutor(max(len(state.drafts), 1)) as ex:
         verdicts = list(ex.map(lambda d: _verify(state, d), state.drafts))

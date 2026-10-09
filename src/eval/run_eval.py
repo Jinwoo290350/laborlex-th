@@ -56,7 +56,9 @@ def subset30(rows: list[dict]) -> list[dict]:
 
 def run_one(row: dict, loo: bool, out_dir: Path) -> dict:
     from src.agent.graph import answer
+    from src.agent.status import effective_status
     t0 = time.monotonic()
+    status, degraded = "error", []
     try:
         s = answer(row["question"], question_id=row["id"],
                    exclude_example_ids=[row["id"]] if loo else [])
@@ -65,15 +67,19 @@ def run_one(row: dict, loo: bool, out_dir: Path) -> dict:
         unknown = next((t["summary"].get("uncited_sections_in_text", []) for t in s.trace
                         if t["node"] == "validate_cites" and isinstance(t.get("summary"), dict)), [])
         answer_json = s.answer.model_dump() if s.answer else None
+        status, degraded = effective_status(s), s.degraded
     except Exception as e:  # noqa: BLE001 — record and continue the batch
         md, err, trace, removed, unknown, answer_json = "", repr(e), [], [], [], None
     latency = time.monotonic() - t0
     cited = {":".join(k.split(":")[:2]) for k in (answer_json and _all_keys(answer_json)) or []
              if not k.startswith("CASE:")}
     gold = {g for g in row.get("gold_citations", "").split(";") if g}
-    score = judge(row["question"], gold_text(row), md) if md else None
+    # #22: a needs_review or degraded run (any trace error) is invalid: never judged, never a PASS
+    invalid = status != "ok"
+    score = judge(row["question"], gold_text(row), md) if md and not invalid else None
     rec = {"id": row["id"], "difficulty": row.get("difficulty"), "category": row.get("category"),
-           "latency_s": round(latency, 1), "error": err, "removed_citations": removed,
+           "latency_s": round(latency, 1), "error": err, "status": status, "invalid": invalid,
+           "degraded": degraded, "removed_citations": removed,
            "unknown_sections": unknown, "score": score.model_dump() if score else None,
            "pass": bool(score and score.passed),
            "gold_sections": sorted(gold), "cited_sections": sorted(cited),
@@ -103,7 +109,14 @@ def report(recs: list[dict], cfg: dict, name: str, out: Path) -> str:
     lines = [f"# Eval {name} — {datetime.now().astimezone():%Y-%m-%d %H:%M}", "",
              "```json", json.dumps(cfg, ensure_ascii=False, indent=1), "```", "",
              f"- questions: {n} · errors: {sum(1 for r in recs if r['error'])}",
-             f"- **PASS: {sum(r['pass'] for r in recs)}/{n} = {sum(r['pass'] for r in recs) / n:.1%}**"]
+             (f"- **PASS: {sum(r['pass'] for r in recs)}/{n} = {sum(r['pass'] for r in recs) / n:.1%}**"
+              " (invalid runs count as not passing)")]
+    bad = [r for r in recs if r.get("invalid") and not r["error"]]
+    if bad:     # #22: degraded / needs_review runs are not judged
+        valid = n - len(bad) - sum(1 for r in recs if r["error"])
+        lines.append(f"- **invalid (degraded/needs_review, not judged): {len(bad)}** · "
+                     + ", ".join(f"{r['id']} ({r['status']})" for r in bad)
+                     + (f" · PASS / valid only (secondary): {sum(r['pass'] for r in recs)}/{valid}" if valid else ""))
     if scored:
         lines.append("- % ได้ 2 ต่อเกณฑ์: " + " · ".join(
             f"{c} {sum(r['score'][c] == 2 for r in scored) / len(scored):.0%}" for c in CRITERIA))

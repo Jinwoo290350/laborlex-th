@@ -101,14 +101,23 @@ class _Checks(BaseModel):
     checks: list[ElementCheck]
 
 
-@traced("check_elements", fallback=lambda state, e: {"elements": {}})
+@traced("check_elements", on_fail="review")
 def check_elements(state: AgentState) -> dict:
+    """Per issue. An issue whose call fails does not discard the others: their results are kept for
+    diagnosis, but the run becomes needs_review and no answer is drafted from them (#22)."""
     _, body = prompt("check_elements")
 
-    def one(code: str) -> tuple[str, list[ElementCheck]]:
+    def one(code: str) -> tuple[str, list[ElementCheck] | None, str | None, list[str]]:
+        try:
+            checks, missing = _check_issue(code)
+        except Exception as e:  # noqa: BLE001 — isolated per issue, reported below
+            return code, None, repr(e), []
+        return code, checks, None, missing
+
+    def _check_issue(code: str) -> tuple[list[ElementCheck], list[str]]:
         els = taxonomy()[code].get("elements") or []
         if not els:
-            return code, []
+            return [], []
         by_key = {r["citation_key"]: r for r in state.candidates.get(code, [])}
         provs = [fmt_provision(by_key[k], P("select.provision_chars"))
                  for k in state.selected.get(code, []) if k in by_key]
@@ -117,15 +126,27 @@ def check_elements(state: AgentState) -> dict:
         out = generate_json(body.format(issue_name=taxonomy()[code]["name"], facts=fmt_facts(state),
                                         provisions="\n".join(provs), elements=listing),
                             _Checks, name="check_elements", thinking="low")
-        ids = {e["id"] for e in asked}
-        return code, [c for c in out.checks if c.id in ids]
+        ids = [e["id"] for e in asked]
+        kept = [c for c in out.checks if c.id in set(ids)]
+        got = {c.id for c in kept}
+        return kept, [i for i in ids if i not in got]
 
     with ThreadPoolExecutor(4) as ex:
-        raw = dict(ex.map(one, [i.code for i in state.issues]))
+        results = list(ex.map(one, [i.code for i in state.issues]))
+    raw = {code: checks for code, checks, _, _ in results if checks is not None}
     res = resolve_elements(raw, taxonomy())     # derived elements + cross-issue consistency (#17, #20)
-    return {"elements": res,
-            "_summary": {c: {s: sum(x.status == s for x in v) for s in ("met", "not_met", "unknown")}
-                         for c, v in res.items()}}
+    summary: dict = {c: {s: sum(x.status == s for x in v) for s in ("met", "not_met", "unknown")}
+                     for c, v in res.items()}
+    partial = {code: missing for code, _, err, missing in results if err is None and missing}
+    if partial:     # LLM omitted asked ids: recorded only, does not change the status in round 1
+        summary["partial"] = partial
+    failed = [{"node": "check_elements", "issue": code, "error": err, "kind": "exception"}
+              for code, _, err, _ in results if err is not None]
+    if not failed:
+        return {"elements": res, "_summary": summary}
+    summary["failed"] = [f["issue"] for f in failed]
+    return {"elements": res, "status": "needs_review", "degraded": failed, "_summary": summary,
+            "_error": "; ".join(f"{f['issue']}: {f['error']}" for f in failed)}
 
 
 def tenure_from_facts(f) -> labor.Tenure | None:

@@ -6,7 +6,7 @@ import time
 from collections.abc import Callable
 from functools import cache, lru_cache, wraps
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 
@@ -31,8 +31,13 @@ def taxonomy() -> dict[str, dict]:
     return {i["code"]: i for i in items}
 
 
-def traced(name: str, fallback: Callable[[AgentState, Exception], dict] | None = None):
-    """Wrap a node: record latency/tokens in state.trace; on failure use a safe fallback."""
+def traced(name: str, fallback: Callable[[AgentState, Exception], dict] | None = None,
+           on_fail: Literal["raise", "review"] = "raise"):
+    """Wrap a node: record latency/tokens in state.trace. On failure (#22):
+    - on_fail="review": no output, status needs_review (the graph then stops at review_stop);
+    - fallback: the node's safe fallback, but the run is marked degraded (never looks ok);
+    - otherwise the exception propagates.
+    A node may also return `_error` (a failure it isolated itself) for the trace."""
     def deco(fn: Callable[[AgentState], dict]):
         @wraps(fn)
         def run(state: AgentState) -> dict[str, Any]:
@@ -41,10 +46,15 @@ def traced(name: str, fallback: Callable[[AgentState, Exception], dict] | None =
             try:
                 out = fn(state)
             except Exception as e:  # node failure must not crash the run
-                if fallback is None:
-                    raise
                 err = repr(e)
-                out = fallback(state, e)
+                failed = {"node": name, "error": err, "kind": "exception"}
+                if on_fail == "review":
+                    out = {"status": "needs_review", "degraded": [failed]}
+                elif fallback is not None:
+                    out = {**fallback(state, e), "status": "degraded", "degraded": [failed]}
+                else:
+                    raise
+            err = out.pop("_error", None) or err
             calls = USAGE.log[n0:]
             entry = {"node": name, "ms": int((time.monotonic() - t0) * 1000),
                      "llm_calls": len(calls), "cached": sum(c["cached"] for c in calls),

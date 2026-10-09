@@ -87,6 +87,15 @@ class Decision(BaseModel):
     raw: dict = Field(default_factory=dict)
 
 
+Status = Literal["ok", "degraded", "needs_review"]
+_SEVERITY = {"ok": 0, "degraded": 1, "needs_review": 2}
+
+
+def worst_status(a: Status, b: Status) -> Status:
+    """Reducer: a run's status only gets worse (#22)."""
+    return a if _SEVERITY[a] >= _SEVERITY[b] else b
+
+
 class AgentState(BaseModel):
     question: str
     question_id: str | None = None
@@ -107,4 +116,8 @@ class AgentState(BaseModel):
     removed_citations: list[str] = Field(default_factory=list)
     markdown: str = ""
 
+    # #22: needs_review = a critical node failed, no legal answer is produced (graph → review_stop);
+    # degraded = a round-1 fallback was used (retrieve_cases / select_citations), the answer is not normal
+    status: Annotated[Status, worst_status] = "ok"
+    degraded: Annotated[list[dict], operator.add] = Field(default_factory=list)
     trace: Annotated[list[dict], operator.add] = Field(default_factory=list)

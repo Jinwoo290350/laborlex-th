@@ -45,6 +45,8 @@ class AskOut(BaseModel):
     citations: list[dict]
     follow_up_questions: list[str]
     trace: list[dict]
+    status: str = "ok"                      # ok | degraded | needs_review (#22)
+    review_reasons: list[dict] = []
 
 
 @app.get("/health")
@@ -55,8 +57,13 @@ def health() -> dict:
 @app.post("/ask", response_model=AskOut, dependencies=[Depends(auth)])
 def ask(body: AskIn) -> AskOut:
     from src.agent.graph import answer
+    from src.agent.status import effective_status
     from src.index.tools import get_provision
     s = answer(body.question, event_date=body.event_date)
+    status = effective_status(s)
+    if status == "needs_review":            # no legal answer, no sources (#22)
+        return AskOut(markdown=s.markdown, answer=None, citations=[], follow_up_questions=[], trace=s.trace,
+                      status=status, review_reasons=s.degraded)
     keys = sorted(s.answer.all_citations()) if s.answer else []
     from src.index.tools import get_case
     cites = [c for c in ((get_case(k) if k.startswith("CASE:") else get_provision(k, s.event_date))
@@ -64,7 +71,7 @@ def ask(body: AskIn) -> AskOut:
     return AskOut(markdown=s.markdown, answer=s.answer.model_dump() if s.answer else None,
                   citations=[_public(c) for c in cites],
                   follow_up_questions=s.answer.follow_up_questions if s.answer else [],
-                  trace=s.trace)
+                  trace=s.trace, status=status, review_reasons=s.degraded)
 
 
 @app.get("/provision/{citation_key:path}", dependencies=[Depends(auth)])

@@ -11,11 +11,7 @@ from src.llm import generate_json
 from src.params import P
 
 
-def _facts_fallback(state: AgentState, e: Exception) -> dict:
-    return {"facts": Facts(key_facts=[state.question], asked=[state.question])}
-
-
-@traced("extract_facts", fallback=_facts_fallback)
+@traced("extract_facts", on_fail="review")
 def extract_facts(state: AgentState) -> dict:
     _, body = prompt("extract_facts")
     facts = generate_json(body.format(question=state.question), Facts, name="extract_facts", thinking="low")

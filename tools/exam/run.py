@@ -245,7 +245,11 @@ def cmd_run(a) -> None:
                     from src.agent.graph import answer
                     s = answer(question)
                     keys = sorted({k for t in [s.answer.model_dump()] if s.answer for k in _keys(t)})
-                    ans = {"markdown": s.markdown, "cited_keys": keys, "c2_state": _c2_state(s)}
+                    from src.agent.status import effective_status
+                    ans = {"markdown": s.markdown, "cited_keys": keys, "c2_state": _c2_state(s),
+                           "status": effective_status(s)}
+                    if ans["status"] != "ok":      # #22: never scored as a normal answer
+                        err = f"INVALID_{ans['status'].upper()}"
                 else:
                     version, text = fw.build_prompt(cond, question, secs)
                     ans = generate_json(text, ExamAnswer, name=f"exam_{cond}").model_dump() | {"prompt_version": version}
@@ -284,6 +288,7 @@ def _c2_state(s) -> dict:
         "elements": {k: [e.model_dump() for e in v] for k, v in s.elements.items()},
         "calcs": {k: (v.model_dump() if hasattr(v, "model_dump") else str(v)) for k, v in s.calcs.items()},
         "removed_citations": s.removed_citations,
+        "status": s.status, "degraded": s.degraded,
         "trace": [{k: t.get(k) for k in ("node", "latency_ms", "in_tokens", "out_tokens", "error")} for t in s.trace],
     }
 

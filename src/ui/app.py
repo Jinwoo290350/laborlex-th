@@ -8,6 +8,8 @@ import os
 import requests
 import streamlit as st
 
+from src.ui.status import status_banner, trace_line
+
 API = os.environ.get("API_URL", "http://127.0.0.1:8000")
 PW = os.environ.get("APP_PASSWORD", "")
 AUTH = (os.environ.get("APP_USER", "laborlex"), PW) if PW else None
@@ -35,7 +37,10 @@ chat, side = st.columns([3, 2])
 with chat:
     for item in st.session_state.history:
         st.chat_message("user").write(item["q"])
-        st.chat_message("assistant").markdown(item["md"])
+        with st.chat_message("assistant"):
+            if item.get("banner"):
+                st.warning(item["banner"])
+            st.markdown(item["md"])
     q = st.chat_input("พิมพ์คำถามกฎหมายแรงงาน…")
     if q:
         st.chat_message("user").write(q)
@@ -45,7 +50,7 @@ with chat:
             data = r.json()
             st.session_state.history.append({"q": q, "md": data["markdown"],
                                              "citations": data["citations"],
-                                             "trace": data["trace"]})
+                                             "trace": data["trace"], "banner": status_banner(data)})
             st.rerun()
         else:
             st.error(f"เกิดข้อผิดพลาด ({r.status_code})")
@@ -75,6 +80,6 @@ with side:
                 st.caption(f"มีผล: {c.get('valid_from') or 'ไม่ระบุ'} – {c.get('valid_to') or 'ปัจจุบัน'}")
         with st.expander("ขั้นตอนการคิดของระบบ (trace)"):
             for t in last["trace"]:
-                st.write(f"**{t['node']}** · {t['ms']} ms · LLM {t['llm_calls']}")
+                st.write(trace_line(t))
                 if t.get("summary"):
                     st.json(t["summary"], expanded=False)
