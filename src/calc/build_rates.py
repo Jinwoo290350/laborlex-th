@@ -19,6 +19,18 @@ OUT = Path("data/processed/rates.yaml")
 THAI_NUM = r"[ก-๙]+?"
 TIER_RE = re.compile(rf"ครบ({THAI_NUM})(วัน|ปี)(?:\s*แต่ไม่ครบ({THAI_NUM})(วัน|ปี)|ขึ้นไป)")
 PAY_RE = re.compile(rf"ค่าจ้างอัตราสุดท้าย({THAI_NUM})วัน")
+WAGE_RE = re.compile(rf"วันละ({THAI_NUM})บาท")
+INTEREST_RE = re.compile(rf"ร้อยละ({THAI_NUM})ต่อปี")
+SURCHARGE_RE = re.compile(rf"พ้นกำหนดเวลา({THAI_NUM})วัน.*ร้อยละ({THAI_NUM})ของเงินที่ค้างจ่ายทุกระยะเวลา({THAI_NUM})วัน")
+# Minimum-wage rows: (rate clause, clause naming the localities, localities). The localities are
+# names, not legal numbers; each is verified as a substring of its clause. Clauses whose
+# localities carry exceptions (e.g. "เฉพาะอำเภอ…", "ยกเว้น…") are left out until handled.
+MIN_WAGE = "ANN-WAGE14-2568"
+MIN_WAGE_ROWS = [
+    (f"{MIN_WAGE}:2:1", f"{MIN_WAGE}:2:1:(3)", ["กรุงเทพมหานคร", "ฉะเชิงเทรา", "ชลบุรี", "ภูเก็ต", "ระยอง"]),
+    (f"{MIN_WAGE}:4:1", f"{MIN_WAGE}:4:1", ["นครปฐม", "นนทบุรี", "ปทุมธานี", "สมุทรปราการ", "สมุทรสาคร"]),
+]
+MIN_WAGE_START = f"{MIN_WAGE}:21:1"     # commencement clause
 MULT_RE = re.compile(r"ไม่น้อยกว่า(" + "|".join(sorted(MULTIPLE_WORDS, key=len, reverse=True)) + ")")
 
 
@@ -61,8 +73,33 @@ def main() -> None:
             raise ValueError("ม.68 wording changed; re-check days_per_month")
         rates.append({"key": "days_per_month", "citation_key": "LPA2541:68:1", "value": "30"})
 
+        m = INTEREST_RE.search(text_of(conn, "LPA2541:9:1"))
+        if not m:
+            raise ValueError("ม.9 วรรคหนึ่ง wording changed; re-check interest_rate_pa")
+        rates.append({"key": "interest_rate_pa", "citation_key": "LPA2541:9:1",
+                      "value": str(thaiword_to_num(m.group(1)))})
+        m = SURCHARGE_RE.search(text_of(conn, "LPA2541:9:2"))
+        if not m:
+            raise ValueError("ม.9 วรรคสอง wording changed; re-check surcharge rows")
+        for name, grp in [("surcharge_grace_days", 1), ("surcharge_rate", 2), ("surcharge_period_days", 3)]:
+            rates.append({"key": name, "citation_key": "LPA2541:9:2", "value": str(thaiword_to_num(m.group(grp)))})
+
+        for key, loc_key, locs in MIN_WAGE_ROWS:
+            row = conn.execute("SELECT text, valid_from, valid_to FROM provisions WHERE citation_key=%s",
+                               (key,)).fetchone()
+            if not row:
+                raise LookupError(key)
+            m = WAGE_RE.search(row[0])
+            if not m:
+                raise ValueError(f"cannot read minimum wage from {key}: {row[0][:80]}")
+            rates.append({"key": "min_wage_daily", "citation_key": key, "locality_citation_key": loc_key,
+                          "localities": locs, "valid_from": row[1], "valid_to": row[2],
+                          "valid_from_citation_key": MIN_WAGE_START,
+                          "value": str(thaiword_to_num(m.group(1)))})
+
         book = RateBook.model_validate({"rates": rates})
         keys = {r["citation_key"] for r in rates} | {t["citation_key"] for t in tiers}
+        keys |= {r[k] for r in rates for k in ("locality_citation_key", "valid_from_citation_key") if r.get(k)}
         problems = book.verify({k: text_of(conn, k) for k in keys})
     if problems:
         raise SystemExit("rates do not match the statute:\n" + "\n".join(problems))
