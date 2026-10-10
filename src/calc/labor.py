@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
+from itertools import pairwise
 from pathlib import Path
 from typing import Any, Literal
 
@@ -45,6 +46,8 @@ class Tenure(BaseModel):
     years: int
     months: int
     source: str
+    steps: list[str] = Field(default_factory=list)
+    citations: list[str] = Field(default_factory=list)
 
     @classmethod
     def from_dates(cls, start: date, end: date) -> Tenure:
@@ -52,6 +55,39 @@ class Tenure(BaseModel):
         rd = relativedelta(end + timedelta(days=1), start)
         return cls(days=(end - start).days + 1, years=rd.years, months=rd.months,
                    source=f"{start.isoformat()} ถึง {end.isoformat()}")
+
+    @classmethod
+    def from_service(cls, start: date, last_working_day: date) -> Tenure:
+        """Length of service under the Civil Code rules on periods (docs: M3).
+
+        - ป.พ.พ. 193/3 วรรคสอง: the first day is not counted unless the matter begins that day at the
+          customary start of business. `start` is taken to be the first working day, worked from the
+          start of the working day, so it counts.
+        - ป.พ.พ. 193/5: years and months run on the calendar; a period ends on the day before the
+          corresponding date of the last month/year, or on that month's last day when it has no
+          corresponding date (e.g. a 29 Feb start).
+        A year is completed only when `last_working_day` reaches the end of that period, so
+        1 Jan → 31 Dec is one year and 1 Jan → 30 Dec is 364 days, not a year. Unlike
+        `from_dates` (relativedelta), a 29 Feb start completes a year on 28 Feb, not 27 Feb."""
+        if last_working_day < start:
+            raise ValueError("วันทำงานวันสุดท้ายอยู่ก่อนวันเริ่มงาน")
+        n = 0
+        while _period_end(start, n + 1) <= last_working_day:
+            n += 1
+        years, months = divmod(n, 12)
+        days = (last_working_day - start).days + 1
+        steps = [
+            (f"เริ่มทำงานวันที่ {thai_date(start)} นับวันแรกรวมด้วย เพราะเริ่มการในวันนั้นเองตั้งแต่เวลาเริ่มทำงาน "
+             "(ป.พ.พ. มาตรา 193/3 วรรคสอง; สันนิษฐานว่าเริ่มงานตั้งแต่ต้นเวลาทำงานของวันนั้น)"),
+            ("ระยะเวลาเป็นเดือนหรือปีคำนวณตามปีปฏิทิน และสิ้นสุดในวันก่อนหน้าวันที่ตรงกับวันเริ่มงาน "
+             "ถ้าเดือนสุดท้ายไม่มีวันตรงกันให้สิ้นสุดในวันสุดท้ายของเดือนนั้น (ป.พ.พ. มาตรา 193/5)"),
+            f"ทำงานถึงวันที่ {thai_date(last_working_day)} → อายุงาน {years} ปี {months} เดือน (นับรวม {days} วัน)",
+        ]
+        nxt = _period_end(start, 12 * (years + 1))
+        steps.append(f"จะครบ {years + 1} ปีเมื่อทำงานถึงวันที่ {thai_date(nxt)}")
+        return cls(days=days, years=years, months=months, steps=steps,
+                   citations=list(CCC_PERIOD_KEYS),
+                   source=f"{thai_date(start)} ถึง {thai_date(last_working_day)} ตาม ป.พ.พ. 193/3, 193/5")
 
     @classmethod
     def from_stated(cls, years: int = 0, months: int = 0, days: int = 0) -> Tenure:
@@ -63,6 +99,20 @@ class Tenure(BaseModel):
         return self.years >= d.amount if d.unit == "year" else self.days >= d.amount
 
 
+CCC_PERIOD_KEYS = ("CCC:193/3:2", "CCC:193/5:1", "CCC:193/5:2")
+
+
+def _period_end(start: date, months: int) -> date:
+    """Last day of a period of `months` calendar months beginning on `start` (ป.พ.พ. 193/5)."""
+    import calendar
+    y, m = divmod(start.month - 1 + months, 12)
+    y, m = start.year + y, m + 1
+    last = calendar.monthrange(y, m)[1]
+    if start.day > last:                      # no corresponding day → the month's last day
+        return date(y, m, last)
+    return date(y, m, start.day) - timedelta(days=1)
+
+
 class Rate(BaseModel):
     key: str                          # e.g. "severance_tiers", "ot_multiplier"
     citation_key: str
@@ -70,6 +120,9 @@ class Rate(BaseModel):
     valid_to: date | None = None      # exclusive
     value: Decimal | None = None
     tiers: list[Tier] = Field(default_factory=list)
+    localities: list[str] = Field(default_factory=list)   # e.g. provinces a minimum wage applies to
+    locality_citation_key: str | None = None   # where the localities are named (default: citation_key)
+    valid_from_citation_key: str | None = None  # where the commencement date is stated
 
     def in_force(self, d: date) -> bool:
         return (self.valid_from is None or self.valid_from <= d) and (
@@ -90,6 +143,13 @@ class RateBook(BaseModel):
             raise LookupError(f"expected 1 rate '{key}' in force on {on}, found {len(hits)}")
         return hits[0]
 
+    def get_local(self, key: str, locality: str, on: date) -> Rate:
+        """Like `get`, for rates that differ by locality (e.g. min_wage_daily per province)."""
+        hits = [r for r in self.rates if r.key == key and locality in r.localities and r.in_force(on)]
+        if len(hits) != 1:
+            raise LookupError(f"expected 1 rate '{key}' for '{locality}' in force on {on}, found {len(hits)}")
+        return hits[0]
+
     def verify(self, provision_text: dict[str, str]) -> list[str]:
         """Return problems: every number in a rate must appear in its provision's text."""
         problems = []
@@ -108,6 +168,14 @@ class RateBook(BaseModel):
                 for n in [t.value, t.min.amount] + ([t.max.amount] if t.max else []):
                     if Decimal(n) not in t_found:
                         problems.append(f"{r.key}: {n} not found in {t.citation_key}")
+            loc_key = r.locality_citation_key or r.citation_key
+            for loc in r.localities:
+                if loc not in provision_text.get(loc_key, ""):
+                    problems.append(f"{r.key}: locality '{loc}' not found in {loc_key}")
+            if r.valid_from_citation_key:
+                want = thai_long_date(r.valid_from) if r.valid_from else "?"
+                if want not in provision_text.get(r.valid_from_citation_key, ""):
+                    problems.append(f"{r.key}: valid_from '{want}' not found in {r.valid_from_citation_key}")
         return problems
 
 
@@ -160,7 +228,9 @@ def wage_item_status(purpose: str, basis: str, conditional: bool | None,
     - conditional on something other than work, or discretionary → not wage
     - welfare purpose → not wage, even when a fixed amount is paid monthly without claims
       (ฎ. 9096/2546, 2967/2555)
-    - reimbursement of actual work expenses (basis actual_cost) → not wage (ฎ. 3934/2557)
+    - reimbursement of actual work expenses (basis actual_cost) → not wage
+    - note ฎ. 3934/2557 is not an actual-cost case: it holds that a fixed flat sum paid without
+      receipts is NOT wage when its purpose is to cover work expenses (not yet reflected below)
     - a fixed work-expense allowance paid in full whatever is actually spent → wage, with or
       without receipts (ฎ. 7402–7403/2544; 7780–7782/2556)
     - a fixed work-expense allowance whose amount follows actual spending → not wage
@@ -255,6 +325,15 @@ def pay_dates_from(start: date, pay_days: list[int], n: int) -> list[date]:
         out += sorted(d for d in (_pay_date(y, m, x) for x in set(pay_days)) if d >= start)
         y, m = (y + 1, 1) if m == 12 else (y, m + 1)
     return out[:n]
+
+
+THAI_MONTHS_FULL = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม",
+                    "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"]
+
+
+def thai_long_date(d: date) -> str:
+    """date(2025, 7, 1) → "1 กรกฎาคม พ.ศ. 2568" (as written in the Royal Gazette)."""
+    return f"{d.day} {THAI_MONTHS_FULL[d.month - 1]} พ.ศ. {d.year + 543}"
 
 
 def thai_date(d: date) -> str:
@@ -434,6 +513,154 @@ def interest(principal: Decimal, days: int, on: date, book: RateBook,
     )
 
 
+class SeveranceBranch(BaseModel):
+    """One outcome of `severance_branches`: holds for every last working day in [first, last]."""
+    condition: str
+    first: date
+    last: date
+    tenure: Tenure
+    result: CalcResult
+
+
+def severance_branches(daily_wage: Decimal, start: date, earliest_last_day: date, latest_last_day: date,
+                       book: RateBook, wage_expr: str = "ค่าจ้างรายวัน") -> list[SeveranceBranch]:
+    """Severance when the last working day is not known exactly (e.g. "ถ้าทำงานถึงวันที่ 31 ธ.ค.").
+
+    Tenure is counted by `Tenure.from_service` for every candidate last day; consecutive days that
+    fall in the same ม.118 tier form one branch, with its condition stated, so a 1 Jan start gives
+    a 30-day branch (last day 30 Dec, 364 days) and a 90-day branch (last day 31 Dec, one year).
+    The rate book is read as of each candidate last day."""
+    if latest_last_day < earliest_last_day:
+        raise ValueError("latest_last_day is before earliest_last_day")
+    groups: list[tuple[date, date, tuple[Decimal, tuple[str, ...]]]] = []
+    d = earliest_last_day
+    while d <= latest_last_day:
+        r = severance(daily_wage, Tenure.from_service(start, d), d, book, wage_expr)
+        sig = (r.amount, tuple(r.citations))
+        if groups and groups[-1][2] == sig:
+            groups[-1] = (groups[-1][0], d, sig)
+        else:
+            groups.append((d, d, sig))
+        d += timedelta(days=1)
+    out = []
+    for a, b, _ in groups:
+        t = Tenure.from_service(start, a)
+        r = severance(daily_wage, t, a, book, wage_expr)
+        when = (f"ถ้าทำงานถึงวันที่ {thai_date(a)}" if a == b
+                else f"ถ้าวันทำงานวันสุดท้ายอยู่ระหว่าง {thai_date(a)} ถึง {thai_date(b)}")
+        res = CalcResult(amount=r.amount, steps=[when, *t.steps, *r.steps],
+                         citations=list(dict.fromkeys([*r.citations, *t.citations])))
+        out.append(SeveranceBranch(condition=when, first=a, last=b, tenure=t, result=res))
+    return out
+
+
+class MinWageCheck(CalcResult):
+    """amount = the wage as a daily equivalent."""
+    minimum: Decimal
+    below: bool
+
+
+def _min_wage_keys(r: Rate) -> list[str]:
+    keys = [r.citation_key, r.locality_citation_key, r.valid_from_citation_key]
+    return [k for k in dict.fromkeys(keys) if k]
+
+
+def min_wage_check(wage_base_monthly: Decimal, locality: str, on: date, book: RateBook) -> MinWageCheck:
+    """Is a monthly wage below the daily minimum wage of `locality` in force on `on`?
+
+    The minimum is a daily rate, so the monthly wage is put on a daily basis with the ม.68
+    divisor (`to_daily_wage`). That is an assumption: a monthly-paid employee is paid for every
+    day of the month, including rest days."""
+    r = book.get_local("min_wage_daily", locality, on)
+    assert r.value is not None
+    d = to_daily_wage(Decimal(wage_base_monthly), "month", on, book, exact=True)
+    below = d.amount < r.value
+    steps = [
+        ("ข้อสันนิษฐาน: อัตราค่าจ้างขั้นต่ำกำหนดเป็นรายวัน จึงเทียบค่าจ้างรายเดือนเป็นรายวันด้วยวิธีหารตามมาตรา 68 "
+         "(ลูกจ้างรายเดือนได้รับค่าจ้างสำหรับทุกวันในเดือนรวมวันหยุด)"),
+        *d.steps,
+        f"อัตราค่าจ้างขั้นต่ำในท้องที่{locality} ณ วันที่ {thai_date(on)} = วันละ {baht(r.value)} บาท",
+        (f"{baht(d.amount)} < {baht(r.value)} → ค่าจ้างต่ำกว่าอัตราค่าจ้างขั้นต่ำ" if below
+         else f"{baht(d.amount)} ≥ {baht(r.value)} → ค่าจ้างไม่ต่ำกว่าอัตราค่าจ้างขั้นต่ำ"),
+    ]
+    return MinWageCheck(amount=_q(d.amount), steps=steps, minimum=r.value, below=below,
+                        citations=list(dict.fromkeys([*_min_wage_keys(r), *d.citations])))
+
+
+def _period_fraction(s: date, e: date) -> tuple[Decimal, str]:
+    """Share of a month covered by a pay period: a calendar month = 1; 1st–15th or 16th–month end = 1/2."""
+    import calendar
+    end_of_month = calendar.monthrange(s.year, s.month)[1]
+    if (s.year, s.month) != (e.year, e.month):
+        raise ValueError(f"pay period {s}–{e} spans months; split it per month")
+    if s.day == 1 and e.day == end_of_month:
+        return Decimal(1), "ทั้งเดือน"
+    if (s.day, e.day) in ((1, 15), (16, end_of_month)):
+        return Decimal(1) / 2, "ครึ่งเดือน"
+    raise ValueError(f"unsupported pay period {s}–{e}: only calendar months or 1–15 / 16–month end")
+
+
+def min_wage_shortfall(pay_periods: list[tuple[date, date, Decimal]], locality: str,
+                       book: RateBook) -> CalcResult:
+    """Unpaid minimum wage, computed per pay period (start, end, amount paid) so no day is counted
+    twice. The minimum for a period = daily rate × the ม.68 divisor (a monthly equivalent; an
+    assumption, stated in the steps) × the period's share of a month: 1 for a calendar month and
+    1/2 for each half-month period (1st–15th, 16th–month end), whatever the month's length.
+    The rate must be the same throughout a period (split a period that spans a rate change)."""
+    periods = sorted(pay_periods, key=lambda p: p[0])
+    for (s1, e1, _), (s2, _e2, _) in pairwise(periods):
+        if s2 <= e1:
+            raise ValueError(f"pay periods overlap: {s1}–{e1} and {s2}")
+    steps = [
+        ("ข้อสันนิษฐาน: อัตราค่าจ้างขั้นต่ำเป็นรายวัน เทียบเป็นรายเดือน = อัตรารายวัน × จำนวนวันตามวิธีคำนวณของมาตรา 68 "
+         "งวดครึ่งเดือน (วันที่ 1–15 และ 16–สิ้นเดือน) คิดครึ่งหนึ่งของรายเดือน คำนวณแยกทีละงวดค่าจ้างโดยไม่นับซ้ำ"),
+    ]
+    cites: list[str] = []
+    total = Decimal(0)
+    for s, e, paid in periods:
+        paid = Decimal(paid)
+        frac, label = _period_fraction(s, e)
+        r = book.get_local("min_wage_daily", locality, s)
+        if book.get_local("min_wage_daily", locality, e) is not r:
+            raise ValueError(f"minimum wage changes within pay period {s}–{e}; split it")
+        dpm = book.get("days_per_month", s)
+        assert r.value is not None and dpm.value is not None
+        due = r.value * dpm.value * frac
+        short = max(Decimal(0), due - paid)
+        total += short
+        expr = f"{baht(r.value)} × {dpm.value}" + (" ÷ 2" if frac != 1 else "")
+        steps.append(f"งวด {thai_date(s)} – {thai_date(e)} ({label}): ขั้นต่ำ {expr} = {baht(due)} บาท "
+                     f"จ่ายจริง {baht(paid)} บาท → " + (f"ขาด {baht(short)} บาท" if short else "ไม่ขาด"))
+        cites += [*_min_wage_keys(r), dpm.citation_key]
+    steps.append(f"รวมค่าจ้างที่จ่ายต่ำกว่าอัตราค่าจ้างขั้นต่ำ {len(periods)} งวด = {baht(total)} บาท")
+    return CalcResult(amount=_q(total), steps=steps, citations=list(dict.fromkeys(cites)))
+
+
+def surcharge(principal: Decimal, due: date, until: date, book: RateBook) -> CalcResult:
+    """เงินเพิ่ม under LPA ม.9 วรรคสอง: a percentage of the unpaid sum for every full period after a
+    grace period counted from the due date (rate, grace and period from the RateBook).
+
+    Applies ONLY when the employer "จงใจ" withheld the money "โดยปราศจากเหตุผลอันสมควร". Whether
+    that holds is the caller's decision; this function only does the arithmetic.
+    Counting conventions (assumptions, stated in the steps): the grace runs from the day after
+    `due` (ป.พ.พ. 193/3 วรรคสอง); only completed periods after the grace count; the percentage
+    applies to the principal, not compounded."""
+    rate = book.get("surcharge_rate", due)
+    grace = book.get("surcharge_grace_days", due)
+    period = book.get("surcharge_period_days", due)
+    assert rate.value is not None and grace.value is not None and period.value is not None
+    grace_end = due + timedelta(days=int(grace.value))
+    n = max(0, (until - grace_end).days // int(period.value))
+    amt = Decimal(principal) * rate.value / 100 * n
+    return CalcResult(amount=_q(amt), citations=list(dict.fromkeys(
+        [rate.citation_key, grace.citation_key, period.citation_key])), steps=[
+        "ใช้เฉพาะกรณีนายจ้างจงใจไม่จ่ายโดยปราศจากเหตุผลอันสมควร",
+        (f"ถึงกำหนดจ่าย {thai_date(due)} พ้นกำหนด {grace.value} วันเมื่อสิ้นวันที่ {thai_date(grace_end)} "
+         "(ไม่นับวันแรก ตาม ป.พ.พ. มาตรา 193/3 วรรคสอง)"),
+        f"ถึงวันที่ {thai_date(until)} ครบระยะเวลา {period.value} วัน {n} ระยะ (นับเฉพาะระยะที่ครบ)",
+        f"เงินเพิ่ม = {baht(Decimal(principal))} × {rate.value}% × {n} = {baht(amt)} บาท"])
+
+
 CALCULATORS: dict[str, Any] = {
     "to_daily_wage": to_daily_wage,
     "severance": severance,
@@ -441,4 +668,8 @@ CALCULATORS: dict[str, Any] = {
     "unused_leave_pay": unused_leave_pay,
     "notice_pay": notice_pay,
     "interest": interest,
+    "surcharge": surcharge,
+    "min_wage_check": min_wage_check,
+    "min_wage_shortfall": min_wage_shortfall,
+    "severance_branches": severance_branches,
 }
