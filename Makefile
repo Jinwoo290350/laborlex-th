@@ -1,4 +1,4 @@
-.PHONY: manifest setup db ingest test lint eval-dev eval-bar serve export-160 demo
+.PHONY: manifest setup db ingest cards test lint eval-dev eval-bar serve export-160 demo
 
 setup:
 	uv sync --all-extras
@@ -17,6 +17,9 @@ ingest: manifest
 	uv run python -m src.index.embed
 	uv run python -m src.index.embed --cases
 	uv run python -m src.calc.build_rates
+
+cards:   # M4 holding cards + card-search caches (rule-based, $0; bge-m3 on the local GPU)
+	uv run python -m src.index.build_cards --embed
 
 dev100:
 	uv run python -m src.eval.import_dev100
