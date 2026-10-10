@@ -55,6 +55,12 @@ class EmployeeOutcome(BaseModel):
     alleged_ground_keys: list[str] = Field(default_factory=list)   # grounds the employer relied on
     found_ground_keys: list[str] = Field(default_factory=list)     # grounds the facts actually meet
     not_found_reason: str = ""                # why alleged grounds that are not found fail
+    # ป.พ.พ. ม.583 (FIX_PLAN_v2 M2): relevant only when ม.119 is not met — it removes notice, not severance
+    ccc583_applies: bool | None = Field(
+        default=None, description="เฉพาะลูกจ้างที่ไม่เข้ามาตรา 119: true ถ้าข้อเท็จจริงเข้า ป.พ.พ. มาตรา 583 "
+                          "(จงใจขัดคำสั่งอันชอบ ละเลยเป็นอาจิณ ละทิ้งการงาน กระทำผิดร้ายแรง หรือทำประการอื่น"
+                          "อันไม่สมแก่การปฏิบัติหน้าที่โดยถูกต้องและสุจริต) · false ถ้าไม่เข้า · null ถ้าข้อเท็จจริงไม่พอ")
+    ccc583_reason: str = ""                   # the facts that meet (or do not meet) ม.583
 
 
 class PaymentRow(BaseModel):

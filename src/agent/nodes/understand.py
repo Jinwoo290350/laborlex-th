@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from src.agent.nodes.common import fmt_facts, prompt, taxonomy, traced
 from src.agent.rules.entitlements import add_companion_issues
+from src.agent.rules.mandatory import asked_codes
 from src.agent.state import AgentState, Facts, IssueSel
 from src.llm import generate_json
 from src.params import P
@@ -40,8 +41,13 @@ def spot_issues(state: AgentState) -> dict:
             issues.append(i)
     dropped = [i.code for i in out.issues if i.code not in tax]
     cap = P("agent.max_issues")
-    kept = add_companion_issues(issues[:cap], state.question, state.facts.asked if state.facts else [], cap)
+    asked = state.facts.asked if state.facts else []
+    must = asked_codes(asked)
+    mandatory = [i for i in issues[cap:] if i.code in must]      # asked about → never cut by the cap
+    head = issues[:cap] + mandatory
+    kept = add_companion_issues(head, state.question, asked, cap)
     return {"issues": kept,
             "_summary": {"issues": [i.code for i in kept], "dropped": dropped,
-                         "truncated": [i.code for i in issues[cap:]],
-                         "companions": [i.code for i in kept[len(issues[:cap]):]]}}
+                         "truncated": [i.code for i in issues[cap:] if i.code not in must],
+                         "mandatory": [i.code for i in mandatory],
+                         "companions": [i.code for i in kept[len(head):]]}}

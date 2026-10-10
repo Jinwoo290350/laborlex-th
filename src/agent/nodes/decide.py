@@ -159,15 +159,15 @@ def tenure_from_facts(f) -> labor.Tenure | None:
 
 
 @cache
-def key_by_text(prefix: str) -> str:
-    """citation_key of the in-force LPA provision whose text starts with `prefix` (the
+def key_by_text(prefix: str, law: str = "LPA2541") -> str:
+    """citation_key of the in-force provision of `law` whose text starts with `prefix` (the
     provision is identified by its wording in the DB, not by a remembered number)."""
     from src.index.db import connect
     with connect() as conn:
         row = conn.execute(
-            "SELECT citation_key FROM provisions WHERE citation_key LIKE 'LPA2541:%%' "
+            "SELECT citation_key FROM provisions WHERE citation_key LIKE %s "
             "AND text LIKE %s AND valid_to IS NULL AND sub_no IS NULL "
-            "ORDER BY valid_from DESC LIMIT 1", (prefix + "%",)).fetchone()
+            "ORDER BY valid_from DESC LIMIT 1", (law + ":%", prefix + "%")).fetchone()
     if row is None:
         raise LookupError(f"ไม่พบบทบัญญัติที่ขึ้นต้นว่า “{prefix}” ในฐานข้อมูล")
     return row[0]
@@ -325,4 +325,6 @@ def calculate(state: AgentState) -> dict:
 def m119_keys() -> dict[str, str]:
     return {"m119": key_by_text("นายจ้างไม่ต้องจ่ายค่าชดเชยให้แก่ลูกจ้างซึ่งเลิกจ้างในกรณีหนึ่งกรณีใด"),
             "notice_exempt": key_by_text("การบอกกล่าวล่วงหน้าตามมาตรานี้ไม่ใช้บังคับแก่การเลิกจ้างตามมาตรา 119"),
-            "final": notice_keys()["final"]}
+            "final": notice_keys()["final"],
+            # ป.พ.พ. ม.583 — the other dismissal that ม.17 วรรคสี่ exempts from notice (FIX_PLAN_v2 M2)
+            "ccc583": key_by_text("ถ้าลูกจ้างจงใจขัดคำสั่งของนายจ้างอันชอบด้วยกฎหมาย", law="CCC")}

@@ -80,10 +80,26 @@ def _provisions_block(state: AgentState) -> str:
         subs = tools.get_subitems(r["citation_key"], state.event_date) if not r.get("sub_no") else []
         if subs:      # numbered items get their own keys so a conclusion can cite the exact one
             lines += [f"  └ {x['citation_key']} | {x['text'][:160]}" for x in subs]
+    lines += _dismissal_rows(state, {r["citation_key"] for r in rows})
     notes = pair_notes(rows)
     if notes:
         lines += ["", "ลำดับชั้นกฎหมาย (ระบบกำหนด):"] + [f"- {n}" for n in notes]
     return "\n".join(lines)
+
+
+def _dismissal_rows(state: AgentState, shown: set[str]) -> list[str]:
+    """When a dismissal is computed, the drafter decides ม.119 and ป.พ.พ. ม.583 per employee, so both exemption
+    provisions (and ม.17 วรรคสี่, which names them) must be in front of it even if ⑤ did not select them."""
+    if state.termination is None:
+        return []
+    from src.agent.nodes.decide import m119_keys
+    keys = m119_keys()
+    out = []
+    for k in (keys["notice_exempt"], keys["ccc583"]):
+        r = tools.get_provision(k, state.event_date)
+        if r and k not in shown:
+            out.append(fmt_provision(r, P("draft.provision_chars")))
+    return out
 
 
 HEADER_LINE = re.compile(r"^(คำ(พิพากษา|วินิจฉัย|สั่ง)|พ\.ร\.บ\.|พ\.ร\.ก|ป\.พ\.พ\.|ป\.วิ\.|ประมวล|พระราช)")
@@ -233,22 +249,37 @@ def verify_select(state: AgentState) -> dict:
     answer, v = state.drafts[best], verdicts[best]
     revised = False
     # the system's own findings first: a draft that contradicts them is always revised once (#20)
-    conflicts = system_conflicts(state, answer)
+    conflicts = system_conflicts(state, answer) + ledger_conflicts(state, answer)
     feedback = "\n".join([f"- [{c.issue}] {c.detail}" for c in conflicts]
                           + ([v.feedback] if v.feedback.strip() else []))
     if conflicts or (v.worst() < P("draft.revise_below") and v.feedback.strip()):
         answer = generate_json(draft_prompt(state, feedback), AnswerJSON, name="revise")
         revised = True
-    left = system_conflicts(state, answer) if revised else conflicts
+    left = (system_conflicts(state, answer) + ledger_conflicts(state, answer)) if revised else conflicts
     scores = [v.model_dump() for v in verdicts]
-    return {"answer": answer, "draft_scores": scores,
-            "_summary": {"picked": best, "scores": [round(v.score(), 2) for v in verdicts],
-                         "revised": revised, "conflicts": [c.model_dump() for c in conflicts],
-                         "conflicts_left": [c.model_dump() for c in left]}}
+    out = {"answer": answer, "draft_scores": scores,
+           "_summary": {"picked": best, "scores": [round(v.score(), 2) for v in verdicts],
+                        "revised": revised, "conflicts": [c.model_dump() for c in conflicts],
+                        "conflicts_left": [c.model_dump() for c in left]}}
+    ledger_left = [c for c in left if c.kind in ("amount_not_in_ledger", "notice_contradicts_ledger")]
+    if ledger_left:     # prose still contradicts the ledger after one revision: never a normal answer (#22 lock 2)
+        out |= {"status": "degraded",
+                "degraded": [{"node": "verify_select", "kind": "ledger_conflict", "error": c.detail[:300]}
+                             for c in ledger_left]}
+    return out
 
 
 def _resolved(state: AgentState) -> dict:
     return {code: {c.id: c for c in checks} for code, checks in state.elements.items()}
+
+
+def ledger_conflicts(state: AgentState, answer: AnswerJSON) -> list:
+    """Where the draft's prose disagrees with the per-employee ledger (amounts, notice per person). Deterministic."""
+    if state.termination is None:
+        return []
+    from src.agent.ledger import build_ledger, prose_conflicts
+    from src.agent.nodes.decide import m119_keys
+    return prose_conflicts(answer, build_ledger(state.termination, answer, m119_keys()), state.question)
 
 
 def system_conflicts(state: AgentState, answer: AnswerJSON) -> list:
@@ -335,41 +366,44 @@ def check_grounds(a: AnswerJSON, ok, exemption_paragraph: str) -> set[str]:
 
 
 def payments(a: AnswerJSON, t, ok) -> None:
-    """Per-employee money table from the calculator. The LLM decides only whether ม.119
-    applies to each employee; every amount and the total come from `t` (labor.Termination)."""
-    from decimal import Decimal
-
+    """Per-employee money table from the ledger (src/agent/ledger.py). The LLM decides only the grounds
+    (ม.119 / ป.พ.พ. ม.583) per employee; every amount and the total come from the calculator."""
     from src.agent.answer import EmployeeOutcome, PaymentRow
+    from src.agent.ledger import build_ledger
     from src.agent.nodes.decide import m119_keys
     from src.calc import labor
-    people = a.employees or [EmployeeOutcome(name="ลูกจ้าง", m119_applies=None)]
-    sev = t.severance.amount if t.severance else None
-    rows, total, undecided, keys = [], Decimal(0), False, m119_keys()
-    for e in people:
-        got = labor.apply_m119(sev or Decimal(0), t.notice_pay.amount, t.final_wage.amount,
-                               bool(e.m119_applies), keys)
+    if not a.employees:
+        a.employees = [EmployeeOutcome(name="ลูกจ้าง", m119_applies=None)]
+    keys = m119_keys()
+    led = build_ledger(t, a, keys)
+    rows, undecided = [], False
+    for e, r in zip(a.employees, led.employees, strict=True):
         grounds = ", ".join(short_label(ok(k)) for k in e.found_ground_keys if ok(k))
         note = (f"เข้า {grounds}" if e.m119_applies
                 else "ไม่เข้ามาตรา 119" if e.m119_applies is False
                 else "ยังไม่ชัดว่าเข้ามาตรา 119 หรือไม่ — แสดงจำนวนกรณีไม่เข้า")
-        if sev is None and not e.m119_applies:
+        if r.ccc583 and not r.m119:
+            note += " · เข้ามาตรา 583 ประมวลกฎหมายแพ่งและพาณิชย์ จึงไม่ต้องบอกกล่าวล่วงหน้า"
+        if t.severance is None and not e.m119_applies:
             note += " · อายุงานไม่ทราบ จึงยังไม่คำนวณค่าชดเชย"
         undecided |= e.m119_applies is None
-        sub = got.severance + got.notice_pay + got.final_wage
-        total += sub
         rows.append(PaymentRow(name=e.name, m119_applies=e.m119_applies,
-                               severance=labor.baht(got.severance), notice_pay=labor.baht(got.notice_pay),
-                               final_wage=labor.baht(got.final_wage), total=labor.baht(sub), note=note))
+                               severance=labor.baht(r.severance), notice_pay=labor.baht(r.notice_pay),
+                               final_wage=labor.baht(r.final_wage), total=labor.baht(r.total), note=note))
     a.payments = rows
-    a.payments_total = labor.baht(total) + (" (กรณีที่ยังไม่ชัดคิดแบบไม่เข้ามาตรา 119)" if undecided else "")
+    a.payments_total = labor.baht(led.total) + (" (กรณีที่ยังไม่ชัดคิดแบบไม่เข้ามาตรา 119)" if undecided else "")
     a.payments_steps = (t.wage_steps + (["▶ ค่าชดเชย"] + t.severance.steps if t.severance else [])
                         + ["▶ สินจ้างแทนการบอกกล่าวล่วงหน้า"] + t.notice_pay.steps
                         + ["▶ ค่าจ้างงวดสุดท้าย"] + t.final_wage.steps)
-    if any(e.m119_applies for e in people):
+    if any(r.m119 for r in led.employees):
         a.payments_steps.append("ลูกจ้างที่เข้ามาตรา 119 ไม่มีสิทธิได้ค่าชดเชย และไม่ต้องบอกกล่าวล่วงหน้า "
                                 "จึงไม่มีสินจ้างแทนการบอกกล่าวล่วงหน้า แต่ยังได้ค่าจ้างงวดสุดท้าย")
-    found = [k for e in people for k in e.found_ground_keys]
+    if any(r.ccc583 and not r.m119 for r in led.employees):
+        a.payments_steps.append("ลูกจ้างที่ไม่เข้ามาตรา 119 แต่เข้ามาตรา 583 แห่งประมวลกฎหมายแพ่งและพาณิชย์ ยังได้ค่าชดเชย "
+                                "แต่การบอกกล่าวล่วงหน้าไม่ใช้บังคับ จึงไม่มีสินจ้างแทนการบอกกล่าวล่วงหน้า")
+    found = [k for e in a.employees for k in e.found_ground_keys]
     used = t.citations + (found + [keys["notice_exempt"]] if found else [])
+    used += [k for r in led.employees if r.ccc583 and not r.m119 for k in (keys["ccc583"], keys["notice_exempt"])]
     a.payments_citations = [k for k in dict.fromkeys(used) if ok(k)]
 
 

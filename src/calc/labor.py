@@ -317,6 +317,24 @@ class Entitlement(BaseModel):
     citations: list[str]
 
 
+def apply_dismissal(severance: Decimal, notice_pay: Decimal, final_wage: Decimal, *, m119: bool,
+                    ccc583: bool, keys: dict[str, str]) -> Entitlement:
+    """Per-employee amounts once the grounds are decided (upstream, with reasons).
+    - ม.119 removes severance; notice does not apply to a dismissal under ม.119 (ม.17 วรรคสี่).
+    - ป.พ.พ. ม.583 alone removes only the notice requirement (ม.17 วรรคสี่ names both), so severance stays due.
+    - Wages already earned are owed either way (ม.70 วรรคสอง).
+    keys: {"m119": …, "notice_exempt": …, "final": …, "ccc583": …} (looked up from the DB by text)."""
+    if m119:
+        return apply_m119(severance, notice_pay, final_wage, True, keys)
+    if ccc583:
+        return Entitlement(severance=severance, notice_pay=Decimal(0), final_wage=final_wage,
+                           citations=[keys["ccc583"], keys["notice_exempt"], keys["final"]], steps=[(
+                               f"ไม่เข้าเหตุตามมาตรา 119 → ค่าชดเชย {baht(severance)} บาท "
+                               "แต่เข้ามาตรา 583 แห่งประมวลกฎหมายแพ่งและพาณิชย์ → การบอกกล่าวล่วงหน้าไม่ใช้บังคับ "
+                               f"จึงไม่มีสินจ้างแทนการบอกกล่าวล่วงหน้า · ค่าจ้างงวดสุดท้าย {baht(final_wage)} บาท")])
+    return apply_m119(severance, notice_pay, final_wage, False, keys)
+
+
 def apply_m119(severance: Decimal, notice_pay: Decimal, final_wage: Decimal, m119_applies: bool,
                keys: dict[str, str]) -> Entitlement:
     """Per-employee amounts once ม.119 is decided (upstream, with reasons). A ม.119 dismissal
