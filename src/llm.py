@@ -57,6 +57,15 @@ def _key(*parts: str) -> str:
     return hashlib.sha256("\x1f".join(parts).encode()).hexdigest()
 
 
+def cache_path(prompt: str, schema: type[BaseModel], *, system: str = "", temperature: float = 0.0,
+               model: str | None = None, seed: int = 0, thinking: str | None = None) -> Path:
+    """Where generate_json caches this exact call (lets a dry run tell cached from paid calls)."""
+    model = model or settings.gemini_model
+    params = json.dumps({"t": temperature, "seed": seed, **({"thinking": thinking} if thinking else {})})
+    key = _key(model, system, prompt, json.dumps(schema.model_json_schema(), sort_keys=True), params)
+    return CACHE / key[:2] / f"{key}.json"
+
+
 def generate_json(prompt: str, schema: type[T], *, system: str = "", name: str = "llm",
                   temperature: float = 0.0, model: str | None = None, seed: int = 0,
                   use_cache: bool = True, thinking: str | None = None) -> T:
@@ -67,9 +76,8 @@ def generate_json(prompt: str, schema: type[T], *, system: str = "", name: str =
     from google.genai import types
 
     model = model or settings.gemini_model
-    params = json.dumps({"t": temperature, "seed": seed, **({"thinking": thinking} if thinking else {})})
-    key = _key(model, system, prompt, json.dumps(schema.model_json_schema(), sort_keys=True), params)
-    path = CACHE / key[:2] / f"{key}.json"
+    path = cache_path(prompt, schema, system=system, temperature=temperature, model=model, seed=seed,
+                      thinking=thinking)
     if use_cache and path.exists():
         data = json.loads(path.read_text(encoding="utf-8"))
         USAGE.add(name, data["usage"]["in"], data["usage"]["out"], 0, True)

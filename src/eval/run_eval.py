@@ -1,6 +1,6 @@
 """Run the agent over an eval set, judge, and write docs/results/<date>_<config>.md.
 
-  python -m src.eval.run_eval --set dev100 --leave-one-out [--limit N | --subset30 | --ids a,b]
+  python -m src.eval.run_eval --set dev100 --leave-one-out [--limit N | --subset30 | --ids a,b] [--judge checklist]
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ from datetime import datetime
 from pathlib import Path
 
 from src.config import settings
+from src.eval import checklist_judge
 from src.eval.judge import CRITERIA, gold_text, judge
 from src.llm import USAGE
 
@@ -54,7 +55,7 @@ def subset30(rows: list[dict]) -> list[dict]:
     return out[:30]
 
 
-def run_one(row: dict, loo: bool, out_dir: Path) -> dict:
+def run_one(row: dict, loo: bool, out_dir: Path, judge_kind: str = "llm") -> dict:
     from src.agent.graph import answer
     from src.agent.status import effective_status
     t0 = time.monotonic()
@@ -71,12 +72,15 @@ def run_one(row: dict, loo: bool, out_dir: Path) -> dict:
     except Exception as e:  # noqa: BLE001 — record and continue the batch
         md, err, trace, removed, unknown, answer_json = "", repr(e), [], [], [], None
     latency = time.monotonic() - t0
-    cited = {":".join(k.split(":")[:2]) for k in (answer_json and _all_keys(answer_json)) or []
-             if not k.startswith("CASE:")}
+    keys = sorted((answer_json and _all_keys(answer_json)) or [])
+    cited = {":".join(k.split(":")[:2]) for k in keys if not k.startswith("CASE:")}
     gold = {g for g in row.get("gold_citations", "").split(";") if g}
     # #22: a needs_review or degraded run (any trace error) is invalid: never judged, never a PASS
     invalid = status != "ok"
-    score = judge(row["question"], gold_text(row), md) if md and not invalid else None
+    score = None
+    if md and not invalid:
+        score = (checklist_judge.judge(row, md, keys) if judge_kind == "checklist"
+                 else judge(row["question"], gold_text(row), md))
     rec = {"id": row["id"], "difficulty": row.get("difficulty"), "category": row.get("category"),
            "latency_s": round(latency, 1), "error": err, "status": status, "invalid": invalid,
            "degraded": degraded, "removed_citations": removed,
@@ -164,6 +168,8 @@ def main() -> None:
     ap.add_argument("--ids")
     ap.add_argument("--split", choices=["tune", "holdout"], help="dev100 split in config/dev100_split.json")
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--judge", choices=["llm", "checklist"], default="llm",
+                    help="llm = holistic judge (src/eval/judge.py); checklist = calibrated checklist judge")
     a = ap.parse_args()
     if a.set == "test160":  # guarded: phase 2 only via export_for_grading
         raise SystemExit("test160 is not allowed here")
@@ -181,12 +187,14 @@ def main() -> None:
         rows = rows[:a.limit]
 
     cfg = config()
+    if a.judge != "llm":            # keep the config hash of llm-judged runs unchanged
+        cfg["judge"] = a.judge
     h = hashlib.sha1(json.dumps(cfg, sort_keys=True).encode()).hexdigest()[:8]
     stamp = f"{datetime.now().astimezone():%Y-%m-%d_%H%M}"
     out_dir = RUNS / f"{stamp}_{a.set}_{h}"
     out_dir.mkdir(parents=True, exist_ok=True)
     with ThreadPoolExecutor(a.workers) as ex:
-        recs = list(ex.map(lambda r: run_one(r, a.leave_one_out, out_dir), rows))
+        recs = list(ex.map(lambda r: run_one(r, a.leave_one_out, out_dir, a.judge), rows))
     md = report(recs, cfg, f"{a.set}{'/' + a.split if a.split else ''} ({len(rows)}q, {'LOO' if a.leave_one_out else 'no-LOO'})",
                 out_dir)
     dest = Path("docs/results") / f"{stamp[:10]}_{a.set}{'_' + a.split if a.split else ''}_{h}.md"
