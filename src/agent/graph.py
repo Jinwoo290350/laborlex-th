@@ -8,6 +8,7 @@ from itertools import pairwise
 from langgraph.graph import END, START, StateGraph
 
 from src.agent.nodes.decide import calculate, check_elements, select_citations
+from src.agent.nodes.determine import determine_grounds
 from src.agent.nodes.draft import draft_answers, validate_cites, verify_select
 from src.agent.nodes.retrieve import retrieve_cases, retrieve_law
 from src.agent.nodes.understand import extract_facts, spot_issues
@@ -15,7 +16,7 @@ from src.agent.state import AgentState
 from src.agent.status import review_notice
 
 # a failure in these nodes stops the run before any legal answer is drafted (#22)
-CRITICAL = {"extract_facts", "check_elements", "verify_select"}
+CRITICAL = {"extract_facts", "check_elements", "determine_grounds", "verify_select"}
 
 STEPS = [
     ("extract_facts", extract_facts),
@@ -24,6 +25,7 @@ STEPS = [
     ("retrieve_cases", retrieve_cases),
     ("select_citations", select_citations),
     ("check_elements", check_elements),
+    ("determine_grounds", determine_grounds),
     ("calculate", calculate),
     ("draft_answers", draft_answers),
     ("verify_select", verify_select),

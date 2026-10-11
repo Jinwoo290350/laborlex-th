@@ -22,6 +22,7 @@ from collections.abc import Callable
 from datetime import date
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 import bm25s
 import numpy as np
@@ -99,7 +100,7 @@ class CardIndex:
             order = np.argsort(-sims)[:pool]
             rankings.append([(idx[j], float(sims[j])) for j in order])
         fused = rrf(*rankings)
-        rows = [{"i": i, "score": s, "text": self.texts[i]} for i, s in fused]
+        rows: list[dict[str, Any]] = [{"i": i, "score": s, "text": self.texts[i]} for i, s in fused]
         if use_rerank and rows:
             from src.index.tools import rerank
             try:

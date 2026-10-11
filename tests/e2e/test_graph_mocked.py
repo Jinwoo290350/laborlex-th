@@ -45,6 +45,8 @@ def fake_generate_json(prompt, schema, **kw):
                                   "explanation": "-", "topic": "ค่าชดเชย"}],
                         "application": [], "conclusion": [{"headline": "ได้"}],
                         "opinion": "ได้", "basis": "ม.118"}]})
+    if name == "GroundVote":   # M5 determination votes: facts too thin → every ground unknown
+        return schema.model_validate({"checks": []})
     if name == "Verdict":
         return schema.model_validate({"complete": 1, "supported": 1, "consistent": 1,
                                       "focused": 1, "feedback": ""})
@@ -53,9 +55,10 @@ def fake_generate_json(prompt, schema, **kw):
 
 def test_flow(monkeypatch):
     import src.agent.nodes.decide as d
+    import src.agent.nodes.determine as de
     import src.agent.nodes.draft as dr
     import src.agent.nodes.understand as u
-    for m in (u, d, dr):
+    for m in (u, d, de, dr):
         monkeypatch.setattr(m, "generate_json", fake_generate_json)
     from src.agent.graph import STEPS, answer
 

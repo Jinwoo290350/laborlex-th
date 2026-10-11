@@ -35,6 +35,7 @@ def s_law(state): CALLS.append("retrieve_law"); return {"candidates": {A: [], B:
 def s_cases(state): CALLS.append("retrieve_cases"); return {"cases": {}}
 def s_select(state): CALLS.append("select_citations"); return {"selected": {A: [], B: []}}
 def s_elements(state): CALLS.append("check_elements"); return {"elements": {}}
+def s_determine(state): CALLS.append("determine_grounds"); return {}
 def s_calc(state): CALLS.append("calculate"); return {}
 def s_draft(state): CALLS.append("draft_answers"); return {"drafts": [_answer()]}
 def s_verify(state): CALLS.append("verify_select"); return {"answer": state.drafts[0]}
@@ -42,7 +43,8 @@ def s_validate(state): CALLS.append("validate_cites"); return {"markdown": "NORM
 
 
 STUBS = {"extract_facts": s_facts, "spot_issues": s_spot, "retrieve_law": s_law, "retrieve_cases": s_cases,
-         "select_citations": s_select, "check_elements": s_elements, "calculate": s_calc,
+         "select_citations": s_select, "check_elements": s_elements, "determine_grounds": s_determine,
+         "calculate": s_calc,
          "draft_answers": s_draft, "verify_select": s_verify, "validate_cites": s_validate}
 
 

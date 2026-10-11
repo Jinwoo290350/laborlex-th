@@ -80,6 +80,24 @@ class ElementCheck(BaseModel):
     evidence: str = Field(description="ข้อเท็จจริงในโจทย์ที่ใช้ตัดสิน หรือเหตุที่ไม่ทราบ")
 
 
+class GroundCheck(BaseModel):
+    """One dismissal ground (a ม.119 item or ป.พ.พ. ม.583) judged for one employee (FIX_PLAN_v2 M5)."""
+    key: str
+    status: Literal["met", "not_met", "unknown"]
+    evidence: str = Field(default="", description="ข้อเท็จจริงในโจทย์ที่ใช้ตัดสินสำหรับลูกจ้างคนนี้ หรือเหตุที่ไม่ทราบ")
+    cards: list[str] = Field(default_factory=list, description="key ของคำพิพากษาที่ให้มาซึ่งสนับสนุนผลนี้")
+
+
+class EmployeeDetermination(BaseModel):
+    """Grounds decided by code from majority votes; the answer must follow it (src/agent/ledger.py)."""
+    name: str
+    m119: bool | None                 # any ม.119 item met → True; all not met → False; otherwise None
+    ccc583: bool | None               # only when ม.119 is not met
+    grounds: list[GroundCheck]
+    cards: list[str] = Field(default_factory=list)      # cards offered to the model
+    votes: int = 0
+
+
 class Decision(BaseModel):
     p: float                      # probability the candidate applies
     confidence: float
@@ -116,6 +134,7 @@ class AgentState(BaseModel):
     removed_citations: list[str] = Field(default_factory=list)
     markdown: str = ""
 
+    determinations: list[EmployeeDetermination] = Field(default_factory=list)   # M5, per dismissed employee
     # #22: needs_review = a critical node failed, no legal answer is produced (graph → review_stop);
     # degraded = a round-1 fallback was used (retrieve_cases / select_citations), the answer is not normal
     status: Annotated[Status, worst_status] = "ok"

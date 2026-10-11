@@ -189,12 +189,32 @@ def _examples_block(state: AgentState) -> str:
     return "\n\n".join(f"คำถาม: {r['question']}\nเฉลย: {gold_text(r)}" for r in ex) or "-"
 
 
+def _determinations_block(state: AgentState) -> str:
+    """The grounds the system decided per employee (determine_grounds); the draft must follow them."""
+    if not state.determinations:
+        return ""
+    lines = ["", "", "## ผลวินิจฉัยเหตุเลิกจ้างรายคนของระบบ (ต้องเขียนให้ตรงกับผลนี้)"]
+    for d in state.determinations:
+        met = [g.key for g in d.grounds if g.status == "met" and not g.key.startswith("CCC:")]
+        m119 = (f"เข้ามาตรา 119 ({', '.join(met)})" if d.m119 else "ไม่เข้ามาตรา 119" if d.m119 is False
+                else "ยังไม่ชัดว่าเข้ามาตรา 119 หรือไม่ (ข้อเท็จจริงไม่พอ ให้ตอบแบบมีเงื่อนไข)")
+        c583 = ("" if d.ccc583 is None else
+                " · เข้ามาตรา 583 แห่งประมวลกฎหมายแพ่งและพาณิชย์ (ไม่ต้องบอกกล่าวล่วงหน้า แต่ยังได้ค่าชดเชย)" if d.ccc583
+                else " · ไม่เข้ามาตรา 583 แห่งประมวลกฎหมายแพ่งและพาณิชย์")
+        lines.append(f"- {d.name}: {m119}{c583}")
+        for g in d.grounds:
+            if g.status != "unknown" and g.evidence:
+                lines.append(f"  └ {g.key} = {g.status}: {g.evidence[:200]}" + (f" [{', '.join(g.cards)}]" if g.cards else ""))
+    return "\n".join(lines)
+
+
 def draft_prompt(state: AgentState, feedback: str = "") -> str:
     _, body = prompt("draft_answer")
     p = body.format(question=state.question,
                     asked="\n".join(state.facts.asked if state.facts else []),
                     facts=fmt_facts(state), issues=_issue_block(state),
-                    provisions=_provisions_block(state), elements=_elements_block(state),
+                    provisions=_provisions_block(state),
+                    elements=_elements_block(state) + _determinations_block(state),
                     calcs=_calcs_block(state), examples=_examples_block(state),
                     cases=_cases_block(state))
     if feedback:
@@ -246,7 +266,9 @@ def verify_select(state: AgentState) -> dict:
     with ThreadPoolExecutor(max(len(state.drafts), 1)) as ex:
         verdicts = list(ex.map(lambda d: _verify(state, d), state.drafts))
     best = max(range(len(verdicts)), key=lambda i: verdicts[i].score())
-    answer, v = state.drafts[best], verdicts[best]
+    answer, v = state.drafts[best].model_copy(deep=True), verdicts[best]
+    from src.agent.ledger import apply_determinations
+    apply_determinations(answer, state)
     revised = False
     # the system's own findings first: a draft that contradicts them is always revised once (#20)
     conflicts = system_conflicts(state, answer) + ledger_conflicts(state, answer)
@@ -254,6 +276,7 @@ def verify_select(state: AgentState) -> dict:
                           + ([v.feedback] if v.feedback.strip() else []))
     if conflicts or (v.worst() < P("draft.revise_below") and v.feedback.strip()):
         answer = generate_json(draft_prompt(state, feedback), AnswerJSON, name="revise")
+        apply_determinations(answer, state)
         revised = True
     left = (system_conflicts(state, answer) + ledger_conflicts(state, answer)) if revised else conflicts
     scores = [v.model_dump() for v in verdicts]
@@ -340,6 +363,7 @@ def allowed_keys(state: AgentState) -> set[str]:
     keys |= {x["citation_key"] for k in list(keys) for x in tools.get_subitems(k, state.event_date)}
     keys |= {k for c in state.calcs.values() for k in c.citations}
     keys |= {h["key"] for hits in state.cases.values() for h in hits}
+    keys |= {g.key for d in state.determinations for g in d.grounds} | {c for d in state.determinations for c in d.cards}
     if state.termination:
         from src.agent.nodes.decide import m119_keys
         keys |= set(state.termination.citations) | set(m119_keys().values())
@@ -503,6 +527,8 @@ def validate_cites(state: AgentState) -> dict:
 
     from src.agent.nodes.decide import m119_keys
     exemption = m119_keys()["m119"]
+    from src.agent.ledger import apply_determinations
+    apply_determinations(a, state)
     found_grounds = check_grounds(a, ok, exemption)
 
     def cited_ok(k: str) -> bool:

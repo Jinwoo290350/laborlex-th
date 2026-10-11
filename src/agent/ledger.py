@@ -15,6 +15,7 @@ from pydantic import BaseModel
 
 from src.agent.answer import AnswerJSON, EmployeeOutcome
 from src.agent.rules.elements import Conflict
+from src.agent.state import AgentState
 from src.calc import labor
 
 AMOUNT = re.compile(r"(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)\s*บาท")
@@ -120,3 +121,23 @@ def prose_conflicts(a: AnswerJSON, led: Ledger, question: str) -> list[Conflict]
                                     detail=f"{name}ไม่เข้าเหตุยกเว้นการบอกกล่าวล่วงหน้า จึงมีสิทธิได้รับสินจ้างแทนการบอกกล่าวล่วงหน้า "
                                            f"{labor.baht(r.notice_pay)} บาท แต่ข้อความระบุว่าไม่มีสิทธิ: “{seg[:120].strip()}”"))
     return out
+
+
+def apply_determinations(a: AnswerJSON, state: AgentState) -> None:
+    """The grounds decided in determine_grounds win over whatever the drafter wrote (M5): one employee list, in the
+    determination order, with the drafter's alleged grounds kept where the names match."""
+    if not state.determinations:
+        return
+    drafted = {e.name: e for e in a.employees}
+    out = []
+    for d in state.determinations:
+        prev = drafted.get(d.name) or next((e for n, e in drafted.items() if n in d.name or d.name in n), None)
+        c583 = next((g for g in d.grounds if g.key.startswith("CCC:")), None)
+        out.append(EmployeeOutcome(
+            name=d.name, m119_applies=d.m119,
+            found_ground_keys=[g.key for g in d.grounds if g.status == "met" and not g.key.startswith("CCC:")]
+            if d.m119 else [],
+            alleged_ground_keys=prev.alleged_ground_keys if prev else [],
+            not_found_reason=prev.not_found_reason if prev else "",
+            ccc583_applies=d.ccc583, ccc583_reason=c583.evidence if c583 and d.ccc583 is not None else ""))
+    a.employees = out

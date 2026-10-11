@@ -312,7 +312,7 @@ def is_substantive(segments: list[Segment], only_procedural_cites: bool) -> bool
 
 
 # ---------------------------------------------------------------- regime, issues
-def regime_of(year: int | None, provisions: list[str], old_provisions: list[str]) -> str:
+def regime_of(year: int | None, provisions: list[str], old_provisions: list[str]) -> Literal["pre2541", "post2541"]:
     """pre2541 if the decision applies the old ประกาศ (cites it), post2541 if it cites LPA 2541 without it,
     else by decision year (decided after 2541 → post2541)."""
     if old_provisions:
@@ -378,7 +378,7 @@ def card_from_appeal(row: dict, links: list[dict], issues: dict[str, list[str]] 
     """Appeal-court (ศาลอุทธรณ์คดีชำนัญพิเศษ) decision; `links` = its rows of case_section_links.jsonl."""
     cur, kinds = [], []
     for lk in links:
-        short, sec = LEGACY_CODES.get(lk.get("law_code")), section_no(str(lk.get("section") or ""))
+        short, sec = LEGACY_CODES.get(str(lk.get("law_code"))), section_no(str(lk.get("section") or ""))
         kinds.append(is_procedural(short, sec))
         if short and sec:
             cur.append(f"{short}:{sec}")

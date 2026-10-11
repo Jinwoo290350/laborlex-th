@@ -180,3 +180,24 @@ retrieve.primary_max:
   rule: knee on gold-section recall
   evidence: 'docs/results/2026-10-01_tune_retrieval.json: 6 vs 9 identical recall; 3 lower'
   status: final
+determine.votes:
+  value: 3
+  kind: design
+  source: self-consistency (Wang et al. 2022, arXiv 2203.11171); FIX_PLAN_v2 §B
+  rule: independent votes per employee for the dismissal grounds; a ground needs a strict majority, otherwise unknown
+  evidence: 'not measured yet; cost ≈ 3 short calls per employee (M5 plan)'
+  status: provisional
+determine.temperature:
+  value: 0.7
+  kind: design
+  source: self-consistency needs diverse samples; seeds 0..votes-1
+  rule: sampling temperature for the determination votes only (drafting stays at llm.temperature)
+  evidence: 'not tuned; common self-consistency setting'
+  status: provisional
+determine.cards_k:
+  value: 4
+  kind: design
+  source: M4 Recall@5 benchmark (search_cards top-5 recall 60%)
+  rule: holding cards per query (one query for ม.119, one for ป.พ.พ. ม.583) shown to each vote
+  evidence: 'Recall@5 0.60 vs 0.30 baseline on 10 Huay Khwang decisions (data/processed/cards/benchmark.json)'
+  status: provisional
