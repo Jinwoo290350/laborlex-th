@@ -1,0 +1,48 @@
+# Crosswalk: old-regime labour-protection clauses → current LPA 2541 sections (M4, FIX_PLAN_v2 "Data work").
+#
+# Before the พ.ร.บ.คุ้มครองแรงงาน พ.ศ. 2541 took effect, labour protection lived in
+# ประกาศกระทรวงมหาดไทย เรื่อง การคุ้มครองแรงงาน ลงวันที่ 16 เมษายน 2515 (issued under ประกาศของคณะปฏิวัติ
+# ฉบับที่ 103). deka.supremecourt.or.th tags it with law_code ค77-02 (1,836-decision old corpus) and, for some
+# rows, ค77-04 (same instrument, name carries the date). Both codes are treated as one instrument "MOI2515".
+#
+# Every mapping below was checked by reading the decisions listed under `evidence` (laws field + text);
+# none is taken from memory. Clauses not listed here stay unmapped (kept in card.old_provisions only).
+# Copied to data/processed/crosswalk.yaml by `python -m src.index.build_cards` (data/ is gitignored).
+instruments:
+  MOI2515:
+    name: ประกาศกระทรวงมหาดไทย เรื่อง การคุ้มครองแรงงาน (16 เมษายน 2515)
+    law_codes: [ค77-02, ค77-04]
+    # text pattern used to find citations in headnotes when the laws field is missing
+    text_pattern: ประกาศกระทรวงมหาดไทย\s*เรื่อง\s*การคุ้มครองแรงงาน
+clauses:
+  MOI2515:46:
+    to: [LPA2541:118]
+    why: severance pay on dismissal (ค่าชดเชย); วรรคสอง defines dismissal like ม.118 วรรคสอง
+    evidence: [7330/2543, 2960/2545]   # 7330/2543: old ข้อ 46 (3) applied because LPA 2541 not yet in force
+    decisions: 102                      # laws-field count at build time (ค77-02 + ค77-04)
+  MOI2515:47:
+    to: [LPA2541:119]
+    why: exemptions from severance (ทุจริต, จงใจ, ฝ่าฝืนข้อบังคับ, ละทิ้งหน้าที่ ...); 47 (4) = serious work-rule breach
+    evidence: [3211/2545, 5753/2543, 1252/2526]
+    decisions: 107
+  MOI2515:2:
+    to: [LPA2541:5]
+    why: definitions (นายจ้าง, ลูกจ้าง, ค่าจ้าง); 2513/2544 moves the "ค่าจ้าง" definition from old ข้อ 2 to ม.5
+    evidence: [2513/2544, 7038/2544]
+    decisions: 91
+  MOI2515:10:
+    to: [LPA2541:30]
+    why: annual leave of not less than 6 working days after one year, fixed in advance by the employer (= ม.30)
+    evidence: [1081/2542, 794/2531]
+    decisions: 14
+  MOI2515:45:
+    to: [LPA2541:67]
+    why: pay for annual leave on dismissal other than for cause (= ม.67)
+    evidence: [1081/2542, 794/2531]
+    decisions: 14
+# Not mapped (recorded so the gap is visible):
+# - ข้อ 54, 60 (≈ 10 and 7 decisions): work-injury compensation, later moved to the Workmen's Compensation Act
+#   (พ.ร.บ.เงินทดแทน 2537), which is not in the provisions DB.
+# - ข้อ 3, 29, 32, 34, 39, 68 and others: ≤ 8 decisions each; not verified clause by clause yet.
+# - ข้อ 42: 2448/2523's headnote calls it the severance clause (an earlier numbering); its laws field cites
+#   ข้อ 46/47, so the decision is still mapped through those.

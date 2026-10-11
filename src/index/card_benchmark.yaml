@@ -1,0 +1,29 @@
+# M4 acceptance benchmark: per-element principle queries for the Huay Khwang points (FIX_PLAN_v2 M4).
+# Expected decisions come from FIX_PLAN_v2 §A (R&D reading of the decisions); every deka_no was checked to exist in
+# data/raw/deka/labour_deka.jsonl. issue_code = the taxonomy issue the element belongs to (data/processed/issues.yaml).
+# The 49-pair expert adjudication sheet (docs/benchmarks/adjudication_sheet_P1P2_2026-10-05.xlsx) is NOT used:
+# its verdict column is still empty (0/49 labelled on 2026-10-11), and its candidates came from the systems compared.
+- id: m119_failure_to_report
+  query: ลูกจ้างรู้การกระทำผิดของเพื่อนร่วมงานแต่นิ่งเฉยไม่รายงาน
+  issue_code: dismissal_for_cause
+  expected: [6237/2545]
+- id: m119_competing_business
+  query: แย่งลูกค้า/ทำการแข่งขันกับนายจ้าง
+  issue_code: dismissal_for_cause
+  expected: [239/2545, 11096/2556]
+- id: ccc583_not_m119_severance
+  query: เข้า ม.583 แต่ไม่เข้า ม.119 ยังได้ค่าชดเชย
+  issue_code: severance_pay
+  expected: [2512/2545]
+- id: wage_housing_purpose
+  query: ค่าเช่าบ้านเป็นค่าจ้างหรือไม่ พิจารณาวัตถุประสงค์
+  issue_code: definition_of_wages
+  expected: [3129/2558, 2967/2555]
+- id: wage_flat_fuel
+  query: ค่าน้ำมันเหมาจ่ายเป็นค่าจ้างหรือไม่
+  issue_code: definition_of_wages
+  expected: [7402-7403/2544, 3934/2557, 4842/2548]
+- id: tenure_first_day
+  query: การนับวันแรกเข้าทำงานในอายุงาน
+  issue_code: severance_pay
+  expected: [2448/2523]
