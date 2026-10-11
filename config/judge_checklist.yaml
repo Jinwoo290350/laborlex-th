@@ -1,0 +1,26 @@
+# Checklist judge (src/eval/checklist_judge.py): rules that map item results to rubric scores 0/1/2.
+# Tuned by `python -m src.eval.calibrate_checklist --write-config` on the calibration split only
+# (config/dev100_split.json "tune"); the held-out split is reported, never used for fitting.
+#
+# For every criterion, `ratio` = share of its checklist items the answer satisfies (1.0 when the
+# checklist has no item of that kind) and `contradicted` = items the answer states the opposite of:
+#   score 2  if ratio >= hi and contradicted <= max_contradicted (and the criterion's extra conditions hold)
+#   score 1  if ratio >= lo
+#   score 0  otherwise
+# Items per criterion:
+#   A1  sub-questions the answer addresses
+#   A2  conclusions (LLM: stated and not contradicted) + gold amounts (code: number parsing)
+#   B0  gold issues the answer identifies; 2 also needs extra issues <= max_extra
+#   B1  section_weight * gold-section recall (code) + (1 - section_weight) * principles stated;
+#       citing a section the gold says does not exist caps the score at nonexistent_cap;
+#       section_match: law = "LPA2541:118" must match exactly, number = the section number only
+#   B2  as A2 (application drives the conclusions); no application to the facts → no_application
+#   B3  as A2, with its own thresholds
+version: 1
+criteria:
+  A1: {hi: 1.0, lo: 0.01}
+  A2: {hi: 1.0, lo: 0.01, max_contradicted: 0}
+  B0: {hi: 1.0, lo: 0.01, max_extra: 1}
+  B1: {hi: 1.0, lo: 0.01, max_contradicted: 0, section_weight: 0.5, section_match: law, nonexistent_cap: 1}
+  B2: {hi: 1.0, lo: 0.01, max_contradicted: 0, no_application: 0}
+  B3: {hi: 1.0, lo: 0.01, max_contradicted: 0}
