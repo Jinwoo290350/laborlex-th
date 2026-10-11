@@ -172,3 +172,13 @@ def test_huaykhwang_replay_has_no_ledger_conflicts():
     st = AgentState.model_validate(json.loads(HK.read_text(encoding="utf-8")))
     led = build_ledger(st.termination, st.answer, KEYS)
     assert prose_conflicts(st.answer, led, question=st.question) == []
+
+
+def test_sum_of_ledger_amount_and_other_calculation_is_allowed():
+    """Final wage + minimum-wage shortfall (5,250 + 18,000) is a legitimate total, not an invented amount."""
+    from src.agent.ledger import build_ledger, prose_conflicts
+    a = _answer(EmployeeOutcome(name="นายซื่อบื้อ", m119_applies=False),
+                prelim=["ค่าจ้างงวดสุดท้ายและส่วนต่างค่าจ้างขั้นต่ำรวม 23,250 บาท"])
+    led = build_ledger(_termination(), a, KEYS)
+    assert prose_conflicts(a, led, question="", extra={D(18000)}) == []
+    assert [c.kind for c in prose_conflicts(a, led, question="")] == ["amount_not_in_ledger"]

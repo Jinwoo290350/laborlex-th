@@ -99,7 +99,10 @@ def prose_conflicts(a: AnswerJSON, led: Ledger, question: str, extra: set[Decima
     """Where the drafted text disagrees with the ledger: an amount the system never computed (and the question
     never stated), or a per-person statement on pay in lieu of notice with the opposite polarity."""
     out: list[Conflict] = []
-    allowed = _allowed(led, question) | (extra or set())
+    extra = extra or set()
+    allowed = _allowed(led, question) | extra
+    money = {x for r in led.employees for x in (r.severance, r.notice_pay, r.final_wage, r.total)} | {led.total}
+    allowed |= {x + y for x in money for y in extra}          # e.g. final wage + minimum-wage shortfall
     by_name = {r.name: r for r in led.employees}
     for where, text in _texts(a):
         for m in AMOUNT.finditer(text):
