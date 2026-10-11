@@ -2,6 +2,11 @@
 
 Usage: python -m src.ingest.pipeline [--dry-run]
 Rebuilds laws/provisions/links from scratch (the index is derived data).
+
+       python -m src.ingest.pipeline --append CCC [--dry-run]
+Additive: inserts only the provisions of one registered law whose citation_key is not in the DB yet (e.g. after
+widening its include_sections), leaving every other row, id, link and embedding untouched. Then run
+`python -m src.index.embed` (embeds rows with no vector); the BM25 cache rebuilds itself on the next search.
 """
 
 from __future__ import annotations
@@ -56,12 +61,58 @@ def issued_under(text: str) -> list[str]:
     return SEC_REF_RE.findall(m.group(1)) if m else []
 
 
+def insert_rows(cur, law_id: int, e: dict, rows: list[ProvisionRow], secs: list[Section],
+                fns: dict[str, str]) -> None:
+    titles = {s.section_no: s.chapter_title for s in secs}
+    for r in rows:
+        cur.execute(
+            "INSERT INTO provisions (law_id, chapter, chapter_title, section_no, paragraph_no,"
+            " sub_no, text, repealed, amendment_notes, citation_key, valid_from)"
+            " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            (law_id, r.chapter, titles.get(r.section_no), r.section_no,
+             r.paragraph_no, r.sub_no, r.text, r.repealed,
+             [fns[f] for f in r.footnotes if f in fns], r.citation_key,
+             e.get("valid_from")),     # registry: instrument's effective date, if known
+        )
+
+
+def new_rows(rows: list[ProvisionRow], existing: set[str]) -> list[ProvisionRow]:
+    """Rows whose citation_key is not in the DB yet (append mode never updates or deletes)."""
+    return [r for r in rows if r.citation_key not in existing]
+
+
+def append(short: str, registry: list[dict], dry_run: bool) -> None:
+    e = next(x for x in registry if x["short_name"] == short)
+    secs, fns, _, _ = load_law(e)
+    rows = to_rows(secs, short)
+    from src.index.db import connect
+
+    with connect() as conn, conn.cursor() as cur:
+        cur.execute("SELECT id FROM laws WHERE short_name=%s", (short,))
+        row = cur.fetchone()
+        if row is None:
+            raise SystemExit(f"{short} is not in the laws table; append only extends a loaded law")
+        cur.execute("SELECT citation_key FROM provisions WHERE law_id=%s", (row[0],))
+        add = new_rows(rows, {k for (k,) in cur.fetchall()})
+        print(f"{short}: {len(rows)} rows parsed, {len(add)} new")
+        for r in add:
+            print(f"  + {r.citation_key}")
+        if dry_run:
+            conn.rollback()
+            return
+        insert_rows(cur, row[0], e, add, secs, fns)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--append", metavar="LAW", help="additive load of one registered law (no rebuild)")
     a = ap.parse_args()
 
     registry = yaml.safe_load(REGISTRY.read_text(encoding="utf-8"))
+    if a.append:
+        append(a.append, registry, a.dry_run)
+        return
     INTERIM.mkdir(parents=True, exist_ok=True)
     parsed: dict[str, tuple[dict, list[ProvisionRow], list[Section], dict[str, str], list[str]]] = {}
     report = []
@@ -95,17 +146,7 @@ def main() -> None:
                             (law_id[e["parent"]], law_id[e["short_name"]]))
 
         for short, (e, rows, secs, fns, _) in parsed.items():
-            titles = {s.section_no: s.chapter_title for s in secs}
-            for r in rows:
-                cur.execute(
-                    "INSERT INTO provisions (law_id, chapter, chapter_title, section_no, paragraph_no,"
-                    " sub_no, text, repealed, amendment_notes, citation_key, valid_from)"
-                    " VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-                    (law_id[short], r.chapter, titles.get(r.section_no), r.section_no,
-                     r.paragraph_no, r.sub_no, r.text, r.repealed,
-                     [fns[f] for f in r.footnotes if f in fns], r.citation_key,
-                     e.get("valid_from")),     # registry: instrument's effective date, if known
-                )
+            insert_rows(cur, law_id[short], e, rows, secs, fns)
 
         # ISSUED_UNDER: every provision of a child → the enabling sections of its parent
         n_links = 0

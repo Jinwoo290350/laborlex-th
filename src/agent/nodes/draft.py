@@ -81,6 +81,7 @@ def _provisions_block(state: AgentState) -> str:
         if subs:      # numbered items get their own keys so a conclusion can cite the exact one
             lines += [f"  └ {x['citation_key']} | {x['text'][:160]}" for x in subs]
     lines += _dismissal_rows(state, {r["citation_key"] for r in rows})
+    lines += _employer_rows(state, {r["citation_key"] for r in rows})
     notes = pair_notes(rows)
     if notes:
         lines += ["", "ลำดับชั้นกฎหมาย (ระบบกำหนด):"] + [f"- {n}" for n in notes]
@@ -100,6 +101,32 @@ def _dismissal_rows(state: AgentState, shown: set[str]) -> list[str]:
         if r and k not in shown:
             out.append(fmt_provision(r, P("draft.provision_chars")))
     return out
+
+
+EMPLOYER_ISSUE = "employer_liability_and_representatives"
+
+
+def _employer_keys(state: AgentState) -> list[str]:
+    """When the issue asks who is liable as employer, the ม.5 "นายจ้าง" definition paragraph (found by its wording)
+    and its numbered items belong to the answer even if ⑤ did not select them (P6: the definition paragraph is in a
+    26-paragraph section, so only search could reach it and it was missed)."""
+    if EMPLOYER_ISSUE not in {i.code for i in state.issues}:
+        return []
+    from src.agent.nodes.decide import employer_definition_key
+    k = employer_definition_key()
+    return [k] + [x["citation_key"] for x in tools.get_subitems(k, state.event_date)]
+
+
+def _employer_rows(state: AgentState, shown: set[str]) -> list[str]:
+    keys = _employer_keys(state)
+    if not keys or keys[0] in shown:
+        return []
+    r = tools.get_provision(keys[0], state.event_date)
+    if r is None:
+        return []
+    subs = [x for k in keys[1:] if (x := tools.get_provision(k, state.event_date))]
+    return ([fmt_provision(r, P("draft.provision_chars"))]
+            + [f"  └ {x['citation_key']} | {x['text'][:160]}" for x in subs])
 
 
 HEADER_LINE = re.compile(r"^(คำ(พิพากษา|วินิจฉัย|สั่ง)|พ\.ร\.บ\.|พ\.ร\.ก|ป\.พ\.พ\.|ป\.วิ\.|ประมวล|พระราช)")
@@ -369,6 +396,7 @@ def allowed_keys(state: AgentState) -> set[str]:
     if state.termination:
         from src.agent.nodes.decide import m119_keys
         keys |= set(state.termination.citations) | set(m119_keys().values())
+    keys |= set(_employer_keys(state))
     return keys
 
 
