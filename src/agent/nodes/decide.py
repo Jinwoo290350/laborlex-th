@@ -184,6 +184,10 @@ def wage_definition_key() -> str:
     return key_by_text("“ค่าจ้าง” หมายความว่า")
 
 
+def employer_definition_key() -> str:
+    return key_by_text("“นายจ้าง” หมายความว่า")
+
+
 def notice_keys() -> dict[str, str]:
     return {"notice": key_by_text("ในกรณีที่สัญญาจ้างไม่มีกำหนดระยะเวลา นายจ้างหรือลูกจ้างอาจบอกเลิกสัญญาจ้าง"),
             "in_lieu": key_by_text("ในกรณีที่นายจ้างบอกเลิกสัญญาจ้างโดยไม่บอกกล่าวล่วงหน้า"),

@@ -9,3 +9,12 @@
 - {law: LPA2541, section: "63",   paragraphs: null, subs: null, verified_by: null}
 - {law: LPA2541, section: "118",  paragraphs: null, subs: null, verified_by: null}
 - {law: LPA2541, section: "119",  paragraphs: null, subs: null, verified_by: null}
+# P6: ป.พ.พ. partnership sections, counted from data/raw/laws/ocs/CCC.txt (searchlaw.ocs.go.th consolidated text)
+- {law: CCC, section: "1025", paragraphs: 1, subs: [0],    verified_by: "CCC.txt 2026-10-11"}
+- {law: CCC, section: "1050", paragraphs: 1, subs: [0],    verified_by: "CCC.txt 2026-10-11"}
+- {law: CCC, section: "1070", paragraphs: 1, subs: [0],    verified_by: "CCC.txt 2026-10-11"}
+- {law: CCC, section: "1077", paragraphs: 1, subs: [2],    verified_by: "CCC.txt 2026-10-11"}
+- {law: CCC, section: "1080", paragraphs: 2, subs: [0, 0], verified_by: "CCC.txt 2026-10-11"}
+- {law: CCC, section: "1087", paragraphs: 1, subs: [0],    verified_by: "CCC.txt 2026-10-11"}
+- {law: CCC, section: "1088", paragraphs: 2, subs: [0, 0], verified_by: "CCC.txt 2026-10-11"}
+- {law: CCC, section: "1095", paragraphs: 2, subs: [0, 3], verified_by: "CCC.txt 2026-10-11"}

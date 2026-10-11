@@ -25,8 +25,10 @@ def primary_sections(code: str, exclude: set[str], need: int | None = None) -> l
     ranked = sorted(((sec, len(set(qs) - exclude)) for sec, qs in support.items()),
                     key=lambda x: -x[1])
     need = P("retrieve.primary_min_support") if need is None else need
-    return [sec for sec, n in ranked
-            if n >= need or (n >= 1 and sec in from_elements)][:P("retrieve.primary_max")]
+    out = [sec for sec, n in ranked
+           if n >= need or (n >= 1 and sec in from_elements)][:P("retrieve.primary_max")]
+    # sections a statute makes primary for the issue (P6), independent of dev gold — appended after the cap
+    return out + [s for s in issue.get("statutory_provisions") or [] if s not in out]
 
 
 def section_support(code: str, exclude: set[str]) -> dict[str, float]:

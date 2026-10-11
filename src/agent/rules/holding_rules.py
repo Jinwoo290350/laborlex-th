@@ -15,9 +15,14 @@ RULES = Path("config/holding_rules.yaml")
 
 
 class RuleCase(BaseModel):
-    deka_no: str
+    deka_no: str              # as stored in cases.deka_no (appeal-court rulings carry their "ร " prefix)
     decided_by: str
     quote: str
+    court: str = "ศาลฎีกา"
+
+    def label(self) -> str:
+        number = self.deka_no if self.court == "ศาลฎีกา" else self.deka_no.split(" ", 1)[-1]
+        return f"คำพิพากษา{self.court}ที่ {number}"
 
 
 class HoldingRule(BaseModel):
@@ -43,7 +48,7 @@ def rules_block(ground_keys: list[str]) -> str:
     lines = []
     for r in load_rules():
         if want & {_section(p) for p in r.provisions}:
-            cites = ", ".join(f"คำพิพากษาศาลฎีกาที่ {c.deka_no} “{c.quote}”" for c in r.cases)
+            cites = ", ".join(f"{c.label()} “{c.quote}”" for c in r.cases)
             lines.append(f"- [{r.id}] ถ้า {r.condition} → {r.outcome} ({cites})" + (f" · {r.caveat}" if r.caveat else ""))
     return "\n".join(lines) or "-"
 
