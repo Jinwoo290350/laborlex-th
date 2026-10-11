@@ -85,6 +85,7 @@ def test_node_decides_each_employee(monkeypatch):
     assert by["นายแพรวพราว"].m119 is True and by["นายซื่อบื้อ"].m119 is False and by["นายซื่อบื้อ"].ccc583 is True
     assert len(prompts) == 2 * determine.P("determine.votes")
     assert all("CASE:239/2545" in p for p in prompts)       # cards are put in front of the model
+    assert all("2512/2545" in p and "[HR-1]" in p for p in prompts)   # verified holding rules too
 
 
 def test_node_skips_without_a_dismissal_issue(monkeypatch):

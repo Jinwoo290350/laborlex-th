@@ -87,11 +87,13 @@ def determine_grounds(state: AgentState) -> dict:
     items, (c583, c583_text) = _grounds(state)
     grounds = "\n".join(f"{k} | {t}" for k, t in [*items, (c583, c583_text)])
     _, body = prompt("determine_grounds")
+    from src.agent.rules.holding_rules import rules_block
+    rules = rules_block([k for k, _ in items] + [c583])
     out = []
     for name in _employees(state):
         cards = _cards(state, name)
         p = body.format(name=name, question=state.question, facts=fmt_facts(state), grounds=grounds,
-                        cards=_card_lines(cards))
+                        cards=_card_lines(cards), rules=rules)
         votes = [generate_json(p, GroundVote, name="determine_grounds", temperature=P("determine.temperature"),
                                seed=i, thinking="low") for i in range(P("determine.votes"))]
         out.append(combine(name, votes, [k for k, _ in items], c583, {c["key"] for c in cards}))
