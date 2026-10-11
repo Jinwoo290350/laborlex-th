@@ -27,6 +27,7 @@ class _Issues(BaseModel):
 @traced("spot_issues")
 def spot_issues(state: AgentState) -> dict:
     tax = taxonomy()
+    tax = {c: i for c, i in tax.items() if not i.get("trigger_only")}   # added by code only (e.g. minimum_wage)
     listing = "\n".join(f"{c} — {i['name']}: {i['description']}" for c, i in tax.items())
     _, body = prompt("spot_issues")
     out = generate_json(

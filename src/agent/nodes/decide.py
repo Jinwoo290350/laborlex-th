@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from decimal import Decimal
@@ -13,7 +14,7 @@ from pydantic import BaseModel, Field, create_model
 
 from src.agent.nodes.common import fmt_facts, fmt_provision, prompt, taxonomy, traced
 from src.agent.rules.elements import resolve_elements
-from src.agent.state import AgentState, ElementCheck
+from src.agent.state import AgentState, ElementCheck, IssueSel
 from src.calc import labor
 from src.config import settings
 from src.decision.base import QuestionSpec, get_decider
@@ -149,9 +150,15 @@ def check_elements(state: AgentState) -> dict:
             "_error": "; ".join(f"{f['issue']}: {f['error']}" for f in failed)}
 
 
+TENURE_ASSUMPTION = ("นับอายุงานถึงวันที่การเลิกจ้างมีผล (วันที่ในคำสั่งเลิกจ้าง) แม้โจทย์ไม่ระบุว่าลูกจ้างทำงานในวันนั้น "
+                     "เพราะวันที่นายจ้างสั่งให้หยุดงานเพื่อประโยชน์ของนายจ้างนับเป็นระยะเวลาทำงาน")
+
+
 def tenure_from_facts(f) -> labor.Tenure | None:
+    """Service from the first working day through the date the dismissal takes effect, counted by ป.พ.พ. 193/3 and
+    193/5 (docs/decisions.md #24)."""
     if f.start_date and f.end_date and f.end_date >= f.start_date:
-        return labor.Tenure.from_dates(f.start_date, f.end_date)
+        return labor.Tenure.from_service(f.start_date, f.end_date)
     if any(v is not None for v in (f.service_years, f.service_months, f.service_days)):
         return labor.Tenure.from_stated(f.service_years or 0, f.service_months or 0,
                                         f.service_days or 0)
@@ -205,13 +212,122 @@ def termination_money(f, on, book) -> labor.Termination:
     if period != "month":
         raise ValueError("ระบบคำนวณสินจ้างแทนการบอกกล่าวล่วงหน้าเฉพาะค่าจ้างรายเดือน")
     n = labor.notice_and_final_pay(f.end_date, f.pay_days, wage, daily.amount, notice_keys())
+    # docs/decisions.md #25: below the legal minimum → severance and pay in lieu of notice on the minimum wage
+    base, base_daily, base_expr, mw_steps, mw_cites = wage, daily.amount, f"{labor.baht(wage)} ÷ 30", [], []
+    chk = min_wage_status(f, wage, on, book)
+    if chk is not None and chk.below:
+        base = chk.minimum * book.get("days_per_month", on).value
+        base_daily, base_expr = chk.minimum, f"{labor.baht(chk.minimum)} (อัตราค่าจ้างขั้นต่ำต่อวัน)"
+        n_floor = labor.notice_and_final_pay(f.end_date, f.pay_days, base, base_daily, notice_keys())
+        n = labor.NoticeResult(effective=n.effective, final_period=n.final_period, notice_pay=n_floor.notice_pay)
+        mw_steps = chk.steps + [
+            (f"ค่าจ้างต่ำกว่าอัตราค่าจ้างขั้นต่ำ ซึ่งนายจ้างจ่ายต่ำกว่านั้นไม่ได้ → ค่าชดเชยและสินจ้างแทนการบอกกล่าวล่วงหน้า"
+             f"คำนวณจากอัตราค่าจ้างขั้นต่ำ เดือนละ {labor.baht(base)} บาท (ค่าจ้างงวดสุดท้ายคิดตามที่ตกลง ส่วนที่ขาดคิดในประเด็นค่าจ้างขั้นต่ำ)"),
+            "อย่างไรก็ดี คำพิพากษาศาลฎีกาที่ 2985/2527 ไม่คำนวณค่าชดเชยจากอัตราค่าจ้างขั้นต่ำเมื่อลูกจ้างมิได้เรียกร้องจากฐานนี้"]
+        mw_cites = chk.citations + [min_wage_key()]
     tenure = tenure_from_facts(f)
-    sev = (labor.severance(daily.amount, tenure, on, book, wage_expr=f"{labor.baht(wage)} ÷ 30")
-           if tenure is not None else None)
-    cites = list(dict.fromkeys(wcites + daily.citations + (sev.citations if sev else [])
+    sev = None
+    if tenure is not None:
+        sev = labor.severance(base_daily, tenure, on, book, wage_expr=base_expr)
+        if tenure.steps:
+            sev = sev.model_copy(update={"steps": tenure.steps + [TENURE_ASSUMPTION] + sev.steps
+                                         + _tenure_boundary_note(f, base_daily, base_expr, book),
+                                         "citations": tenure.citations + [service_days_key()] + sev.citations})
+    mw_steps += _housing_note(f, wage, on, book)
+    cites = list(dict.fromkeys(wcites + daily.citations + mw_cites + (sev.citations if sev else [])
                                + n.final_period.citations + n.notice_pay.citations))
     return labor.Termination(severance=sev, notice_pay=n.notice_pay, final_wage=n.final_period,
-                             effective=n.effective, wage_steps=wsteps + daily.steps, citations=cites)
+                             effective=n.effective, wage_steps=wsteps + daily.steps + mw_steps, citations=cites)
+
+
+def _tenure_boundary_note(f, daily, expr, book) -> list[str]:
+    """docs/decisions.md #24, #27: when one day less of service falls in a lower ม.118 tier, give that figure in one
+    line (the client key read the last day as not served)."""
+    from datetime import timedelta
+    end = f.end_date
+    branches = labor.severance_branches(daily, f.start_date, end - timedelta(days=1), end, book, wage_expr=expr)
+    if len(branches) < 2:
+        return []
+    alt = branches[0]
+    return [(f"หมายเหตุ: หากถือว่าการจ้างสิ้นสุดเพียงวันที่ {labor.thai_date(alt.last)} อายุงานจะเป็น {alt.tenure.days} วัน "
+             f"{alt.result.steps[-1].split('=')[0].strip()} = {labor.baht(alt.result.amount)} บาท "
+             f"(ค่าจ้างอัตราสุดท้าย {alt.result.amount / daily:.0f} วัน)")]
+
+
+HOUSING = re.compile(r"เช่าบ้าน|ที่พัก|ที่อยู่อาศัย")
+
+
+def _housing_note(f, wage, on, book) -> list[str]:
+    """docs/decisions.md #23, #27: a housing allowance treated as welfare → one line with the base if it were wage."""
+    items = [i for i in (f.pay_items or []) if i.purpose == "welfare" and HOUSING.search(i.name) and i.period == "month"]
+    if not items:
+        return []
+    alt = wage + sum(Decimal(str(i.amount)) for i in items)
+    names = " ".join(i.name for i in items)
+    return [(f"หมายเหตุ: แนวคำพิพากษาศาลฎีกาถือว่า{names}เป็นสวัสดิการ ไม่ใช่ค่าจ้าง (เช่น คำพิพากษาศาลฎีกาที่ 172/2524 "
+             f"และ 1437/2524) · หากถือว่าเป็นค่าตอบแทนการทำงาน ฐานค่าจ้างจะเป็น {labor.baht(alt)} บาทต่อเดือน")]
+
+
+def min_wage_key() -> str:
+    return key_by_text("เมื่อประกาศกำหนดอัตราค่าจ้างขั้นต่ำหรืออัตราค่าจ้างตามมาตรฐานฝีมือมีผลใช้บังคับแล้ว")
+
+
+def service_days_key() -> str:
+    return key_by_text("เพื่อประโยชน์ในการคำนวณระยะเวลาการทำงานของลูกจ้าง")
+
+
+def min_wage_status(f, wage, on, book) -> labor.MinWageCheck | None:
+    """Monthly wage vs the minimum of the workplace province; None when the province is unknown or has no rate."""
+    if not getattr(f, "workplace_province", None):
+        return None
+    try:
+        return labor.min_wage_check(wage, f.workplace_province.strip(), on, book)
+    except LookupError:
+        return None
+
+
+def min_wage_shortfall_calc(f, on, book) -> labor.CalcResult | None:
+    """Unpaid minimum wage over the whole employment, per pay period (docs/decisions.md #25, #26). Full calendar
+    months only; paid twice a month (15th and month end) → two half-month periods."""
+    wage, period, *_ = _wage(f, on, book)
+    chk = min_wage_status(f, wage, on, book)
+    if chk is None or not chk.below or period != "month" or not (f.start_date and f.end_date):
+        return None
+    import calendar
+    from datetime import date as _d
+    half = sorted(f.pay_days) == [15, 31] or sorted(f.pay_days)[:1] == [15] and len(f.pay_days) == 2
+    periods, y, m = [], f.start_date.year, f.start_date.month
+    while (y, m) <= (f.end_date.year, f.end_date.month):
+        last = calendar.monthrange(y, m)[1]
+        first_day, last_day = _d(y, m, 1), _d(y, m, last)
+        if first_day >= f.start_date and last_day <= f.end_date:      # full months only
+            if half:
+                periods += [(first_day, _d(y, m, 15), wage / 2), (_d(y, m, 16), last_day, wage / 2)]
+            else:
+                periods.append((first_day, last_day, wage))
+        y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+    if not periods:
+        return None
+    res = labor.min_wage_shortfall(periods, f.workplace_province.strip(), book)
+    return res.model_copy(update={"citations": list(dict.fromkeys(res.citations + [min_wage_key()]))})
+
+
+WITHHELD = re.compile(r"ไม่จ่าย|มิได้จ่าย|ไม่ได้จ่าย|ค้างจ่าย")
+
+
+def interest_rules(on, book) -> labor.CalcResult:
+    """ม.9 as rules (no amount: the payment date is unknown). docs/decisions.md #26."""
+    r, s_rate = book.get("interest_rate_pa", on), book.get("surcharge_rate", on)
+    grace, per = book.get("surcharge_grace_days", on), book.get("surcharge_period_days", on)
+    final = notice_keys()["final"]
+    return labor.CalcResult(amount=Decimal(0), citations=list(dict.fromkeys(
+        [r.citation_key, s_rate.citation_key, grace.citation_key, per.citation_key, final])), steps=[
+        (f"ดอกเบี้ยร้อยละ {r.value} ต่อปีระหว่างผิดนัด สำหรับเงินที่ค้างจ่าย: ค่าชดเชยครบกำหนดในวันเลิกจ้าง "
+         "ค่าจ้างและเงินอื่นที่ต้องจ่ายเมื่อเลิกจ้างครบกำหนดตามกำหนดเวลาจ่ายเมื่อเลิกจ้าง · ต่อวัน = เงินที่ค้าง × "
+         f"{r.value}% ÷ 365"),
+        (f"เงินเพิ่มร้อยละ {s_rate.value} ของเงินที่ค้างทุกระยะเวลา {per.value} วัน เมื่อพ้น {grace.value} วันนับแต่วันครบกำหนด "
+         "ใช้เฉพาะกรณีนายจ้างจงใจไม่จ่ายโดยปราศจากเหตุผลอันสมควร · นายจ้างที่โต้แย้งโดยสุจริตว่าลูกจ้างกระทำผิด "
+         "ยังไม่ถือว่าจงใจโดยปราศจากเหตุผลอันสมควร (คำพิพากษาศาลฎีกาที่ 51/2545) จึงคิดเฉพาะดอกเบี้ย")])
 
 
 def worker_views(f) -> list[tuple[str | None, Any, str | None]]:
@@ -318,8 +434,26 @@ def calculate(state: AgentState) -> dict:
             term = termination_money(views[0][1], on, book)     # the shared view (filled from workers if needed)
         except (ValueError, LookupError) as e:
             notes["termination"] = str(e)
-    return {"calcs": out, "termination": term,
-            "_summary": {"done": list(out) + (["termination"] if term else []), "skipped": notes}}
+    extra_issues = []
+    if term is not None and len(views) == 1:
+        try:
+            short = min_wage_shortfall_calc(views[0][1], on, book)
+        except (ValueError, LookupError) as e:
+            short, notes["minimum_wage"] = None, str(e)
+        if short is not None:
+            out["minimum_wage"] = short
+            if "minimum_wage" not in {i.code for i in state.issues}:
+                extra_issues.append(IssueSel(code="minimum_wage",
+                                             reason="ระบบคำนวณพบว่าค่าจ้างต่ำกว่าอัตราค่าจ้างขั้นต่ำที่ใช้บังคับในท้องที่"))
+        elif not getattr(views[0][1], "workplace_province", None):
+            notes["minimum_wage"] = "ไม่ทราบท้องที่ทำงาน จึงยังไม่เทียบกับอัตราค่าจ้างขั้นต่ำ"
+        if WITHHELD.search(state.question):
+            out["interest_m9"] = interest_rules(on, book)
+    res: dict[str, Any] = {"calcs": out, "termination": term,
+                           "_summary": {"done": list(out) + (["termination"] if term else []), "skipped": notes}}
+    if extra_issues:
+        res["issues"] = list(state.issues) + extra_issues
+    return res
 
 
 def m119_keys() -> dict[str, str]:

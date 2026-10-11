@@ -300,9 +300,11 @@ def ledger_conflicts(state: AgentState, answer: AnswerJSON) -> list:
     """Where the draft's prose disagrees with the per-employee ledger (amounts, notice per person). Deterministic."""
     if state.termination is None:
         return []
-    from src.agent.ledger import build_ledger, prose_conflicts
+    from src.agent.ledger import NUMBER, _num, build_ledger, prose_conflicts
     from src.agent.nodes.decide import m119_keys
-    return prose_conflicts(answer, build_ledger(state.termination, answer, m119_keys()), state.question)
+    extra = {_num(n) for c in state.calcs.values() for st in c.steps for n in NUMBER.findall(st)}
+    extra |= {c.amount for c in state.calcs.values()}       # other calculations (e.g. the minimum-wage shortfall)
+    return prose_conflicts(answer, build_ledger(state.termination, answer, m119_keys()), state.question, extra)
 
 
 def system_conflicts(state: AgentState, answer: AnswerJSON) -> list:

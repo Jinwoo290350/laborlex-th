@@ -1,0 +1,42 @@
+# Points where the client's answer key and case law were compared (docs/decisions.md #27).
+# policy: case_law_primary | client_primary.
+# Never sourced from test160 (Huay Khwang is not in test160, owner 2026-10-11).
+- id: CR-1
+  source: client feedback on Huay Khwang (2026-10-10)
+  point: housing allowance (fixed, paid regardless of renting) in the wage base
+  client: wage → base 11,500 (salary 10,000 + housing 1,000 + flat fuel 500)
+  case_law: welfare → base 10,500 (ฎีกา 172/2524, 2607/2541, 1437/2524, 6526/2545; no ฎีกา holds it is wage)
+  confidence_case_law: medium-high
+  policy: case_law_primary
+  answer_note: "หากถือว่าค่าเช่าบ้านเป็นค่าตอบแทนการทำงาน ฐานค่าจ้างจะเป็น 11,500 บาท"
+  decision: "#23"
+- id: CR-2
+  source: client feedback on Huay Khwang (2026-10-10)
+  point: tenure 1 Jan – dismissal order dated 31 Dec
+  client: 364 days → ม.118(1) 30-day tier
+  case_law: through the date the dismissal takes effect → one full year → 90-day tier (ร 141/2564, ฎีกา 2448/2523, ม.19, ป.พ.พ. 193/5)
+  confidence_case_law: medium-high
+  policy: case_law_primary
+  answer_note: "หากถือว่าการจ้างสิ้นสุดก่อนวันที่ 31 ธ.ค. อายุงานจะไม่ครบหนึ่งปี และค่าชดเชยเป็นค่าจ้าง 30 วัน"
+  decision: "#24"
+- id: CR-3
+  source: client feedback on Huay Khwang (2026-10-10)
+  point: flat 500 fuel allowance
+  client: wage
+  case_law: split (wage 7402-7403/2544; not wage 3934/2557, 4842/2548)
+  confidence_case_law: medium
+  policy: client_primary
+  decision: "#23"
+- id: CR-4
+  source: client feedback on Huay Khwang (2026-10-10)
+  point: ซื่อบื้อ (knew of the misconduct, did not report) → no pay in lieu of notice under ป.พ.พ. ม.583
+  client: no notice pay
+  case_law: agrees (ฎีกา 6237/2545, 2512/2545; ม.17 วรรคสี่)
+  policy: agree
+- id: CR-5
+  source: client feedback on Huay Khwang (2026-10-10)
+  point: minimum wage 400/day must be decided
+  client: decide 400 (Bangkok)
+  case_law: agrees (ม.90, ANN-WAGE14-2568)
+  policy: agree
+  decision: "#25"

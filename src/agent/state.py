@@ -61,6 +61,9 @@ class Facts(BaseModel):
                                      description="เงินทุกรายการที่นายจ้างจ่าย รวมเงินเดือน/ค่าจ้างพื้นฐาน")
     workers: list[WorkerFacts] = Field(default_factory=list,
                                        description="ลูกจ้างแต่ละคน เมื่อโจทย์ให้ค่าจ้างหรืออายุงานของแต่ละคนต่างกัน")
+    workplace_province: str | None = Field(
+        default=None, description="จังหวัดที่ตั้งสถานประกอบกิจการหรือสถานที่ทำงานของลูกจ้าง ตามที่โจทย์ระบุ "
+                                  "(เช่น กรุงเทพมหานคร) · ไม่ระบุ = null")
     parties: list[str] = Field(default_factory=list)
     key_facts: list[str] = Field(default_factory=list,
                                  description="ข้อเท็จจริงสำคัญ ทีละข้อ ตามที่โจทย์ให้มา ไม่ตีความ")

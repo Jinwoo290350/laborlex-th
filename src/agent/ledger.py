@@ -95,11 +95,11 @@ def _segments(text: str, names: list[str]) -> list[tuple[str, str]]:
     return [(n, text[pos:hits[k + 1][0] if k + 1 < len(hits) else len(text)]) for k, (pos, n) in enumerate(hits)]
 
 
-def prose_conflicts(a: AnswerJSON, led: Ledger, question: str) -> list[Conflict]:
+def prose_conflicts(a: AnswerJSON, led: Ledger, question: str, extra: set[Decimal] | None = None) -> list[Conflict]:
     """Where the drafted text disagrees with the ledger: an amount the system never computed (and the question
     never stated), or a per-person statement on pay in lieu of notice with the opposite polarity."""
     out: list[Conflict] = []
-    allowed = _allowed(led, question)
+    allowed = _allowed(led, question) | (extra or set())
     by_name = {r.name: r for r in led.employees}
     for where, text in _texts(a):
         for m in AMOUNT.finditer(text):
