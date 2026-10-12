@@ -97,6 +97,29 @@ def test_prose_notice_contradiction_is_flagged():
     assert "notice_contradicts_ledger" in kinds
 
 
+@pytest.mark.parametrize("text", [
+    # Huay Khwang P6 run (2026-10-12): both are denials, not grants
+    ("นายซื่อบื้อทำการไม่สมแก่การปฏิบัติหน้าที่ตาม ป.พ.พ. มาตรา 583 นายจ้างจึงไม่ต้องบอกกล่าวล่วงหน้าหรือจ่าย"
+     "สินจ้างแทนการบอกกล่าวล่วงหน้า"),
+    "นายซื่อบื้อเข้ามาตรา 583 → นายจ้างมีสิทธิไล่ออกทันทีโดยไม่ต้องบอกกล่าวล่วงหน้าหรือจ่ายสินจ้างแทนการบอกกล่าวล่วงหน้า",
+    "นายซื่อบื้อถูกไล่ออกโดยมิพักต้องบอกกล่าวล่วงหน้าและจ่ายสินจ้างแทนการบอกกล่าวล่วงหน้า",
+])
+def test_prose_notice_denial_phrasings_are_recognised(text):
+    from src.agent.ledger import build_ledger, prose_conflicts
+    a = _answer(EmployeeOutcome(name="นายซื่อบื้อ", m119_applies=False, ccc583_applies=True), prelim=[text])
+    led = build_ledger(_termination(), a, KEYS)
+    assert prose_conflicts(a, led, question="") == []
+
+
+def test_prose_waived_severance_does_not_deny_notice():
+    """'ไม่ต้องจ่ายค่าชดเชย แต่ต้องจ่ายสินจ้าง…' grants notice: the wider negation must not read it as a denial."""
+    from src.agent.ledger import build_ledger, prose_conflicts
+    a = _answer(EmployeeOutcome(name="นายซื่อบื้อ", m119_applies=False),
+                prelim=["นายซื่อบื้อ นายจ้างไม่ต้องจ่ายค่าชดเชย แต่ต้องจ่ายสินจ้างแทนการบอกกล่าวล่วงหน้า"])
+    led = build_ledger(_termination(), a, KEYS)
+    assert prose_conflicts(a, led, question="") == []
+
+
 def test_prose_unsupported_amount_is_flagged_but_question_amounts_pass():
     from src.agent.ledger import build_ledger, prose_conflicts
     a = _answer(EmployeeOutcome(name="นายซื่อบื้อ", m119_applies=False),
