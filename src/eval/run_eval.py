@@ -77,12 +77,15 @@ def run_one(row: dict, loo: bool, out_dir: Path, judge_kind: str = "llm") -> dic
     gold = {g for g in row.get("gold_citations", "").split(";") if g}
     # #22: a needs_review or degraded run (any trace error) is invalid: never judged, never a PASS
     invalid = status != "ok"
-    score = None
+    score, judge_err = None, None
     if md and not invalid:
-        score = (checklist_judge.judge(row, md, keys) if judge_kind == "checklist"
-                 else judge(row["question"], gold_text(row), md))
+        try:
+            score = (checklist_judge.judge(row, md, keys) if judge_kind == "checklist"
+                     else judge(row["question"], gold_text(row), md))
+        except Exception as e:  # noqa: BLE001 — a judge outage must not lose the answer or stop the batch
+            judge_err = repr(e)[:300]
     rec = {"id": row["id"], "difficulty": row.get("difficulty"), "category": row.get("category"),
-           "latency_s": round(latency, 1), "error": err, "status": status, "invalid": invalid,
+           "latency_s": round(latency, 1), "error": err, "judge_error": judge_err, "status": status, "invalid": invalid,
            "degraded": degraded, "removed_citations": removed,
            "unknown_sections": unknown, "score": score.model_dump() if score else None,
            "pass": bool(score and score.passed),
